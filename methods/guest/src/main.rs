@@ -16,7 +16,12 @@ use zkboo::verifier::{replay::OwnedFlexibleWordPairPool, verify};
 type WPP = OwnedFlexibleWordPairPool<usize>;
 
 fn main() {
-    let frame = env::read_frame();
+    // Length-prefixed frame, packed into u32 words (little-endian) for `read_slice`.
+    let frame_len: u32 = env::read();
+    let mut words = vec![0u32; (frame_len as usize).div_ceil(4)];
+    env::read_slice(&mut words);
+    let mut frame: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();
+    frame.truncate(frame_len as usize);
     let input: LiftInput = postcard::from_bytes(&frame).expect("malformed input frame");
     let circuit = HardenedChildCircuit::public_only(input.chain_code.clone(), input.index);
     let before = env::cycle_count();

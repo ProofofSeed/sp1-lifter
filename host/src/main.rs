@@ -77,8 +77,17 @@ fn main() {
             proof,
         };
         let frame = postcard::to_allocvec(&input).expect("serialize input frame");
+        // Length-prefixed frame, packed into u32 words (little-endian) for `write_slice`.
+        let mut padded = frame.clone();
+        padded.resize(frame.len().div_ceil(4) * 4, 0);
+        let words: Vec<u32> = padded
+            .chunks_exact(4)
+            .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
+            .collect();
         let env = ExecutorEnv::builder()
-            .write_frame(&frame)
+            .write(&(frame.len() as u32))
+            .expect("write frame length")
+            .write_slice(&words)
             .build()
             .expect("executor env");
         let t = Instant::now();
