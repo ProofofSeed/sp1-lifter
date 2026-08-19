@@ -23,6 +23,11 @@ fn main() {
     let mut frame: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();
     frame.truncate(frame_len as usize);
     let input: LiftInput = postcard::from_bytes(&frame).expect("malformed input frame");
+    assert_eq!(
+        input.version,
+        snark_lifter_statement::LIFT_FRAME_VERSION,
+        "input frame version mismatch"
+    );
     let circuit = HardenedChildCircuit::public_only(input.chain_code.clone(), input.index);
     let before = env::cycle_count();
     let valid = verify::<_, H, PV, S, WPP>(

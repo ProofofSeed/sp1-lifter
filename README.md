@@ -1,6 +1,6 @@
 # snark-lifter
 
-A succinct lifter for ZKBoo proofs of seed with classical (pre-quantum) security, built to be cheap to verify on Ethereum L1 today: the genuine `zkboo` Rust verifier runs as a RISC Zero zkVM guest, and the zkVM's universal Groth16 wrapper turns the verification run into a single BN254 pairing proof checkable on-chain for a few hundred thousand gas.
+A succinct lifter for ZKBoo proofs of seed with classical (pre-quantum) security, built to be cheap to verify on Ethereum L1 today: the genuine `zkboo` Rust verifier runs as a RISC Zero zkVM guest, and the plan (see `knowledge/milestones.md` for what is established so far) is to wrap the verification run via the zkVM's universal Groth16 layer into a single BN254 pairing proof checkable on-chain for a few hundred thousand gas.
 This trades the post-quantum guarantees of the companion STARK lifter for immediate deployability; the secure-element story (stage 1) is unchanged.
 
 ## Usage

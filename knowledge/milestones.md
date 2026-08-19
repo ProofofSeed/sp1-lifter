@@ -20,9 +20,11 @@ Toolchain installed (cargo-risczero 3.0.6, r0vm 3.0.6, risc0 rust 1.97.0; crates
 
 ## S1 — Full-scale guest verification and statement exposure
 
-The guest verifies a full N_ε = 219 hardened-child proof and commits to the journal: the circuit fingerprint (`zkboo-circuit-hash`), the public circuit parameters, the expected output, the binding, and the verdict.
+The guest verifies a full N_ε = 219 hardened-child proof and commits to the journal: the circuit fingerprint (`zkboo-circuit-hash`), the public circuit parameters, the expected output, the binding, **the repetition count**, and the verdict.
 
-**Acceptance:** the journal matches host-computed values, and each of tampered-proof / wrong-binding / wrong-fingerprint is rejected, with every refusal test validated by removing the corresponding check and watching the test go red.
+⚠️ The repetition count is soundness-critical, not bookkeeping: `zkboo::verify` accepts a proof with any number of responses — the empty proof verifies, and a k-response proof has soundness only (2/3)^k — so a journal without it would attest "a proof for this statement verified" at prover-chosen soundness (adversarial review finding F1, 2026-08-19). The verifier of the journal must check the count against its required N_ε (or the guest must enforce a minimum committed in the journal).
+
+**Acceptance:** the journal matches host-computed values, and each of tampered-proof / wrong-binding / wrong-fingerprint / **too-few-responses (including the empty proof)** is rejected, with every refusal test validated by removing the corresponding check and watching the test go red.
 
 ## S2 — Succinct receipt, locally
 
@@ -42,3 +44,9 @@ The Docker question for the local STARK→Groth16 wrap is resolved (accept Docke
 - The BIP-39 seed statement (58 KiB × 2048 rounds per response).
 - A minimal ERC-4337 / EIP-7702 account contract consuming the lift, with binding = userOp hash.
 - Keccak acceleration in-guest (RISC Zero's keccak syscall) if the cycle law makes it worthwhile.
+
+## Standing observations from the S0 adversarial review (2026-08-19)
+
+- The `LiftInput` frame layout depends on cargo feature unification of zkboo's word features, resolved independently in the host workspace and the guest's own workspace. The frame now carries a version tag, and the word features are pinned explicitly in `statement/Cargo.toml`; any feature change must bump `LIFT_FRAME_VERSION`.
+- `SegmentInfo::cycles` is user cycles without continuation/po2-padding overhead; S2 proving cost per segment is `2^po2`, so S2 pricing must not reuse the S0 totals as-is. `env::cycle_count()` is host-provided and unattested — `verify_cycles` must never appear in a journal as trusted data.
+- zkboo encoding malleability (no soundness impact): a response's short `and_msg` vector is zero-filled by `ResponseReplaySource::next_and_msg` without failing `check_consumed`, so distinct proof byte-encodings can verify identically. Any future milestone that hashes or dedupes proof bytes must canonicalise first.

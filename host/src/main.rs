@@ -43,6 +43,11 @@ fn main() {
         .skip(1)
         .map(|a| a.parse().expect("iteration counts must be positive integers"))
         .collect();
+    assert!(
+        iters.iter().all(|&n| n >= 1),
+        "iteration counts must be positive (zkboo accepts an empty proof as valid, \
+         so an n=0 point would be meaningless)"
+    );
     if iters.is_empty() {
         iters = vec![1, 2, 4, 8];
     }
@@ -70,6 +75,7 @@ fn main() {
             verify::<_, H, PV, S, WPP>(&circuit, &output, &proof, BINDING).expect("native verify");
         assert!(ok, "native verification failed at {n} iters");
         let input = LiftInput {
+            version: snark_lifter_statement::LIFT_FRAME_VERSION,
             chain_code: chain_code.clone(),
             index: HARDENED_OFFSET,
             expected_output: output,

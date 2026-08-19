@@ -119,6 +119,15 @@ impl Circuit for HardenedChildCircuit {
     }
 }
 
+/// Version tag of the [`LiftInput`] postcard frame.
+///
+/// Postcard is not self-describing and the layout of [`Words`] depends on which zkboo
+/// word features are enabled, which cargo resolves independently for the host workspace
+/// and the guest's own workspace. The word features are therefore pinned explicitly in
+/// this crate's manifest, and any change to them — or to the shape of [`LiftInput`] —
+/// must bump this constant.
+pub const LIFT_FRAME_VERSION: u32 = 1;
+
 /// The verification input frame passed from host to guest (postcard-encoded).
 ///
 /// Everything here is verifier-side data: the circuit's public parameters, the expected
@@ -126,6 +135,8 @@ impl Circuit for HardenedChildCircuit {
 /// hash) and the proof itself. The witness never crosses this boundary.
 #[derive(Serialize, Deserialize)]
 pub struct LiftInput {
+    /// Frame version; must equal [`LIFT_FRAME_VERSION`].
+    pub version: u32,
     /// Parent chain code (public circuit parameter).
     pub chain_code: Vec<u8>,
     /// Child index (public circuit parameter).
