@@ -1,20 +1,25 @@
 # snark-lifter
 
-A succinct lifter for ZKBoo proofs of seed with classical (pre-quantum) security, built to be cheap to verify on Ethereum L1 today: the genuine `zkboo` Rust verifier runs as a RISC Zero zkVM guest, and the plan (see `knowledge/milestones.md` for what is established so far) is to wrap the verification run via the zkVM's universal Groth16 layer into a single BN254 pairing proof checkable on-chain for a few hundred thousand gas.
+A succinct lifter for ZKBoo proofs of seed with classical (pre-quantum) security, built to be cheap to verify on Ethereum L1 today: the genuine `zkboo` Rust verifier runs as an SP1 zkVM program, and the verification run is wrapped (fully locally, via SP1's native gnark Groth16 layer — no Docker, no external service) into a single BN254 pairing proof checkable on-chain for a few hundred thousand gas.
 This trades the post-quantum guarantees of the companion STARK lifter for immediate deployability; the secure-element story (stage 1) is unchanged.
+See `knowledge/milestones.md` for what is established so far, including the recorded stack history (an initial RISC Zero implementation, superseded the same day for measured reasons).
 
 ## Usage
 
-Requires the RISC Zero toolchain (`rzup install`, pinned at cargo-risczero 3.0.6) and the local zkboo working trees at `../../zkboo` (see the `[patch.crates-io]` table in `Cargo.toml`).
+Requires the SP1 toolchain (`sp1up`; sdk 6.x with the `succinct` rust toolchain), Go (for the native gnark wrap), and the local zkboo working trees at `../../zkboo` (see the `[patch.crates-io]` table in `Cargo.toml`).
 
 ```sh
-cargo run --release -p snark-lifter-host --bin cycle-probe          # sweep 1 2 4 8
-cargo run --release -p snark-lifter-host --bin cycle-probe -- 16 32 # custom sweep
+cargo run --release -p snark-lifter-host --bin cycle-probe           # instruction-law sweep
+cargo run --release -p snark-lifter-host --bin s1-acceptance         # reject matrix + full-scale 219
+cargo run --release -p snark-lifter-host --bin s2-prove -- 219       # compressed (succinct) proof
+cargo run --release -p snark-lifter-host --bin s3-wrap -- 219        # local Groth16 wrap + Foundry fixture
+(cd verifier && forge test)                                          # on-chain verify + gas + rejects
 ```
 
 ## Structure
 
-- `statement/` — shared host/guest definitions: the proof-of-seed circuits, the fixed Keccak-256 crypto suite, and the postcard wire format.
-- `methods/` — the embedded zkVM guest (`methods/guest/`, its own cargo workspace) and its generated ELF/image id.
-- `host/` — proof generation and zkVM drivers; currently the cycle probe.
-- `knowledge/` — design record and milestone plan.
+- `statement/` — shared host/program definitions: the proof-of-seed circuits, the fixed Keccak-256 crypto suite, the postcard wire format, and the reference journal gate.
+- `program/` — the SP1 program: a thin shim around `zkboo::verifier::verify`.
+- `host/` — proof generation, execution/proving drivers, and the acceptance harnesses.
+- `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0).
+- `knowledge/` — design record, milestone plan, and measured numbers.
