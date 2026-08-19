@@ -1,19 +1,17 @@
 # On-chain verification of the lifted proof of seed.
 #
-# src/vendor holds the audited RISC Zero verifier contracts, vendored verbatim from
-# risc0-ethereum v3.0.0 (matching risc0-zkvm 3.0.6), plus the exact OpenZeppelin
-# SafeCast revision that release pins (acd4ff74). Only remappings are ours.
+# src/vendor holds the audited SP1 verifier contracts, vendored verbatim from
+# sp1-contracts v6.1.0 (matching the Groth16 circuit artifacts the SDK resolves for
+# sp1-sdk 6.4.x; VERIFIER_HASH selector 0x4388a21c) — the only edit is one relative
+# import path flattened into the vendor folder.
 
 [profile.default]
 src = "src"
 out = "out"
 test = "test"
 libs = ["lib"]
-solc = "0.8.24"
+solc = "0.8.20"
 optimizer = true
 optimizer_runs = 200
 fs_permissions = [{ access = "read", path = "fixtures" }]
-remappings = [
-    "forge-std/=lib/forge-std/src/",
-    "openzeppelin/contracts/utils/math/SafeCast.sol=src/vendor/SafeCast.sol",
-]
+remappings = ["forge-std/=lib/forge-std/src/"]
