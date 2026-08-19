@@ -1230,6 +1230,7 @@ dependencies = [
  "risc0-zkvm",
  "snark-lifter-statement",
  "zkboo",
+ "zkboo-circuit-hash",
 ]
 
 [[package]]
@@ -1525,6 +1526,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "zkboo-circuit-hash"
+version = "0.1.0"
+dependencies = [
+ "zkboo",
+]
+
+[[package]]
 name = "zkboo-ecc"
 version = "0.1.0"
 dependencies = [
@@ -1559,10 +1567,6 @@ version = "0.1.0"
 dependencies = [
  "zkboo",
 ]
-
-[[patch.unused]]
-name = "zkboo-circuit-hash"
-version = "0.1.0"
 
 [[patch.unused]]
 name = "zkboo-profiling"

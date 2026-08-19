@@ -157,5 +157,115 @@ pub struct ProbeJournal {
     /// Number of responses (repetitions) in the verified proof.
     pub num_responses: u32,
     /// Guest cycles spent inside `zkboo::verifier::verify` alone.
+    ///
+    /// Diagnostic only: `env::cycle_count` is host-provided and unattested by the zkVM
+    /// circuit, so this figure must never be treated as proven data. The lift guest's
+    /// [`LiftJournal`] deliberately carries no cycle information.
     pub verify_cycles: u64,
+}
+
+/// Version tag of the [`LiftJournal`] layout; bump on any change to its shape.
+pub const LIFT_JOURNAL_VERSION: u32 = 1;
+
+/// The journal committed by the lift guest: the complete lifted statement.
+///
+/// A receipt over this journal attests: "a ZKBoo proof with `num_responses` responses,
+/// bound to `binding`, verified under the Keccak-256 suite against the circuit whose
+/// structural fingerprint is `fingerprint` (reconstructed in-guest from the public
+/// parameters below) and against `expected_output`". The guest asserts validity before
+/// committing — a receipt only exists for accepting runs — and the `valid` field is
+/// committed as well, as a defensive belt for journal consumers.
+///
+/// ⚠️ `num_responses` is soundness-critical: the ZKBoo verifier accepts a proof with any
+/// number of responses (the empty proof included), and a k-response proof has soundness
+/// (2/3)^k, so consumers MUST check the count against their required repetition count
+/// ([`check_journal`] does).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LiftJournal {
+    /// Journal layout version; must equal [`LIFT_JOURNAL_VERSION`].
+    pub version: u32,
+    /// Whether the ZKBoo proof verified (always `true` in a committed journal).
+    pub valid: bool,
+    /// Structural fingerprint of the verified circuit, computed in-guest via
+    /// `zkboo-circuit-hash` over the circuit reconstructed from the public parameters.
+    pub fingerprint: S,
+    /// Parent chain code (public circuit parameter).
+    pub chain_code: Vec<u8>,
+    /// Child index (public circuit parameter).
+    pub index: u32,
+    /// The circuit output the proof was verified against (the derived key material).
+    pub expected_output: Words,
+    /// The challenge binding the proof was verified under (e.g. a transaction hash).
+    pub binding: Vec<u8>,
+    /// Number of responses (repetitions) in the verified proof.
+    pub num_responses: u32,
+}
+
+/// What a journal consumer requires of a [`LiftJournal`].
+pub struct JournalExpectation {
+    /// Required circuit fingerprint (computed by the consumer over the circuit built
+    /// from the public parameters it expects).
+    pub fingerprint: S,
+    /// Required parent chain code.
+    pub chain_code: Vec<u8>,
+    /// Required child index.
+    pub index: u32,
+    /// Required circuit output.
+    pub expected_output: Words,
+    /// Required challenge binding.
+    pub binding: Vec<u8>,
+    /// Minimum acceptable number of responses (e.g. `n_eps(64) == 219` for the
+    /// classical-128 target).
+    pub min_responses: u32,
+}
+
+/// Why a [`LiftJournal`] was refused by [`check_journal`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JournalCheckError {
+    /// The journal layout version is not [`LIFT_JOURNAL_VERSION`].
+    VersionMismatch,
+    /// The committed verdict is not `true`.
+    NotValid,
+    /// The in-guest circuit fingerprint differs from the required one.
+    FingerprintMismatch,
+    /// Chain code, index or expected output differ from the required statement.
+    StatementMismatch,
+    /// The binding differs from the required one.
+    BindingMismatch,
+    /// Fewer responses than the required minimum (soundness is (2/3)^k in the count;
+    /// the ZKBoo verifier itself accepts any count, the empty proof included).
+    TooFewResponses,
+}
+
+/// Checks a [`LiftJournal`] against a [`JournalExpectation`].
+///
+/// This is the reference consumer-side gate: everything a relying party must check
+/// before treating a receipt over this journal as an authorisation. The on-chain
+/// verifier contract must enforce exactly these checks.
+pub fn check_journal(
+    journal: &LiftJournal,
+    expectation: &JournalExpectation,
+) -> Result<(), JournalCheckError> {
+    if journal.version != LIFT_JOURNAL_VERSION {
+        return Err(JournalCheckError::VersionMismatch);
+    }
+    if !journal.valid {
+        return Err(JournalCheckError::NotValid);
+    }
+    if journal.fingerprint != expectation.fingerprint {
+        return Err(JournalCheckError::FingerprintMismatch);
+    }
+    if journal.chain_code != expectation.chain_code
+        || journal.index != expectation.index
+        || journal.expected_output != expectation.expected_output
+    {
+        return Err(JournalCheckError::StatementMismatch);
+    }
+    if journal.binding != expectation.binding {
+        return Err(JournalCheckError::BindingMismatch);
+    }
+    if journal.num_responses < expectation.min_responses {
+        return Err(JournalCheckError::TooFewResponses);
+    }
+    return Ok(());
 }

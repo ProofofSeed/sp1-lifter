@@ -12,7 +12,16 @@ publish = false
 risc0-zkvm = { version = "3.0.6", default-features = false, features = ["std"] }
 postcard = { version = "1.1", default-features = false, features = ["alloc"] }
 zkboo = { version = "0.1.0", features = ["keccak", "u32", "u64"] }
+zkboo-circuit-hash = { version = "0.1.0" }
 snark-lifter-statement = { path = "../../statement" }
+
+[[bin]]
+name = "probe"
+path = "src/bin/probe.rs"
+
+[[bin]]
+name = "lift"
+path = "src/bin/lift.rs"
 
 # Same table as the workspace root, from this crate's own workspace (see the root
 # Cargo.toml for why the zkboo dependencies must be redirected to the local trees).
