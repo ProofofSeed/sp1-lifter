@@ -53,6 +53,14 @@ n = 219 (classical-128): ZKBoo proving 104 ms (parallel, host-native), guest acc
 - **Metal proving requires the full-Xcode Metal shader compiler**, which is not installed (Command Line Tools only; `risc0-sys` metal build fails at `xcrun metal`). Not adopted unilaterally — a ~12 GB Xcode install is Stefano's call; the S2 acceptance (receipt verifies) does not require Metal. Flagged as the obvious speed lever if proving times matter later.
 - Segment size is tunable via `ExecutorEnv::segment_limit_po2` (s2-prove's second argument); larger segments cut the per-segment lift/join recursion count, which CPU profiling suggests dominates.
 
-### Proving measurements
+### Proving measurements and the stack switch (2026-08-19)
 
-(recorded as runs complete)
+- risc0, un-accelerated guest, n=1 (138M cycles), CPU r0vm: **>55 min, abandoned**.
+- risc0, accelerated guest, n=1 (41M cycles), in-process prover (CPU segments + Metal-recursion feature compiled in; GPU observed at 0% throughout): **aborted at 45 min 27 s, unfinished** ⇒ >150 h extrapolated at 219. The `metal` feature is vestigial for segment proving in the 3.x line: `risc0-circuit-rv32im` 4.x has only `cpu.rs`/`cuda.rs` HALs (verified at source after the GPU sat idle); only `risc0-circuit-recursion` has a Metal HAL. The Xcode/Metal-toolchain install (license + `xcodebuild -downloadComponent MetalToolchain`) predated this finding.
+- risc0's Groth16 wrap: x86-only rapidsnark, unavailable on this machine even via Docker.
+- **SP1 6.0.1, practically verified on this M4 Max:** template fibonacci core→compress→shrink→**native Groth16 wrap** (no Docker, `native-gnark`) succeeded — real EVM proof + fixture, 21.7 min wall including first-time SDK/gnark builds and artifact downloads, peak RSS 28 GB. One dependency nit: sp1-prover 6.0.1 needs `tempfile ≥ 3.20` (`TempDir::keep`), fixed by `cargo update -p tempfile`.
+- **Stefano ratified the switch to SP1** (see the amendment in `milestones.md`) with the constraint that the whole chain runs on this machine. Port record continues below.
+
+## SP1 port
+
+(in progress)
