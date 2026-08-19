@@ -63,4 +63,17 @@ n = 219 (classical-128): ZKBoo proving 104 ms (parallel, host-native), guest acc
 
 ## SP1 port
 
-(in progress)
+### S1 re-established on SP1 (2026-08-19)
+
+- Instruction law (whole-program, includes decode + fingerprint): **`≈ 3.09e7 + 2.635e7 × n`** ⇒ **5.80e9 @ 219** (measured full-scale: 5 801 478 472, matching the law; executor wall 37.4 s). 35% below the risc0-accelerated figure — the SP1 Keccak precompile plus the 64-bit RISC-V target (native u64 ops for the replay).
+- Seven-way reject matrix green with named refusers; all four distinct refusers re-validated by check removal on the SP1 build.
+- **SP1 semantic handled explicitly:** panicked executions return `Ok` from the executor with a non-zero exit code and are *provable* under a non-success status. Refusals therefore commit a diagnostic tag naming the refuser before panicking; `execute_lift` enforces exit 0; `client.verify(..., None)` requires success; and the v6.1.0 on-chain verifier enforces `exitCode == 0` itself (`InvalidExitCode`). Success-status is part of every gate layer.
+
+### S2 proving law (compressed, CPU, this machine, 2026-08-19)
+
+| n | proving wall | peak RSS | proof size |
+|---|---|---|---|
+| 1 | 325.0 s | 107.4 GB | 1 272 754 B |
+| 8 | 1 162.5 s | 109.6 GB | 1 272 754 B |
+
+**Law: `≈ 205 s + 119.6 s × n` ⇒ full 219 ≈ 7.3 h.** Marginal rate consistent across both points (~210 kHz effective). **Memory is scale-independent** (phase-oscillating 37–110 GB band at both n) and the compressed proof is constant-size — the succinct property, delivered. The S3 Groth16 pipeline re-runs core+compress internally (~same cost) plus shrink+wrap (template-measured ~minutes at ≤28 GB); the two full-scale runs must be strictly sequential (each peaks ~110 GB of the 137 GB).

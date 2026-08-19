@@ -16,17 +16,19 @@ import {Verifier} from "../src/vendor/Groth16Verifier.sol";
 /// proof, a wrong verifying key, and wrong public values (each refused by the Groth16
 /// pairing check, `ProofInvalid`), plus a wrong selector (`WrongVerifierSelector`).
 contract LiftGroth16Test is Test {
-    string internal constant FIXTURE = "fixtures/lift-219.onchain.json";
-
     SP1Verifier internal verifier;
     bytes32 internal vkey;
     bytes internal publicValues;
     bytes internal proofBytes;
 
     function setUp() public {
+        // LIFT_FIXTURE overrides the fixture path (e.g. a small-n smoke fixture); the
+        // default is the full classical-128 acceptance fixture.
+        string memory fixture =
+            vm.envOr("LIFT_FIXTURE", string("fixtures/lift-219.onchain.json"));
         verifier = new SP1Verifier();
-        vm.skip(!vm.isFile(FIXTURE));
-        string memory json = vm.readFile(FIXTURE);
+        vm.skip(!vm.isFile(fixture));
+        string memory json = vm.readFile(fixture);
         vkey = vm.parseJsonBytes32(json, ".vkey");
         publicValues = vm.parseJsonBytes(json, ".publicValues");
         proofBytes = vm.parseJsonBytes(json, ".proof");
