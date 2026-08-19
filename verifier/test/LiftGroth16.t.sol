@@ -11,10 +11,19 @@ import {Verifier} from "../src/vendor/Groth16Verifier.sol";
 /// host (`s3-wrap`, fully local native-gnark wrap): the verifying-key hash, the public
 /// values (the postcard-encoded lift journal), and the EVM proof bytes.
 ///
-/// The positive case measures gas for the exact call a relying contract would make:
-/// `verifyProof(vkey, publicValues, proofBytes)`. The reject matrix covers a corrupted
-/// proof, a wrong verifying key, and wrong public values (each refused by the Groth16
-/// pairing check, `ProofInvalid`), plus a wrong selector (`WrongVerifierSelector`).
+/// The positive case measures gas for the proof-verification call a relying contract
+/// would make: `verifyProof(vkey, publicValues, proofBytes)`. The reject matrix covers
+/// a corrupted proof, a wrong verifying key, and wrong public values (each refused by
+/// the Groth16 pairing check, `ProofInvalid`), plus a wrong selector
+/// (`WrongVerifierSelector`).
+///
+/// ⚠️ `verifyProof` alone is NOT an authorisation. It establishes only "this program,
+/// identified by `vkey`, ran successfully and committed these public values". A relying
+/// contract must additionally decode the public values (the postcard-encoded lift
+/// journal) and enforce the reference consumer gate — fingerprint, statement, binding,
+/// and the soundness-critical minimum response count — exactly as `check_journal` in
+/// the statement crate specifies. Omitting the count check alone re-opens acceptance of
+/// proofs at prover-chosen soundness (the ZKBoo verifier accepts even the empty proof).
 contract LiftGroth16Test is Test {
     SP1Verifier internal verifier;
     bytes32 internal vkey;
@@ -23,11 +32,18 @@ contract LiftGroth16Test is Test {
 
     function setUp() public {
         // LIFT_FIXTURE overrides the fixture path (e.g. a small-n smoke fixture); the
-        // default is the full classical-128 acceptance fixture.
+        // default is the full classical-128 acceptance fixture. A missing fixture only
+        // SKIPS when the default path is used implicitly (pre-acceptance compile runs);
+        // an explicitly requested fixture that is absent is a hard failure, so an
+        // acceptance invocation can never pass vacuously.
         string memory fixture =
             vm.envOr("LIFT_FIXTURE", string("fixtures/lift-219.onchain.json"));
+        bool explicitFixture = bytes(vm.envOr("LIFT_FIXTURE", string(""))).length != 0;
         verifier = new SP1Verifier();
-        vm.skip(!vm.isFile(fixture));
+        if (!vm.isFile(fixture)) {
+            require(!explicitFixture, "LIFT_FIXTURE set but the file does not exist");
+            vm.skip(true);
+        }
         string memory json = vm.readFile(fixture);
         vkey = vm.parseJsonBytes32(json, ".vkey");
         publicValues = vm.parseJsonBytes(json, ".publicValues");

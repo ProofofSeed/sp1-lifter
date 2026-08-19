@@ -80,6 +80,15 @@ n = 219 (classical-128): ZKBoo proving 104 ms (parallel, host-native), guest acc
 
 **Standing constraint (Stefano, 2026-08-19): use at most ~75% of the machine's CPU** — all proving/build invocations run with `RAYON_NUM_THREADS=12` and `GOMAXPROCS=12` (16-core machine; observed holding at ~1120% of the ~1200% ceiling). Scales the full-scale estimates by ~4/3: **~9.8 h per full 219 run, ~20 h for the sequential S2+S3 chain.**
 
+### Adversarial review of the SP1 port (2026-08-19): NO soundness defects
+
+The reviewer verified in SDK/executor/contract **source** (not doc comments): `verify(..., None)` defaults to requiring SUCCESS and the exit code is pairing-bound public input, not a claim; refusal tags cannot postcard-decode as journals (version byte 0x52≠1, and the `valid` bool byte is strict); the program has no commit-then-continue path; the workspace-wide tiny-keccak fork is byte-identical to upstream on host targets (genuine Keccak-256 for native verify + fingerprints); vendored contracts match sp1-contracts v6.1.0 verbatim except the one flattened import; sdk 6.4.0 ⇔ circuit v6.1.0 ⇔ fixture selector all self-consistent. Six low/info findings; acted on immediately (verifier-side only, keeping the program ELF/vkey frozen while the full-scale chain runs):
+
+- **Fixed — vacuous skip:** an explicitly set `LIFT_FIXTURE` that is missing now hard-fails; only the implicit default skips. Acceptance invocations always pass the fixture explicitly.
+- **Fixed — "verifyProof is not an authorisation":** the Foundry suite header now states the relying-contract obligation (decode journal + full `check_journal` gate, count included).
+
+**Deferred to the post-chain close-out** (info-level; touching them now would dirty the cargo graph mid-run): exact-length postcard decoding (`take_from_bytes` + empty remainder) in `decode_journal` and any future Solidity decoder; never migrate the `exit_code != 0` gate to an equality test (shard exit codes merge by OR); remove the risc0-era `ProbeJournal` and stale frame-version rationale from the statement crate; comment that refusal-tag needles are satisfied by both tag and panic message. NOT-CHECKED by the review: the ~500-line Groth16 pairing assembly body (VK constants diffed only), SP1's own attested circuit surface, and no re-execution of anything (machine constraint).
+
 ### S3 smoke, end-to-end on a real proof (n=1, 2026-08-19)
 
 The full local chain works: `s3-wrap 1` (core→compress→shrink→**native Groth16 wrap**, 512 s at 12 cores, peak 104 GB) produced a 356-byte EVM proof + 185-byte public values (the postcard journal), passing the relying-party gate; the Foundry suite on that fixture: **5/5 PASS, `verifyProof` = 270 441 gas**, rejects green (corrupted proof / wrong vkey / wrong public values → `ProofInvalid`; wrong selector → `WrongVerifierSelector`; the corrupted-proof case's reported gas is a cheatcode accounting artifact of the reverted pairing frame, not a real cost). The wrapped proof is constant-size and the journal layout is n-independent, so the full-scale gas will match this figure up to a few bytes of varint.
