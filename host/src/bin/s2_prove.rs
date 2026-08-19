@@ -14,9 +14,11 @@
 use std::time::Instant;
 
 use risc0_zkvm::{ProverOpts, default_prover};
-use snark_lifter_host::{bip32_vector_1, expectation_for, guest_env, lift_input_for, vector_1_proof};
+use snark_lifter_host::{
+    bip32_vector_1, check_lifted_receipt, expectation_for, guest_env, lift_input_for,
+    vector_1_proof,
+};
 use snark_lifter_methods::{LIFT_ELF, LIFT_ID};
-use snark_lifter_statement::{LiftJournal, check_journal};
 use zkboo::params::n_eps;
 use zkboo_bip32::HARDENED_OFFSET;
 
@@ -52,12 +54,12 @@ fn main() {
 
     let receipt = info.receipt;
     let t = Instant::now();
-    receipt.verify(LIFT_ID).expect("receipt verification");
-    println!("  receipt verified against the lift image id in {:.2?}", t.elapsed());
-    let journal: LiftJournal = receipt.journal.decode().expect("journal decode");
-    check_journal(&journal, &expectation_for(&input, n as u32)).expect("consumer gate");
+    let journal =
+        check_lifted_receipt(&receipt, LIFT_ID, &expectation_for(&input, n as u32))
+            .expect("lifted-receipt gate");
+    println!("  receipt verified + journal gate passed in {:.2?}", t.elapsed());
     assert_eq!(journal.num_responses, n as u32);
-    println!("  journal passes the consumer gate ({} responses)", journal.num_responses);
+    println!("  lifted statement: {} responses", journal.num_responses);
 
     let bytes = bincode::serialize(&receipt).expect("serialize receipt");
     std::fs::create_dir_all("fixtures").expect("fixtures dir");

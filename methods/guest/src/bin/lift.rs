@@ -47,6 +47,6 @@ fn main() {
         index: input.index,
         expected_output: input.expected_output,
         binding: input.binding,
-        num_responses: input.proof.len() as u32,
+        num_responses: input.proof.len().try_into().expect("response count exceeds u32"),
     });
 }

@@ -142,6 +142,14 @@ fn main() {
             &exp,
             JournalCheckError::StatementMismatch,
         );
+
+        // R7: structurally malformed response (oversized AND-message vector) — refused
+        // by the replay shape check, surfacing as a view-replay error. Fail-closed: no
+        // receipt can exist for it.
+        let mut malformed = proof.clone();
+        malformed[5] = snark_lifter_host::oversize_and_msg(&malformed[5]);
+        let input_malformed = lift_input(chain_code.clone(), output.clone(), BINDING, malformed);
+        expect_guest_refusal("R7 malformed response", &input_malformed, "view replay error");
         println!("reject matrix: PASS");
         println!();
     }

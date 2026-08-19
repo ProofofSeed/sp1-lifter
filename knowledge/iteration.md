@@ -28,8 +28,17 @@ All six rejects pass via their named refuser, and each distinct refuser was vali
 | R4 too few responses (8 < 219) | `check_journal` TooFewResponses | ✓ |
 | R5 empty proof (ZKBoo accepts it by design) | `check_journal` TooFewResponses | (shares R4's refuser) |
 | R6 wrong statement (expected output) | `check_journal` StatementMismatch | ✓ |
+| R7 malformed response (oversized AND-message) | replay shape check ("view replay error") | (fail-closed by construction; added post-review) |
 
 Control case (n=8, matching expectation) accepted throughout.
+
+### Adversarial review (2026-08-19) and remediation
+
+Core soundness confirmed by the reviewer: the fingerprint binds chain code AND index (both enter as constant gates whose *values* the circuit hash ingests, while witness inputs contribute type only); the statement is doubly bound (fingerprint + the global Fiat-Shamir challenge check); `min_responses` as ≥ is right (soundness is monotone in the count, and extra responses cannot be junk — each must match its position in the deterministic challenge sequence); malformed responses all fail closed. Findings acted on:
+
+- **F1 (med-high, interface):** the journal cannot identify the crypto suite or circuit family — only the guest **image id** binds those. `check_journal` now documents receipt-verification-against-the-expected-image-id as a mandatory precondition, and `check_lifted_receipt` (host lib) fuses receipt verify + decode + gate; fixture consumers must use it (F5). The on-chain verifier takes the image id as an explicit argument, consistently.
+- **F2 (low):** malformed-response handling was untested — added R7 (oversized AND-message vector → view-replay shape error, fail-closed). ⚠️ Upstream note for zkboo: `Party` deserializes without mod-3 validation; out-of-range challenges reach an `unreachable!()` in the replay backend (a panic, so fail-closed, but worth validating on deserialize).
+- **F3 (low):** the journal's response count cast is now a checked `try_into`.
 
 ### Full-scale positive run (2026-08-19)
 

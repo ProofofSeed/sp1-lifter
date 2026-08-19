@@ -239,9 +239,18 @@ pub enum JournalCheckError {
 
 /// Checks a [`LiftJournal`] against a [`JournalExpectation`].
 ///
-/// This is the reference consumer-side gate: everything a relying party must check
-/// before treating a receipt over this journal as an authorisation. The on-chain
-/// verifier contract must enforce exactly these checks.
+/// ⚠️ **Mandatory precondition: the receipt carrying this journal must first be verified
+/// against the expected guest image id.** The journal alone does not identify the crypto
+/// suite (`H`/`PV`/`S`) or the circuit family — those are fixed at guest compile time and
+/// bound only by the image id, so a variant guest (weaker hash, different circuit, lower
+/// standards) could commit an identical-shaped journal. This function checks the journal
+/// *contents* only; the host-side `check_lifted_receipt` helper fuses the two steps, and
+/// the on-chain verifier receives the image id as an explicit argument for the same
+/// reason.
+///
+/// Given that precondition, this is the reference consumer-side gate: everything a
+/// relying party must additionally check before treating a receipt over this journal as
+/// an authorisation. The on-chain verifier contract must enforce exactly these checks.
 pub fn check_journal(
     journal: &LiftJournal,
     expectation: &JournalExpectation,

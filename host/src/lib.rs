@@ -117,6 +117,28 @@ pub fn expectation_for(
     };
 }
 
+/// The complete relying-party gate over a lifted receipt: verifies the receipt against
+/// the expected guest image id (which alone binds the crypto suite and circuit family),
+/// decodes the journal, and passes it through [`check_journal`]. Consumers of on-disk
+/// receipt fixtures must use this — never trust a stored receipt or decode its journal
+/// blindly.
+pub fn check_lifted_receipt(
+    receipt: &risc0_zkvm::Receipt,
+    image_id: [u32; 8],
+    expectation: &snark_lifter_statement::JournalExpectation,
+) -> Result<snark_lifter_statement::LiftJournal, String> {
+    receipt
+        .verify(image_id)
+        .map_err(|e| format!("receipt verification failed: {e:#}"))?;
+    let journal: snark_lifter_statement::LiftJournal = receipt
+        .journal
+        .decode()
+        .map_err(|e| format!("journal decode failed: {e:#}"))?;
+    snark_lifter_statement::check_journal(&journal, expectation)
+        .map_err(|e| format!("journal gate refused: {e:?}"))?;
+    return Ok(journal);
+}
+
 /// Returns a copy of `response` with one bit of its AND-message payload flipped — a
 /// minimal structured tamper for refusal tests.
 pub fn tamper_and_msg(response: &Response<S, S>) -> Response<S, S> {
@@ -128,6 +150,32 @@ pub fn tamper_and_msg(response: &Response<S, S>) -> Response<S, S> {
     } else {
         msg.u8[0] ^= 1;
     }
+    let seeds = response.seeds();
+    let digest = *response.commitment_digest_unopened();
+    return match response.challenge().index() {
+        0 => Response::new_0(*seeds[0], *seeds[1], digest, msg),
+        1 => Response::new_1(
+            digest,
+            *seeds[0],
+            *seeds[1],
+            msg,
+            response.input_share_2().unwrap().clone(),
+        ),
+        _ => Response::new_2(
+            *seeds[1],
+            digest,
+            *seeds[0],
+            msg,
+            response.input_share_2().unwrap().clone(),
+        ),
+    };
+}
+
+/// Returns a copy of `response` with one extra word appended to its AND-message payload —
+/// a structurally malformed response (shape mismatch) for refusal tests.
+pub fn oversize_and_msg(response: &Response<S, S>) -> Response<S, S> {
+    let mut msg = response.and_msg_next_party().clone();
+    msg.u64.push(0);
     let seeds = response.seeds();
     let digest = *response.commitment_digest_unopened();
     return match response.challenge().index() {
