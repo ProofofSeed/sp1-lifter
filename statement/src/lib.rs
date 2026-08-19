@@ -172,8 +172,11 @@ pub const LIFT_JOURNAL_VERSION: u32 = 1;
 /// A receipt over this journal attests: "a ZKBoo proof with `num_responses` responses,
 /// bound to `binding`, verified under the Keccak-256 suite against the circuit whose
 /// structural fingerprint is `fingerprint` (reconstructed in-guest from the public
-/// parameters below) and against `expected_output`". The guest asserts validity before
-/// committing — a receipt only exists for accepting runs — and the `valid` field is
+/// parameters below) and against `expected_output`". The guest refuses (panics) before
+/// committing the journal on any rejecting run; under SP1 a failed execution is still
+/// provable but verifies only with an explicit non-success status, which the
+/// relying-party gate never grants — so a proof verifying at SUCCESS status only
+/// exists for accepting runs — and the `valid` field is
 /// committed as well, as a defensive belt for journal consumers.
 ///
 /// ⚠️ `num_responses` is soundness-critical: the ZKBoo verifier accepts a proof with any

@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 //! Shared host-side helpers for the SNARK lifter: the development statement fixture,
-//! the guest input framing, and executor drivers.
+//! the program input framing, and SP1 execution/verification drivers.
 
-use risc0_zkvm::{ExecutorEnv, SessionInfo, default_executor};
+use sp1_sdk::{
+    Elf, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey,
+    blocking::{EnvProver, Prover, ProverClient},
+    include_elf,
+};
 use snark_lifter_statement::{H, HardenedChildCircuit, LiftInput, PS, PV, S};
 use zkboo::{
     executor::{OwnedFlexibleWordPool, exec},
@@ -12,6 +16,9 @@ use zkboo::{
     word::Words,
 };
 pub use zkboo_bip32::HARDENED_OFFSET;
+
+/// The lift program ELF, built by `sp1-build` from `program/`.
+pub const LIFT_ELF: Elf = include_elf!("snark-lifter-program");
 
 /// Executor-side word pool.
 pub type WP = OwnedFlexibleWordPool<usize>;
@@ -52,47 +59,6 @@ pub fn vector_1_proof(
     return (circuit, output, proof);
 }
 
-/// Packs a [`LiftInput`] into the guest's length-prefixed little-endian u32-word frame.
-pub fn pack_frame(input: &LiftInput) -> (u32, Vec<u32>) {
-    let frame = postcard::to_allocvec(input).expect("serialize input frame");
-    let mut padded = frame.clone();
-    padded.resize(frame.len().div_ceil(4) * 4, 0);
-    let words: Vec<u32> = padded
-        .chunks_exact(4)
-        .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
-        .collect();
-    return (frame.len() as u32, words);
-}
-
-/// Builds the executor environment carrying the packed [`LiftInput`] frame.
-pub fn guest_env(input: &LiftInput) -> Result<ExecutorEnv<'static>, String> {
-    return guest_env_po2(input, None);
-}
-
-/// [`guest_env`] with an optional segment size limit (log2 of cycles per segment).
-pub fn guest_env_po2(
-    input: &LiftInput,
-    segment_limit_po2: Option<u32>,
-) -> Result<ExecutorEnv<'static>, String> {
-    let (frame_len, words) = pack_frame(input);
-    let mut builder = ExecutorEnv::builder();
-    builder
-        .write(&frame_len)
-        .map_err(|e| format!("{e:#}"))?
-        .write_slice(&words);
-    if let Some(po2) = segment_limit_po2 {
-        builder.segment_limit_po2(po2);
-    }
-    return builder.build().map_err(|e| format!("{e:#}"));
-}
-
-/// Runs the given guest ELF on the input in the RISC Zero executor (no proving).
-pub fn run_guest(elf: &[u8], input: &LiftInput) -> Result<SessionInfo, String> {
-    return default_executor()
-        .execute(guest_env(input)?, elf)
-        .map_err(|e| format!("{e:#}"));
-}
-
 /// Assembles a [`LiftInput`] frame for the hardened-child statement.
 pub fn lift_input_for(
     chain_code: Vec<u8>,
@@ -109,6 +75,14 @@ pub fn lift_input_for(
         binding: binding.to_vec(),
         proof,
     };
+}
+
+/// Builds the program stdin carrying the postcard-encoded [`LiftInput`] frame.
+pub fn lift_stdin(input: &LiftInput) -> SP1Stdin {
+    let frame = postcard::to_allocvec(input).expect("serialize input frame");
+    let mut stdin = SP1Stdin::new();
+    stdin.write_vec(frame);
+    return stdin;
 }
 
 /// The reference consumer expectation matching a [`LiftInput`], with the fingerprint
@@ -128,23 +102,52 @@ pub fn expectation_for(
     };
 }
 
-/// The complete relying-party gate over a lifted receipt: verifies the receipt against
-/// the expected guest image id (which alone binds the crypto suite and circuit family),
-/// decodes the journal, and passes it through [`check_journal`]. Consumers of on-disk
-/// receipt fixtures must use this — never trust a stored receipt or decode its journal
-/// blindly.
-pub fn check_lifted_receipt(
-    receipt: &risc0_zkvm::Receipt,
-    image_id: [u32; 8],
+/// Decodes the program's committed public values into a [`LiftJournal`].
+pub fn decode_journal(public_values: &[u8]) -> Result<snark_lifter_statement::LiftJournal, String> {
+    return postcard::from_bytes(public_values)
+        .map_err(|e| format!("journal decode failed: {e}"));
+}
+
+/// Executes the lift program on the input, enforcing a SUCCESS exit.
+///
+/// SP1 reports panicked executions as `Ok` with a non-zero exit code (they are even
+/// provable, under an explicit non-success status), so success must be checked
+/// explicitly. On a refusal, the program commits a diagnostic tag as its public
+/// values; that tag becomes the error string here, naming the refuser.
+pub fn execute_lift(
+    client: &EnvProver,
+    input: &LiftInput,
+) -> Result<(snark_lifter_statement::LiftJournal, sp1_sdk::ExecutionReport), String> {
+    let (public_values, report) = client
+        .execute(LIFT_ELF, lift_stdin(input))
+        .run()
+        .map_err(|e| format!("{e:#}"))?;
+    if report.exit_code != 0 {
+        return Err(format!(
+            "program refused (exit code {}): {}",
+            report.exit_code,
+            String::from_utf8_lossy(public_values.as_slice()),
+        ));
+    }
+    let journal = decode_journal(public_values.as_slice())?;
+    return Ok((journal, report));
+}
+
+/// The complete relying-party gate over a lifted SP1 proof: verifies the proof against
+/// the expected verifying key (which alone binds the crypto suite and circuit family —
+/// the image-id analogue), decodes the journal from the public values, and passes it
+/// through `check_journal`. Consumers of on-disk proof fixtures must use this — never
+/// trust a stored proof or decode its public values blindly.
+pub fn check_lifted_proof(
+    client: &EnvProver,
+    proof: &SP1ProofWithPublicValues,
+    vk: &SP1VerifyingKey,
     expectation: &snark_lifter_statement::JournalExpectation,
 ) -> Result<snark_lifter_statement::LiftJournal, String> {
-    receipt
-        .verify(image_id)
-        .map_err(|e| format!("receipt verification failed: {e:#}"))?;
-    let journal: snark_lifter_statement::LiftJournal = receipt
-        .journal
-        .decode()
-        .map_err(|e| format!("journal decode failed: {e:#}"))?;
+    client
+        .verify(proof, vk, None)
+        .map_err(|e| format!("proof verification failed: {e:#}"))?;
+    let journal = decode_journal(proof.public_values.as_slice())?;
     snark_lifter_statement::check_journal(&journal, expectation)
         .map_err(|e| format!("journal gate refused: {e:?}"))?;
     return Ok(journal);
@@ -161,25 +164,7 @@ pub fn tamper_and_msg(response: &Response<S, S>) -> Response<S, S> {
     } else {
         msg.u8[0] ^= 1;
     }
-    let seeds = response.seeds();
-    let digest = *response.commitment_digest_unopened();
-    return match response.challenge().index() {
-        0 => Response::new_0(*seeds[0], *seeds[1], digest, msg),
-        1 => Response::new_1(
-            digest,
-            *seeds[0],
-            *seeds[1],
-            msg,
-            response.input_share_2().unwrap().clone(),
-        ),
-        _ => Response::new_2(
-            *seeds[1],
-            digest,
-            *seeds[0],
-            msg,
-            response.input_share_2().unwrap().clone(),
-        ),
-    };
+    return rebuild_response(response, msg);
 }
 
 /// Returns a copy of `response` with one extra word appended to its AND-message payload —
@@ -187,6 +172,10 @@ pub fn tamper_and_msg(response: &Response<S, S>) -> Response<S, S> {
 pub fn oversize_and_msg(response: &Response<S, S>) -> Response<S, S> {
     let mut msg = response.and_msg_next_party().clone();
     msg.u64.push(0);
+    return rebuild_response(response, msg);
+}
+
+fn rebuild_response(response: &Response<S, S>, msg: Words) -> Response<S, S> {
     let seeds = response.seeds();
     let digest = *response.commitment_digest_unopened();
     return match response.challenge().index() {

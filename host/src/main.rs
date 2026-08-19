@@ -1,20 +1,25 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-//! Cycle probe for the SNARK-lifter guest.
+//! Cycle probe for the SNARK-lifter program.
 //!
 //! Generates genuine BIP-32 hardened-child proofs of seed at a sweep of repetition
-//! counts, verifies each natively as a sanity check, then runs the probe guest on each
-//! inside the RISC Zero executor (execution only, no proving) and reports the measured
-//! guest cycles. A least-squares linear fit over the sweep extrapolates the full-scale
-//! verification cost at the classical-128 (219) and PQ-128 (438) repetition counts.
+//! counts, verifies each natively as a sanity check, then executes the lift program on
+//! each in the SP1 executor (no proving) and reports the executed instruction counts.
+//! A least-squares linear fit over the sweep extrapolates the full-scale cost at the
+//! classical-128 (219) and PQ-128 (438) repetition counts.
+//!
+//! Unlike the earlier in-guest cycle bracket, SP1 reports whole-program counts, so the
+//! law includes frame decode and the fingerprint pass (a few percent at full scale).
 //!
 //! Usage: `cycle-probe [iters...]` (default sweep: 1 2 4 8).
 
 use std::time::Instant;
 
-use snark_lifter_host::{HARDENED_OFFSET, WPP, bip32_vector_1, run_guest, vector_1_proof};
-use snark_lifter_methods::PROBE_ELF;
-use snark_lifter_statement::{H, LIFT_FRAME_VERSION, LiftInput, PV, ProbeJournal, S};
+use sp1_sdk::blocking::{Prover, ProverClient};
+use snark_lifter_host::{
+    HARDENED_OFFSET, WPP, bip32_vector_1, execute_lift, lift_input_for, vector_1_proof,
+};
+use snark_lifter_statement::{H, PV, S};
 use zkboo::{params::n_eps, verifier::verify};
 
 const SEED_ENTROPY: &[u8] = b"snark-lifter cycle probe entropy";
@@ -35,8 +40,7 @@ fn main() {
     }
 
     println!("statement: BIP-32 hardened child (test vector 1, m/0H), Keccak-256 suite");
-    println!("guest ELF: {} bytes", PROBE_ELF.len());
-    println!();
+    let client = ProverClient::from_env();
 
     let mut points: Vec<(f64, f64)> = Vec::new();
     for &n in &iters {
@@ -47,27 +51,17 @@ fn main() {
             verify::<_, H, PV, S, WPP>(&circuit, &output, &proof, BINDING).expect("native verify");
         assert!(ok, "native verification failed at {n} iters");
         let (_, chain_code) = bip32_vector_1();
-        let input = LiftInput {
-            version: LIFT_FRAME_VERSION,
-            chain_code,
-            index: HARDENED_OFFSET,
-            expected_output: output,
-            binding: BINDING.to_vec(),
-            proof,
-        };
+        let input = lift_input_for(chain_code, HARDENED_OFFSET, output, BINDING, proof);
         let t = Instant::now();
-        let session = run_guest(PROBE_ELF, &input).expect("guest execution");
+        let (journal, report) = execute_lift(&client, &input).expect("program execution");
         let wall = t.elapsed();
-        let journal: ProbeJournal = session.journal.decode().expect("journal decode");
-        assert!(journal.valid, "guest verification failed at {n} iters");
+        assert!(journal.valid, "program verification failed at {n} iters");
         assert_eq!(journal.num_responses as usize, n, "response count mismatch");
-        let total_cycles: u64 = session.segments.iter().map(|s| s.cycles as u64).sum();
+        let cycles = report.total_instruction_count();
         println!(
-            "n={n:>3}  prove {prove_time:>8.2?}  exec {wall:>8.2?}  \
-             verify {:>12} cycles  total {:>12} cycles",
-            journal.verify_cycles, total_cycles,
+            "n={n:>3}  prove {prove_time:>8.2?}  exec {wall:>8.2?}  {cycles:>12} instructions"
         );
-        points.push((n as f64, journal.verify_cycles as f64));
+        points.push((n as f64, cycles as f64));
     }
 
     if points.len() >= 2 {
@@ -79,10 +73,10 @@ fn main() {
         let slope = (k * sxy - sx * sy) / (k * sxx - sx * sx);
         let intercept = (sy - slope * sx) / k;
         println!();
-        println!("fitted law: verify_cycles ≈ {intercept:.3e} + {slope:.3e} × n_responses");
+        println!("fitted law: instructions ≈ {intercept:.3e} + {slope:.3e} × n_responses");
         for (label, target) in [("classical-128", n_eps(64)), ("PQ-128", n_eps(128))] {
             let cycles = intercept + slope * target as f64;
-            println!("  extrapolated @ {label} ({target} responses): {cycles:.3e} cycles");
+            println!("  extrapolated @ {label} ({target} responses): {cycles:.3e}");
         }
     }
 }

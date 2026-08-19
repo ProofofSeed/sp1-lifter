@@ -1,0 +1,14 @@
+[package]
+name = "snark-lifter-program"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "zkVM program: verifies a ZKBoo proof of seed inside SP1."
+publish = false
+
+[dependencies]
+sp1-zkvm = { version = "6.0.1" }
+postcard = { version = "1.1", default-features = false, features = ["alloc"] }
+zkboo = { version = "0.1.0", features = ["keccak", "u32", "u64"] }
+zkboo-circuit-hash = { version = "0.1.0" }
+snark-lifter-statement = { path = "../statement" }
