@@ -8,15 +8,15 @@
 //! journal through the reference consumer gate, and writes the receipt to `fixtures/`
 //! for the Groth16 wrap stage.
 //!
-//! Usage: `s2-prove [n]` (default 219, the classical-128 count). Run small counts first
-//! to measure throughput before committing to the full run.
+//! Usage: `s2-prove [n] [po2]` (default n=219, the classical-128 count; po2 = optional
+//! segment size limit, log2 cycles per segment, prover default when omitted). Run small
+//! counts first to measure throughput before committing to the full run.
 
 use std::time::Instant;
 
 use risc0_zkvm::{ProverOpts, default_prover};
 use snark_lifter_host::{
-    bip32_vector_1, check_lifted_receipt, expectation_for, guest_env, lift_input_for,
-    vector_1_proof,
+    bip32_vector_1, check_lifted_receipt, expectation_for, lift_input_for, vector_1_proof,
 };
 use snark_lifter_methods::{LIFT_ELF, LIFT_ID};
 use zkboo::params::n_eps;
@@ -31,15 +31,18 @@ fn main() {
         .map(|a| a.parse().expect("repetition count must be a positive integer"))
         .unwrap_or_else(|| n_eps(64));
     assert!(n >= 1, "repetition count must be positive");
+    let po2: Option<u32> = std::env::args()
+        .nth(2)
+        .map(|a| a.parse().expect("po2 must be an integer"));
 
-    println!("── succinct proving run (n={n}) ──");
+    println!("── succinct proving run (n={n}, segment po2 {po2:?}) ──");
     let t = Instant::now();
     let (_, output, proof) = vector_1_proof(n, SEED_ENTROPY, BINDING);
     println!("  proved {n} ZKBoo responses in {:.2?}", t.elapsed());
     let (_, chain_code) = bip32_vector_1();
     let input = lift_input_for(chain_code, HARDENED_OFFSET, output, BINDING, proof);
 
-    let env = guest_env(&input).expect("guest env");
+    let env = snark_lifter_host::guest_env_po2(&input, po2).expect("guest env");
     let opts = ProverOpts::succinct();
     let t = Instant::now();
     let info = default_prover()

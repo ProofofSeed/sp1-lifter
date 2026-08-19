@@ -66,13 +66,24 @@ pub fn pack_frame(input: &LiftInput) -> (u32, Vec<u32>) {
 
 /// Builds the executor environment carrying the packed [`LiftInput`] frame.
 pub fn guest_env(input: &LiftInput) -> Result<ExecutorEnv<'static>, String> {
+    return guest_env_po2(input, None);
+}
+
+/// [`guest_env`] with an optional segment size limit (log2 of cycles per segment).
+pub fn guest_env_po2(
+    input: &LiftInput,
+    segment_limit_po2: Option<u32>,
+) -> Result<ExecutorEnv<'static>, String> {
     let (frame_len, words) = pack_frame(input);
-    return ExecutorEnv::builder()
+    let mut builder = ExecutorEnv::builder();
+    builder
         .write(&frame_len)
         .map_err(|e| format!("{e:#}"))?
-        .write_slice(&words)
-        .build()
-        .map_err(|e| format!("{e:#}"));
+        .write_slice(&words);
+    if let Some(po2) = segment_limit_po2 {
+        builder.segment_limit_po2(po2);
+    }
+    return builder.build().map_err(|e| format!("{e:#}"));
 }
 
 /// Runs the given guest ELF on the input in the RISC Zero executor (no proving).

@@ -25,7 +25,13 @@ path = "src/bin/lift.rs"
 
 # Same table as the workspace root, from this crate's own workspace (see the root
 # Cargo.toml for why the zkboo dependencies must be redirected to the local trees).
+#
+# tiny-keccak is additionally patched — IN THE GUEST ONLY — to RISC Zero's accelerated
+# fork (the audited Keccak precompile): zkboo's Keccak256Hasher then drives the zkVM's
+# Keccak circuit instead of software permutations, with identical digests. The host
+# keeps the stock crate.
 [patch.crates-io]
+tiny-keccak = { git = "https://github.com/risc0/tiny-keccak", tag = "tiny-keccak/v2.0.2-risczero.0" }
 zkboo = { path = "../../../../zkboo/zkboo" }
 zkboo-sha2 = { path = "../../../../zkboo/zkboo-sha2" }
 zkboo-hmac = { path = "../../../../zkboo/zkboo-hmac" }
