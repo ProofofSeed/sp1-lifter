@@ -1,0 +1,28 @@
+[package]
+name = "snark-lifter-guest"
+version = "0.1.0"
+edition = "2024"
+license = "LGPL-3.0-or-later"
+description = "zkVM guest: verifies a ZKBoo proof of seed inside the RISC Zero zkVM."
+publish = false
+
+[workspace]
+
+[dependencies]
+risc0-zkvm = { version = "3.0.6", default-features = false, features = ["std"] }
+postcard = { version = "1.1", default-features = false, features = ["alloc"] }
+zkboo = { version = "0.1.0", features = ["keccak", "u32", "u64"] }
+snark-lifter-statement = { path = "../../statement" }
+
+# Same table as the workspace root, from this crate's own workspace (see the root
+# Cargo.toml for why the zkboo dependencies must be redirected to the local trees).
+[patch.crates-io]
+zkboo = { path = "../../../../zkboo/zkboo" }
+zkboo-sha2 = { path = "../../../../zkboo/zkboo-sha2" }
+zkboo-hmac = { path = "../../../../zkboo/zkboo-hmac" }
+zkboo-modular = { path = "../../../../zkboo/zkboo-modular" }
+zkboo-ecc = { path = "../../../../zkboo/zkboo-ecc" }
+zkboo-circuit-hash = { path = "../../../../zkboo/zkboo-circuit-hash" }
+zkboo-profiling = { path = "../../../../zkboo/zkboo-profiling" }
+zkboo-bip32 = { path = "../../../../zkboo/zkboo-bip32" }
+zkboo-keccak = { path = "../../../../zkboo/zkboo-keccak" }

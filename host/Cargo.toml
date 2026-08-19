@@ -1,0 +1,19 @@
+[package]
+name = "snark-lifter-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Host side of the SNARK lifter: proof generation, zkVM execution and proving drivers."
+publish = false
+
+[dependencies]
+risc0-zkvm = { version = "3.0.6" }
+postcard = { version = "1.1", features = ["alloc"] }
+zkboo = { version = "0.1.0", features = ["keccak", "u32", "u64", "parallel"] }
+zkboo-bip32 = { version = "0.1.0" }
+snark-lifter-statement = { path = "../statement" }
+snark-lifter-methods = { path = "../methods" }
+
+[[bin]]
+name = "cycle-probe"
+path = "src/main.rs"

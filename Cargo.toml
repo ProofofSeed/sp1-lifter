@@ -1,0 +1,29 @@
+# Workspace for the SNARK lifter: a classically-secure succinct lift of ZKBoo
+# proofs of seed, cheap to verify on Ethereum L1 today.
+#
+# The guest crate under methods/guest is its own cargo workspace (as the RISC Zero
+# build requires) and carries its own copy of the [patch.crates-io] table below.
+
+[workspace]
+resolver = "3"
+members = ["statement", "methods", "host"]
+exclude = ["methods/guest"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "LGPL-3.0-or-later"
+
+# The zkboo crates depend on one another by crates.io version "0.1.0"; these patches
+# redirect every zkboo dependency to the local working trees (<zkboo>), so local
+# changes propagate. Without them, the published 0.1.0 would be silently used instead.
+[patch.crates-io]
+zkboo = { path = "../../zkboo/zkboo" }
+zkboo-sha2 = { path = "../../zkboo/zkboo-sha2" }
+zkboo-hmac = { path = "../../zkboo/zkboo-hmac" }
+zkboo-modular = { path = "../../zkboo/zkboo-modular" }
+zkboo-ecc = { path = "../../zkboo/zkboo-ecc" }
+zkboo-circuit-hash = { path = "../../zkboo/zkboo-circuit-hash" }
+zkboo-profiling = { path = "../../zkboo/zkboo-profiling" }
+zkboo-bip32 = { path = "../../zkboo/zkboo-bip32" }
+zkboo-keccak = { path = "../../zkboo/zkboo-keccak" }

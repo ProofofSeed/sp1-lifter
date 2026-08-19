@@ -1,0 +1,12 @@
+[package]
+name = "snark-lifter-statement"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared statement definitions for the SNARK lifter: proof-of-seed circuits, the fixed crypto suite, and the host/guest wire format."
+publish = false
+
+[dependencies]
+serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
+zkboo = { version = "0.1.0", features = ["keccak", "u32", "u64"] }
+zkboo-bip32 = { version = "0.1.0" }
