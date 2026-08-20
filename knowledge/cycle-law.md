@@ -1,5 +1,7 @@
 # Measured guest cycle law
 
+**AMENDED (2026-08-19, Keccak acceleration):** with the guest's `tiny-keccak` patched to RISC Zero's accelerated fork (`tiny-keccak/v2.0.2-risczero.0`, the audited Keccak-precompile path; guest workspace only, digests identical), the law becomes **`verify_cycles ≈ 3.994e7 × n_responses`** (sweep 1/2/4/8, linear, negligible intercept) — a **3.45× reduction**, i.e. software Keccak (HashPRG tape regeneration + view commitments) was ~71% of the un-accelerated guest's cycles. Extrapolations: **8.75e9 @ 219**, 1.75e10 @ 438; measured full-scale S1 run: **8.99e9 user cycles**, executor wall 71.7 s. The Keccak permutations move to the dedicated Keccak circuit (proven via union recursion), so proving cost shifts partly there rather than vanishing — the proving throughput numbers in `iteration.md` §S2 are the ground truth. The un-accelerated law below stands as the baseline record.
+
 Measured 2026-08-19 on the 16-core Apple Silicon machine (137 GB), RISC Zero executor (no proving), cargo-risczero 3.0.6 / r0vm 3.0.6 / risc0 rust 1.97.0, release build.
 Statement: BIP-32 hardened child (test vector 1, m/0H), Keccak-256 suite, genuine proofs generated and natively verified on the host before entering the guest.
 `verify_cycles` brackets `zkboo::verifier::verify` alone (frame decode and circuit construction excluded); `total` is the summed segment **user** cycle count for the whole session (see the caveat below). Table from the final S0 run, after the frame-version tag was added.

@@ -1,6 +1,19 @@
 # Milestone plan
 
 Ratified by Stefano on 2026-08-19, together with the technology choice: **RISC Zero zkVM**, guest = the genuine `zkboo` verifier, universal Groth16 wrap, on-chain verification via RISC Zero's audited BN254 verifier contract.
+
+## ⚠️ AMENDMENT (ratified by Stefano, 2026-08-19, same day): the stack is now SP1
+
+**The zkVM is SP1 (sdk 6.0.1), not RISC Zero.** The operative constraint is that everything must run on this machine (M4 Max, 137 GB; the x86 server is not available), and under it the original choice fails on measured facts:
+
+- The Metal GPU proving that tie-broke for RISC Zero **does not exist in its 3.x line**: `risc0-circuit-rv32im` 4.x ships CPU and CUDA segment HALs only (Metal survives only for the recursion circuit). The claim came from the 1.x-era circuit and was verified at feature-flag level, not implementation level — a recorded process failure.
+- Measured on this machine: a single accelerated response (41M cycles) had not finished succinct-proving after **45 min 27 s** (aborted) ⇒ >150 h at 219. The un-accelerated attempt was earlier abandoned at >55 min.
+- RISC Zero's Groth16 wrap is **architecturally impossible here** (x86-only rapidsnark, "even via Docker").
+- SP1, practically verified on this machine the same day: **the native Groth16 wrap works locally** (`native-gnark`, pure-Go gnark, no Docker) — the template's full core→compress→shrink→wrap chain produced a real EVM proof + Foundry fixture in 21.7 min *including* first-time builds and artifact downloads, peak RSS 28 GB. `sp1-patches/tiny-keccak` exists at `patch-2.0.2-sp1-6.0.0`, the same drop-in Keccak-precompile mechanism already validated with the zkboo hasher on risc0.
+
+Everything stack-agnostic carries over unchanged: the statement crate (`LiftInput`/`LiftJournal`/`check_journal`), the security frame, the acceptance definitions, and the reject-matrix discipline. The image-id precondition of the journal gate maps to SP1's **verifying-key** check. S1's acceptance re-runs on the SP1 guest; S2's "succinct receipt" is SP1's **compressed** proof; S3's wrap-venue decision gate is **resolved**: local native-gnark wrap on this machine — no Docker, no external service. The Metal parenthetical in S2 is void for both stacks and is struck.
+
+The RISC Zero implementation (through the Keccak-accelerated guest and the S1 re-acceptance on it) remains in git history for reference; its measured numbers stand in `cycle-law.md` and `iteration.md` as the comparison record.
 Each milestone has a pre-registered binary acceptance and is only done when that acceptance passes; milestones are never silently split.
 Work happens on a kebab-case side branch off `main`, merged `--no-ff` when the acceptance is green.
 

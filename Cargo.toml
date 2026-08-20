@@ -1,13 +1,10 @@
 # Workspace for the SNARK lifter: a classically-secure succinct lift of ZKBoo
-# proofs of seed, cheap to verify on Ethereum L1 today.
-#
-# The guest crate under methods/guest is its own cargo workspace (as the RISC Zero
-# build requires) and carries its own copy of the [patch.crates-io] table below.
+# proofs of seed, cheap to verify on Ethereum L1 today. Stack: SP1 (sdk 6.0.1),
+# ratified 2026-08-19 — see knowledge/milestones.md for the amendment record.
 
 [workspace]
 resolver = "3"
-members = ["statement", "methods", "host"]
-exclude = ["methods/guest"]
+members = ["statement", "program", "host"]
 
 [workspace.package]
 version = "0.1.0"
@@ -17,6 +14,10 @@ license = "LGPL-3.0-or-later"
 # The zkboo crates depend on one another by crates.io version "0.1.0"; these patches
 # redirect every zkboo dependency to the local working trees (<zkboo>), so local
 # changes propagate. Without them, the published 0.1.0 would be silently used instead.
+#
+# tiny-keccak is patched to SP1's accelerated fork (the Keccak precompile): inside the
+# zkVM, zkboo's Keccak256Hasher drives the precompile; on host targets the fork
+# compiles to the stock implementation, so digests are identical everywhere.
 [patch.crates-io]
 zkboo = { path = "../../zkboo/zkboo" }
 zkboo-sha2 = { path = "../../zkboo/zkboo-sha2" }
@@ -27,3 +28,5 @@ zkboo-circuit-hash = { path = "../../zkboo/zkboo-circuit-hash" }
 zkboo-profiling = { path = "../../zkboo/zkboo-profiling" }
 zkboo-bip32 = { path = "../../zkboo/zkboo-bip32" }
 zkboo-keccak = { path = "../../zkboo/zkboo-keccak" }
+zkboo-ripemd160 = { path = "../../zkboo/zkboo-ripemd160" }
+tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", tag = "patch-2.0.2-sp1-6.0.0" }

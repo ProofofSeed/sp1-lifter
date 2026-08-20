@@ -5,16 +5,23 @@ edition.workspace = true
 license.workspace = true
 description = "Host side of the SNARK lifter: proof generation, zkVM execution and proving drivers."
 publish = false
+build = "build.rs"
 
 [dependencies]
-risc0-zkvm = { version = "3.0.6" }
-bincode = { version = "1.3" }
+# native-gnark: the Groth16/PLONK wrap runs in-process via a locally-built gnark (pure
+# Go, arm64-native) — no Docker, no external service. Practically verified on this
+# machine 2026-08-19.
+sp1-sdk = { version = "6.0.1", features = ["blocking", "native-gnark"] }
+hex = { version = "0.4" }
 postcard = { version = "1.1", features = ["alloc"] }
+serde = { version = "1.0.228" }
 zkboo = { version = "0.1.0", features = ["keccak", "u32", "u64", "parallel"] }
 zkboo-bip32 = { version = "0.1.0" }
 zkboo-circuit-hash = { version = "0.1.0" }
 snark-lifter-statement = { path = "../statement" }
-snark-lifter-methods = { path = "../methods" }
+
+[build-dependencies]
+sp1-build = { version = "6.0.1" }
 
 [[bin]]
 name = "cycle-probe"
@@ -27,3 +34,7 @@ path = "src/bin/s1_acceptance.rs"
 [[bin]]
 name = "s2-prove"
 path = "src/bin/s2_prove.rs"
+
+[[bin]]
+name = "s3-wrap"
+path = "src/bin/s3_wrap.rs"

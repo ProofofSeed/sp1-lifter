@@ -43,3 +43,75 @@ Core soundness confirmed by the reviewer: the fingerprint binds chain code AND i
 ### Full-scale positive run (2026-08-19)
 
 n = 219 (classical-128): ZKBoo proving 104 ms (parallel, host-native), guest accepted, journal passed the consumer gate (fingerprint `33e1f70b…`, 219 responses), **30 623 354 729 user cycles**, executor wall 227.06 s. The measured total sits within ~1.5% of the S0 law's 3.016e10 extrapolation; the excess is the in-guest circuit-fingerprinting pass and frame decode, which the S0 `verify_cycles` bracket excluded. Acceptance re-run green on the final milestone tree after a host-side helper refactor.
+
+## S2 — succinct receipt
+
+### Environment findings (2026-08-19)
+
+- **The rzup-distributed `r0vm` for aarch64-apple-darwin is CPU-only** (no Metal strings in the binary; observed 1571% CPU). An un-accelerated n=1 succinct prove (138M cycles, ~133 segments + recursion) had not finished after 55 minutes and was abandoned — the un-accelerated CPU path extrapolates to multiple days at 219 and is **infeasible**; this triggered the plan's Keccak-acceleration contingency.
+- **Keccak acceleration adopted** (guest-only `tiny-keccak` patch to `risc0/tiny-keccak` tag `tiny-keccak/v2.0.2-risczero.0`): guest cycles drop 3.45× (see `cycle-law.md`). The S1 acceptance (7-way reject matrix + full-scale positive) re-ran green on the accelerated guest — same circuit fingerprint (`33e1f70b…`, the fingerprint is of the ZKBoo circuit, not the guest), new image id.
+- **Metal proving requires the full-Xcode Metal shader compiler**, which is not installed (Command Line Tools only; `risc0-sys` metal build fails at `xcrun metal`). Not adopted unilaterally — a ~12 GB Xcode install is Stefano's call; the S2 acceptance (receipt verifies) does not require Metal. Flagged as the obvious speed lever if proving times matter later.
+- Segment size is tunable via `ExecutorEnv::segment_limit_po2` (s2-prove's second argument); larger segments cut the per-segment lift/join recursion count, which CPU profiling suggests dominates.
+
+### Proving measurements and the stack switch (2026-08-19)
+
+- risc0, un-accelerated guest, n=1 (138M cycles), CPU r0vm: **>55 min, abandoned**.
+- risc0, accelerated guest, n=1 (41M cycles), in-process prover (CPU segments + Metal-recursion feature compiled in; GPU observed at 0% throughout): **aborted at 45 min 27 s, unfinished** ⇒ >150 h extrapolated at 219. The `metal` feature is vestigial for segment proving in the 3.x line: `risc0-circuit-rv32im` 4.x has only `cpu.rs`/`cuda.rs` HALs (verified at source after the GPU sat idle); only `risc0-circuit-recursion` has a Metal HAL. The Xcode/Metal-toolchain install (license + `xcodebuild -downloadComponent MetalToolchain`) predated this finding.
+- risc0's Groth16 wrap: x86-only rapidsnark, unavailable on this machine even via Docker.
+- **SP1 6.0.1, practically verified on this M4 Max:** template fibonacci core→compress→shrink→**native Groth16 wrap** (no Docker, `native-gnark`) succeeded — real EVM proof + fixture, 21.7 min wall including first-time SDK/gnark builds and artifact downloads, peak RSS 28 GB. One dependency nit: sp1-prover 6.0.1 needs `tempfile ≥ 3.20` (`TempDir::keep`), fixed by `cargo update -p tempfile`.
+- **Stefano ratified the switch to SP1** (see the amendment in `milestones.md`) with the constraint that the whole chain runs on this machine. Port record continues below.
+
+## SP1 port
+
+### S1 re-established on SP1 (2026-08-19)
+
+- Instruction law (whole-program, includes decode + fingerprint): **`≈ 3.09e7 + 2.635e7 × n`** ⇒ **5.80e9 @ 219** (measured full-scale: 5 801 478 472, matching the law; executor wall 37.4 s). 35% below the risc0-accelerated figure — the SP1 Keccak precompile plus the 64-bit RISC-V target (native u64 ops for the replay).
+- Seven-way reject matrix green with named refusers; all four distinct refusers re-validated by check removal on the SP1 build.
+- **SP1 semantic handled explicitly:** panicked executions return `Ok` from the executor with a non-zero exit code and are *provable* under a non-success status. Refusals therefore commit a diagnostic tag naming the refuser before panicking; `execute_lift` enforces exit 0; `client.verify(..., None)` requires success; and the v6.1.0 on-chain verifier enforces `exitCode == 0` itself (`InvalidExitCode`). Success-status is part of every gate layer.
+
+### S2 proving law (compressed, CPU, this machine, 2026-08-19)
+
+| n | proving wall | peak RSS | proof size |
+|---|---|---|---|
+| 1 | 325.0 s | 107.4 GB | 1 272 754 B |
+| 8 | 1 162.5 s | 109.6 GB | 1 272 754 B |
+
+**Law: `≈ 205 s + 119.6 s × n` ⇒ full 219 ≈ 7.3 h.** Marginal rate consistent across both points (~210 kHz effective). **Memory is scale-independent** (phase-oscillating 37–110 GB band at both n) and the compressed proof is constant-size — the succinct property, delivered. The S3 Groth16 pipeline re-runs core+compress internally (~same cost) plus shrink+wrap (template-measured ~minutes at ≤28 GB); the two full-scale runs must be strictly sequential (each peaks ~110 GB of the 137 GB).
+
+**Standing constraint (Stefano, 2026-08-19): use at most ~75% of the machine's CPU** — all proving/build invocations run with `RAYON_NUM_THREADS=12` and `GOMAXPROCS=12` (16-core machine; observed holding at ~1120% of the ~1200% ceiling). Scales the full-scale estimates by ~4/3: **~9.8 h per full 219 run, ~20 h for the sequential S2+S3 chain.**
+
+### Adversarial review of the SP1 port (2026-08-19): NO soundness defects
+
+The reviewer verified in SDK/executor/contract **source** (not doc comments): `verify(..., None)` defaults to requiring SUCCESS and the exit code is pairing-bound public input, not a claim; refusal tags cannot postcard-decode as journals (version byte 0x52≠1, and the `valid` bool byte is strict); the program has no commit-then-continue path; the workspace-wide tiny-keccak fork is byte-identical to upstream on host targets (genuine Keccak-256 for native verify + fingerprints); vendored contracts match sp1-contracts v6.1.0 verbatim except the one flattened import; sdk 6.4.0 ⇔ circuit v6.1.0 ⇔ fixture selector all self-consistent. Six low/info findings; acted on immediately (verifier-side only, keeping the program ELF/vkey frozen while the full-scale chain runs):
+
+- **Fixed — vacuous skip:** an explicitly set `LIFT_FIXTURE` that is missing now hard-fails; only the implicit default skips. Acceptance invocations always pass the fixture explicitly.
+- **Fixed — "verifyProof is not an authorisation":** the Foundry suite header now states the relying-contract obligation (decode journal + full `check_journal` gate, count included).
+
+**Deferred to the post-chain close-out** (info-level; touching them now would dirty the cargo graph mid-run): exact-length postcard decoding (`take_from_bytes` + empty remainder) in `decode_journal` and any future Solidity decoder; never migrate the `exit_code != 0` gate to an equality test (shard exit codes merge by OR); remove the risc0-era `ProbeJournal` and stale frame-version rationale from the statement crate; comment that refusal-tag needles are satisfied by both tag and panic message. NOT-CHECKED by the review: the ~500-line Groth16 pairing assembly body (VK constants diffed only), SP1's own attested circuit surface, and no re-execution of anything (machine constraint).
+
+### S2 full-scale run and the overnight dependency drift (2026-08-19 → 20)
+
+The detached full-scale chain's first leg **passed**: `s2-prove 219` proved the full classical-128 lift compressed in **30 358.8 s wall (8 h 26 m) at the 12-thread cap**, peak RSS 114.2 GB, compressed proof 1 272 755 bytes, relying-party gate green ("compressed proving run: PASS", preserved in `fixtures/s2-full-2026-08-19.log`). That beats the 4/3-scaled ~9.8 h estimate — the cap only binds during the fully parallel phases.
+
+The S3 leg then **died at build time**: the shared `<zkboo>` checkout had been advanced by the parallel multi-chain session while the chain ran. `zkboo-bip32` now depends on `zkboo-ripemd160` (unpublished), which the patch table did not cover; deeper, the stack itself changed — the core crate adopted the **ZKB++ view commitment** (dropping linear-wire hashing) and halved wide-multiplication AND cost, and `zkboo-sha2` gained midstate-resumable compression and single-AND ch/maj. Response to the drift:
+
+- `zkboo-ripemd160` added to the patch table; the guest ELF necessarily rebuilt (`27b87bc1…` → `4736f08e…`, new vkey).
+- Since the ELF freeze was broken anyway, the four deferred review items were applied (exact-length `take_from_bytes` journal decode with trailing-byte refusal; the exit-code gate commented against ever becoming an equality test — shard exit codes merge by OR; risc0-era `ProbeJournal` and the stale independent-workspace frame rationale removed; the dual tag/panic refusal-needle behaviour documented).
+- **S1 acceptance re-run green on the rebuilt tree** (7-way reject matrix with named refusers + full-scale positive against the canonical BIP-32 vector). The protocol changes show up as expected: circuit fingerprint `33e1f70b…` → **`e23ddb6a…`**, whole-program instructions **4 773 338 580** at n=219 (−17.7% vs 5 801 478 472), executor wall 30.4 s.
+- Following S1's precedent (acceptance green on the final milestone tree) and because the old proving law no longer describes the new circuit, the **full S2 → S3 chain re-runs on the final tree**; the first-pass S2 PASS stands as evidence for the old tree only and its numbers must not be quoted for the final circuit.
+
+zkboo crate revisions pinned at chain launch (all working trees clean): zkboo `ffe5807`, zkboo-sha2 `f02972d`, zkboo-hmac `0fe9c6f`, zkboo-modular `6db8a17`, zkboo-ecc `bc67c07`, zkboo-keccak `70a2506`, zkboo-circuit-hash `d2a98dc`, zkboo-bip32 `8315f30`, zkboo-ripemd160 `6de26ac`.
+
+### S2 + S3 acceptances on the final tree (2026-08-20): ALL GREEN
+
+The relaunched chain (prebuilt binaries, 12-thread cap, pinned zkboo revs above) completed both full-scale legs on the post-drift circuit:
+
+- **S2 (compressed prove, n=219): PASS** — proving wall **22 963.6 s (6 h 23 m)**, peak RSS 113.9 GB, compressed proof the constant 1 272 755 bytes, relying-party gate green. 24% faster than the first-pass run on the pre-drift circuit (30 358.8 s), tracking the −17.7% instruction count. New capped law point: ≈ 105 s/response.
+- **S3 (Groth16 wrap, n=219): PASS** — full core→compress→shrink→native-gnark pipeline **23 125.0 s (6 h 25 m)**, leg wall 23 134.2 s, peak RSS 115.3 GB; wrapped proof 356 bytes, public values 186 bytes (the n=1 smoke's 185 plus one varint byte for the count); relying-party gate green on 219 responses; fixture `verifier/fixtures/lift-219.onchain.json`.
+- **On-chain acceptance (forge, audited SP1VerifierGroth16 v6.1.0): 5/5 PASS, `verifyProof` = 270 441 gas** — identical to the smoke figure, as expected for a constant-size proof. Rejects: corrupted proof / wrong vkey / wrong public values → `ProofInvalid`; wrong selector → `WrongVerifierSelector`. (The corrupted-proof case's reported gas remains the known cheatcode accounting artifact of the reverted pairing frame.)
+
+Total sequential chain wall: 12 h 48 m at the ~75% CPU cap. Headline caveats for any write-up: 219 responses = classical 128-bit in the forgery-work-ratio sense only; the BN254 pairing (~100-bit) is the track's true classical ceiling; `verifyProof` is not an authorisation (see the Foundry suite header); the ZKB++/single-AND protocol optimisations the final circuit rests on are the zkboo stack's own reviewed work, consumed here at the pinned revisions.
+
+### S3 smoke, end-to-end on a real proof (n=1, 2026-08-19)
+
+The full local chain works: `s3-wrap 1` (core→compress→shrink→**native Groth16 wrap**, 512 s at 12 cores, peak 104 GB) produced a 356-byte EVM proof + 185-byte public values (the postcard journal), passing the relying-party gate; the Foundry suite on that fixture: **5/5 PASS, `verifyProof` = 270 441 gas**, rejects green (corrupted proof / wrong vkey / wrong public values → `ProofInvalid`; wrong selector → `WrongVerifierSelector`; the corrupted-proof case's reported gas is a cheatcode accounting artifact of the reverted pairing frame, not a real cost). The wrapped proof is constant-size and the journal layout is n-independent, so the full-scale gas will match this figure up to a few bytes of varint.
