@@ -102,6 +102,16 @@ The S3 leg then **died at build time**: the shared `<zkboo>` checkout had been a
 
 zkboo crate revisions pinned at chain launch (all working trees clean): zkboo `ffe5807`, zkboo-sha2 `f02972d`, zkboo-hmac `0fe9c6f`, zkboo-modular `6db8a17`, zkboo-ecc `bc67c07`, zkboo-keccak `70a2506`, zkboo-circuit-hash `d2a98dc`, zkboo-bip32 `8315f30`, zkboo-ripemd160 `6de26ac`.
 
+### S2 + S3 acceptances on the final tree (2026-08-20): ALL GREEN
+
+The relaunched chain (prebuilt binaries, 12-thread cap, pinned zkboo revs above) completed both full-scale legs on the post-drift circuit:
+
+- **S2 (compressed prove, n=219): PASS** — proving wall **22 963.6 s (6 h 23 m)**, peak RSS 113.9 GB, compressed proof the constant 1 272 755 bytes, relying-party gate green. 24% faster than the first-pass run on the pre-drift circuit (30 358.8 s), tracking the −17.7% instruction count. New capped law point: ≈ 105 s/response.
+- **S3 (Groth16 wrap, n=219): PASS** — full core→compress→shrink→native-gnark pipeline **23 125.0 s (6 h 25 m)**, leg wall 23 134.2 s, peak RSS 115.3 GB; wrapped proof 356 bytes, public values 186 bytes (the n=1 smoke's 185 plus one varint byte for the count); relying-party gate green on 219 responses; fixture `verifier/fixtures/lift-219.onchain.json`.
+- **On-chain acceptance (forge, audited SP1VerifierGroth16 v6.1.0): 5/5 PASS, `verifyProof` = 270 441 gas** — identical to the smoke figure, as expected for a constant-size proof. Rejects: corrupted proof / wrong vkey / wrong public values → `ProofInvalid`; wrong selector → `WrongVerifierSelector`. (The corrupted-proof case's reported gas remains the known cheatcode accounting artifact of the reverted pairing frame.)
+
+Total sequential chain wall: 12 h 48 m at the ~75% CPU cap. Headline caveats for any write-up: 219 responses = classical 128-bit in the forgery-work-ratio sense only; the BN254 pairing (~100-bit) is the track's true classical ceiling; `verifyProof` is not an authorisation (see the Foundry suite header); the ZKB++/single-AND protocol optimisations the final circuit rests on are the zkboo stack's own reviewed work, consumed here at the pinned revisions.
+
 ### S3 smoke, end-to-end on a real proof (n=1, 2026-08-19)
 
 The full local chain works: `s3-wrap 1` (core→compress→shrink→**native Groth16 wrap**, 512 s at 12 cores, peak 104 GB) produced a 356-byte EVM proof + 185-byte public values (the postcard journal), passing the relying-party gate; the Foundry suite on that fixture: **5/5 PASS, `verifyProof` = 270 441 gas**, rejects green (corrupted proof / wrong vkey / wrong public values → `ProofInvalid`; wrong selector → `WrongVerifierSelector`; the corrupted-proof case's reported gas is a cheatcode accounting artifact of the reverted pairing frame, not a real cost). The wrapped proof is constant-size and the journal layout is n-independent, so the full-scale gas will match this figure up to a few bytes of varint.
