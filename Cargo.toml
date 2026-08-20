@@ -28,4 +28,5 @@ zkboo-circuit-hash = { path = "../../zkboo/zkboo-circuit-hash" }
 zkboo-profiling = { path = "../../zkboo/zkboo-profiling" }
 zkboo-bip32 = { path = "../../zkboo/zkboo-bip32" }
 zkboo-keccak = { path = "../../zkboo/zkboo-keccak" }
+zkboo-ripemd160 = { path = "../../zkboo/zkboo-ripemd160" }
 tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", tag = "patch-2.0.2-sp1-6.0.0" }

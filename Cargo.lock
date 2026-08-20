@@ -5931,6 +5931,7 @@ dependencies = [
  "zkboo-ecc",
  "zkboo-hmac",
  "zkboo-keccak",
+ "zkboo-ripemd160",
  "zkboo-sha2",
 ]
 
@@ -5965,6 +5966,13 @@ dependencies = [
 
 [[package]]
 name = "zkboo-modular"
+version = "0.1.0"
+dependencies = [
+ "zkboo",
+]
+
+[[package]]
+name = "zkboo-ripemd160"
 version = "0.1.0"
 dependencies = [
  "zkboo",

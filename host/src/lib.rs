@@ -5,7 +5,7 @@
 
 use sp1_sdk::{
     Elf, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey,
-    blocking::{EnvProver, Prover, ProverClient},
+    blocking::{EnvProver, Prover},
     include_elf,
 };
 use snark_lifter_statement::{H, HardenedChildCircuit, LiftInput, PS, PV, S};
@@ -103,9 +103,17 @@ pub fn expectation_for(
 }
 
 /// Decodes the program's committed public values into a [`LiftJournal`].
+///
+/// The decode is exact-length: trailing bytes after the journal are refused, so the
+/// public values cannot smuggle data past the decoder. Any Solidity-side decoder of
+/// the same public values must enforce the same full-consumption rule.
 pub fn decode_journal(public_values: &[u8]) -> Result<snark_lifter_statement::LiftJournal, String> {
-    return postcard::from_bytes(public_values)
-        .map_err(|e| format!("journal decode failed: {e}"));
+    let (journal, rest) = postcard::take_from_bytes(public_values)
+        .map_err(|e| format!("journal decode failed: {e}"))?;
+    if !rest.is_empty() {
+        return Err(format!("journal decode failed: {} trailing bytes", rest.len()));
+    }
+    return Ok(journal);
 }
 
 /// Executes the lift program on the input, enforcing a SUCCESS exit.
@@ -122,6 +130,9 @@ pub fn execute_lift(
         .execute(LIFT_ELF, lift_stdin(input))
         .run()
         .map_err(|e| format!("{e:#}"))?;
+    // Success is exit code 0 and nothing else; never rewrite this as an equality test
+    // against a particular failure code — SP1 merges shard exit codes bitwise (OR), so
+    // a failure's reported code is not guaranteed to be any single canonical value.
     if report.exit_code != 0 {
         return Err(format!(
             "program refused (exit code {}): {}",

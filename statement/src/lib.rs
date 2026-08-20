@@ -122,9 +122,8 @@ impl Circuit for HardenedChildCircuit {
 /// Version tag of the [`LiftInput`] postcard frame.
 ///
 /// Postcard is not self-describing and the layout of [`Words`] depends on which zkboo
-/// word features are enabled, which cargo resolves independently for the host workspace
-/// and the guest's own workspace. The word features are therefore pinned explicitly in
-/// this crate's manifest, and any change to them — or to the shape of [`LiftInput`] —
+/// word features are enabled, so the word features are pinned explicitly in this
+/// crate's manifest, and any change to them — or to the shape of [`LiftInput`] —
 /// must bump this constant.
 pub const LIFT_FRAME_VERSION: u32 = 1;
 
@@ -147,21 +146,6 @@ pub struct LiftInput {
     pub binding: Vec<u8>,
     /// The ZKBoo proof to verify.
     pub proof: LiftProof,
-}
-
-/// The journal committed by the cycle-probe guest.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ProbeJournal {
-    /// Whether the ZKBoo proof verified.
-    pub valid: bool,
-    /// Number of responses (repetitions) in the verified proof.
-    pub num_responses: u32,
-    /// Guest cycles spent inside `zkboo::verifier::verify` alone.
-    ///
-    /// Diagnostic only: `env::cycle_count` is host-provided and unattested by the zkVM
-    /// circuit, so this figure must never be treated as proven data. The lift guest's
-    /// [`LiftJournal`] deliberately carries no cycle information.
-    pub verify_cycles: u64,
 }
 
 /// Version tag of the [`LiftJournal`] layout; bump on any change to its shape.

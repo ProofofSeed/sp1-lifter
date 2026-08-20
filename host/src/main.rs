@@ -15,7 +15,7 @@
 
 use std::time::Instant;
 
-use sp1_sdk::blocking::{Prover, ProverClient};
+use sp1_sdk::blocking::ProverClient;
 use snark_lifter_host::{
     HARDENED_OFFSET, WPP, bip32_vector_1, execute_lift, lift_input_for, vector_1_proof,
 };

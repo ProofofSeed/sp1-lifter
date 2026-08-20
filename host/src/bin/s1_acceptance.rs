@@ -22,7 +22,7 @@
 
 use std::time::Instant;
 
-use sp1_sdk::blocking::{EnvProver, Prover, ProverClient};
+use sp1_sdk::blocking::{EnvProver, ProverClient};
 use snark_lifter_host::{
     HARDENED_OFFSET, bip32_vector_1, execute_lift, expectation_for, lift_input_for,
     oversize_and_msg, tamper_and_msg, vector_1_proof,
@@ -48,6 +48,9 @@ fn run_program(client: &EnvProver, input: &LiftInput) -> Result<LiftJournal, Str
     return execute_lift(client, input).map(|(journal, _)| journal);
 }
 
+// The refusal error string carries both the program's committed diagnostic tag (its
+// public values) and, via SP1's executor error path, the panic message — the needle
+// matches whichever surfaces, and both name the same refuser by construction.
 fn expect_program_refusal(client: &EnvProver, name: &str, input: &LiftInput, needle: &str) {
     match run_program(client, input) {
         Ok(_) => panic!("{name}: program ACCEPTED an input it must refuse"),
