@@ -175,9 +175,9 @@ pub fn prover_client() -> (EnvProver, String) {
 /// ⚠️ This is the setting that decides whether a run means anything: under `mock` the
 /// prover fabricates a proof and its verifier only compares public inputs, so a driver
 /// would print the same success line and write the same artefact paths as a real run.
-/// The core options above also reach proving only on the CPU path — no other backend
-/// proves with them (CUDA forwards them to its execution node but not to the GPU
-/// prover) — so a summary omitting the backend could describe settings not in force.
+/// The core options above are handed only to the CPU prover: `from_env_with_opts`
+/// passes them to the `cpu` arm and drops them for every other backend, so a summary
+/// omitting the backend could be describing settings that were not in force.
 pub fn prover_backend() -> String {
     return std::env::var("SP1_PROVER").unwrap_or_else(|_| "cpu".to_string());
 }

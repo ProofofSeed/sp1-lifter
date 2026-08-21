@@ -47,6 +47,19 @@ contract LiftGroth16Test is Test {
     bytes32 internal constant EXPECTED_FINGERPRINT =
         0xe23ddb6a1be341ba770275fd73b33730a051dfc998cfa339fb19fabc57e2df1b;
 
+    /// The verifying key of the program the fixture must come from.
+    ///
+    /// Without this the suite attests nothing about which program ran: `vkey` is read
+    /// from the fixture and handed straight to `verifyProof`, so a fixture is
+    /// self-consistent by construction and verifies whichever program produced it. The
+    /// version byte catches a journal-layout change and the fingerprint catches a
+    /// circuit change; only this catches a program change that alters neither.
+    ///
+    /// It is deliberately a pin: when the program legitimately changes, this fails, and
+    /// updating it is the act of accepting the new program.
+    bytes32 internal constant EXPECTED_VKEY =
+        0x004dc0b7561f87fc31370bec92a601824bf6619c47a232212d4fb3976298ca69;
+
     SP1Verifier internal verifier;
     bytes32 internal vkey;
     bytes internal publicValues;
@@ -65,10 +78,11 @@ contract LiftGroth16Test is Test {
         if (!vm.isFile(fixture)) {
             require(!explicitFixture, "LIFT_FIXTURE set but the file does not exist");
             // forge reports a fully skipped suite as `Suite result: ok`, which reads as
-            // a pass. Say plainly that nothing was verified.
-            console2.log("SKIPPED: no fixture at", fixture);
-            console2.log("This suite verified NOTHING. Generate it with: lift 219 groth16");
-            vm.skip(true);
+            // a pass, so the reason has to reach the default output. It must be the
+            // string form of `skip`: forge discards `console2` logs from a `setUp` that
+            // reverts with the skip sentinel, so logging here prints nothing at any
+            // verbosity.
+            vm.skip(true, "no fixture: this suite verified NOTHING; generate with lift 219 groth16");
         }
         string memory json = vm.readFile(fixture);
         vkey = vm.parseJsonBytes32(json, ".vkey");
@@ -90,6 +104,7 @@ contract LiftGroth16Test is Test {
         bytes memory pv = publicValues;
         assembly { fingerprint := mload(add(pv, 34)) }
         require(fingerprint == EXPECTED_FINGERPRINT, "fixture attests a different circuit: regenerate it");
+        require(vkey == EXPECTED_VKEY, "fixture comes from a different program: regenerate it");
     }
 
     function test_lift_verifies_and_measures_gas() public view {
