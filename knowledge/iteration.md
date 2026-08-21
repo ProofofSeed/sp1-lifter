@@ -115,3 +115,62 @@ Total sequential chain wall: 12 h 48 m at the ~75% CPU cap. Headline caveats for
 ### S3 smoke, end-to-end on a real proof (n=1, 2026-08-19)
 
 The full local chain works: `s3-wrap 1` (core→compress→shrink→**native Groth16 wrap**, 512 s at 12 cores, peak 104 GB) produced a 356-byte EVM proof + 185-byte public values (the postcard journal), passing the relying-party gate; the Foundry suite on that fixture: **5/5 PASS, `verifyProof` = 270 441 gas**, rejects green (corrupted proof / wrong vkey / wrong public values → `ProofInvalid`; wrong selector → `WrongVerifierSelector`; the corrupted-proof case's reported gas is a cheatcode accounting artifact of the reverted pairing frame, not a real cost). The wrapped proof is constant-size and the journal layout is n-independent, so the full-scale gas will match this figure up to a few bytes of varint.
+
+## S4 — proving cost: what it is actually made of (2026-08-21)
+
+### The 12 h 48 m was half harness
+
+`s3-wrap` calls `client.prove(...).groth16()`, which runs core → compress → shrink → wrap from scratch; it never consumed the compressed proof the S2 leg had just produced.
+Running S2 and S3 as separate acceptances therefore paid for core proving and compression twice.
+Measured from the two logs: S2 22 954.4 s, S3 23 125.0 s, difference **171 s** — that is the entire shrink+wrap stage, of which gnark itself is ~26 s (R1CS read 8.0 s, proving-key read 1.0 s, prove 16.2 s, verify 0.7 s).
+**The real end-to-end cost of the full-scale lift was 6 h 26 m, not 12 h 48 m.**
+`lift` replaces both drivers with a single pass; `compressed` mode survives only as a throughput probe.
+
+### The remaining cost is intrinsic, and the guest is not the problem
+
+Executor at n=1: 51 926 665 instructions; at n=219: 4 773 338 580.
+Fitting the pair gives **21.66M instructions per response + ~30M fixed** (frame decode plus the in-guest circuit-fingerprint pass) — the fixed part is 0.6% at full scale.
+
+Two suspicions were checked and both are dead ends:
+
+- **Word width.** The `u32`/`u64` zkboo features are enabled in `statement/` and `program/`, so SHA-512 runs on native 64-bit words. There is no 8× byte-serial penalty to reclaim.
+- **Replay-backend overhead.** At ~370 instructions per response byte (vs ~2 400/byte for the software-Keccak risc0 baseline) the SP1 Keccak precompile is plainly firing, and `zkboo-bip32/README.md` puts native verification of a hardened-child response at ~2.1 ms — order 10–25M instructions on this CPU, against the guest's 21.66M. **The guest runs at approximately native efficiency**; the refcounted `WordRef`/`MemoryManager`/`WordPairPool` machinery built for a 30 KB secure element is not measurably dead weight inside the zkVM. (Caveat: that README figure is a parallel measurement, so the single-core comparison is uncertain by perhaps 2×; it bounds the lever, it does not price it exactly.)
+
+What remains is arithmetic: ~4.77e9 instructions of genuine verification work proved at **~209k instructions/s** on 12 CPU threads, i.e. ~24 000× slower than native execution. That is the cost of CPU zkVM proving, and it is not a defect to be optimised away.
+
+### Prover configuration sweep (n=8, prebuilt binaries, 12-thread cap)
+
+`SP1CoreOpts::default()` reads `SHARD_SIZE`, `ELEMENT_THRESHOLD`, `HEIGHT_THRESHOLD` and `TRACE_CHUNK_SLOTS` from the environment, so these are tunable **without a rebuild** — which is why the sweep could be run against the accepted tree's own binaries, with no exposure to zkboo drift.
+The full-scale runs to date used stock defaults; none of these knobs had ever been set.
+
+| configuration | wall | CPU time | peak RSS |
+|---|---:|---:|---:|
+| default (`trace_chunk_slots=5`) | 1 141.6 s | 11 979.8 s | 112.4 GB |
+| `TRACE_CHUNK_SLOTS=3` | **1 032.9 s** | 11 035.6 s | 110.2 GB |
+| `TRACE_CHUNK_SLOTS=2` | 1 034.4 s | 11 087.6 s | 111.3 GB |
+| `slots=3` + halved shard thresholds | 1 287.9 s | 14 035.4 s | **63.5 GB** |
+
+Fewer chunk slots is **9.5% faster and 7.9% less CPU work** — a genuine reduction in work, not a scheduling artefact — and the gain **saturates at 3**: dropping to 2 gives back nothing (1 034.4 s, inside the noise).
+Peak memory barely moves across all three, so the ~110 GB is not held by the chunk slots; it is also essentially workload-independent (112.4 GB at n=8 against 113.9 GB at n=219), i.e. a fixed prover allocation rather than a function of the job.
+That matters for the next lever: bigger shards mean fewer recursion leaves but cost memory, and on a 137 GB machine already peaking at 110 GB the fast direction may simply be unavailable — which is exactly the constraint a 400 GB machine would not have.
+
+Halving `ELEMENT_THRESHOLD`/`HEIGHT_THRESHOLD` costs **24.7% in time** and returns **42% of the memory**, which identifies what the ~110 GB is made of: **peak RSS scales with shard size**. The trade is clean and monotone — bigger shards mean fewer recursion leaves and less time, at proportionally more memory. Extrapolating the same ratio, the next doubling (805M elements) would want ~190 GB, so on a 137 GB machine **the fast direction exists but is memory-blocked**; the chosen configuration sits at the largest shard the machine can hold. A 400 GB machine has no such ceiling, which is a measured reason to expect it to beat this one by more than its core count alone.
+
+⚠️ Three knobs read like levers and are not: `full_size_shards`, `drop_ldes` and `recompute_gkr_trace` are each referenced only in `opts.rs` and never consulted anywhere in the 6.4.0 prover. Checking that at the source, rather than trusting the field's existence and its docstring, is the standing lesson from the Metal episode.
+
+**Chosen configuration: `TRACE_CHUNK_SLOTS=3`, stock shard thresholds, 12 threads** — measured optimum inside this machine's memory envelope, worth 9.5% on every run for a one-line environment change.
+
+### Scaling constants for planning
+
+From the n=8 and n=219 points at the 12-thread cap on the default configuration: **103.4 s per response + ~315 s fixed** per proving run. The fixed part is 27% of an n=8 probe and 1.4% of a full-scale run, so small-n probes understate marginal improvements and must not be extrapolated naively.
+
+## zkboo 1.0.0 (2026-08-21)
+
+The zkboo stack finished its development line and moved to **1.0.0**; all ten crates are committed and clean, and the lifter's manifests now require `1.0.0`.
+The `[patch.crates-io]` table stays for now because 1.0.0 is not yet published; it should be dropped once it is, so that a released artefact builds against released crates rather than local working trees.
+
+Three changes landed after the revisions this repo had pinned (`zkboo` `ffe5807` → `08e732d`), and each was assessed before adoption:
+
+- **`PROOF_FORMAT_VERSION` (= 2)** names the response-byte layout together with the view-commitment scheme it is checked against. Its rationale matters to us directly: **a circuit fingerprint cannot see a commitment-scheme change** — adopting the ZKB++ commitment changed every commitment, and hence every Fiat-Shamir challenge, while leaving circuits and protocol parameters untouched. The lifter's journal committed only the fingerprint, so two incompatible proof formats would have produced indistinguishable journals. The verifying key does bind the format (it is compiled into the program), but only implicitly. The journal now commits `proof_format_version` and `check_journal` enforces it (`ProofFormatMismatch`, reject-matrix case R8); `LIFT_JOURNAL_VERSION` is bumped to 2. Our pinned revision was already format 2, so this records a property that already held rather than changing one.
+- **Ranged response generation** (`ProofBuilder::skip_iters`) lets a prover emit any half-open range of the response sequence. This looks like a soundness hazard for a count-based gate: commit to N ≫ 219 iterations, see which survive the challenge (~2/3 of them), and emit only 219 winners. **It is not one.** In `par_verify` the challenge entropy is hashed over the view commitments of exactly the responses *present in the proof*, and the regenerated challenge sequence is compared position by position; dropping responses changes the entropy, hence every challenge, so the retained responses stop matching. Selection is self-defeating and a partial range does not verify standalone — it must be reassembled. `skip_iters` is a prover-side convenience (resumable, retriable, splittable proving), not a verifier-side relaxation, and `num_responses ≥ 219` remains exactly the right gate.
+- **No change to the serialised `Proof`/`Response` shape** (the diff touches `lib.rs`, `params.rs`, `builder.rs` and tests only), so the `LiftInput` wire format is unchanged and `LIFT_FRAME_VERSION` stays at 1.

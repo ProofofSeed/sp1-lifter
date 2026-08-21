@@ -149,7 +149,7 @@ pub struct LiftInput {
 }
 
 /// Version tag of the [`LiftJournal`] layout; bump on any change to its shape.
-pub const LIFT_JOURNAL_VERSION: u32 = 1;
+pub const LIFT_JOURNAL_VERSION: u32 = 2;
 
 /// The journal committed by the lift guest: the complete lifted statement.
 ///
@@ -186,6 +186,16 @@ pub struct LiftJournal {
     pub binding: Vec<u8>,
     /// Number of responses (repetitions) in the verified proof.
     pub num_responses: u32,
+    /// The ZKBoo proof format the program was built against (`zkboo::PROOF_FORMAT_VERSION`):
+    /// the layout of the response bytes together with the view-commitment scheme they are
+    /// checked against.
+    ///
+    /// ⚠️ This cannot be inferred from `fingerprint`: adopting the ZKB++ view commitment
+    /// changed every commitment — and hence every Fiat-Shamir challenge — while leaving
+    /// circuits and protocol parameters untouched, so the circuit hash is blind to it.
+    /// The verifying key does bind it (the format is compiled into the program), but only
+    /// implicitly; committing it makes the attested format legible to a journal consumer.
+    pub proof_format_version: u32,
 }
 
 /// What a journal consumer requires of a [`LiftJournal`].
@@ -204,6 +214,8 @@ pub struct JournalExpectation {
     /// Minimum acceptable number of responses (e.g. `n_eps(64) == 219` for the
     /// classical-128 target).
     pub min_responses: u32,
+    /// Required ZKBoo proof format version.
+    pub proof_format_version: u32,
 }
 
 /// Why a [`LiftJournal`] was refused by [`check_journal`].
@@ -222,6 +234,8 @@ pub enum JournalCheckError {
     /// Fewer responses than the required minimum (soundness is (2/3)^k in the count;
     /// the ZKBoo verifier itself accepts any count, the empty proof included).
     TooFewResponses,
+    /// The attested ZKBoo proof format differs from the required one.
+    ProofFormatMismatch,
 }
 
 /// Checks a [`LiftJournal`] against a [`JournalExpectation`].
@@ -262,6 +276,9 @@ pub fn check_journal(
     }
     if journal.num_responses < expectation.min_responses {
         return Err(JournalCheckError::TooFewResponses);
+    }
+    if journal.proof_format_version != expectation.proof_format_version {
+        return Err(JournalCheckError::ProofFormatMismatch);
     }
     return Ok(());
 }

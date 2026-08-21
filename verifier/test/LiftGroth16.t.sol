@@ -8,7 +8,7 @@ import {Verifier} from "../src/vendor/Groth16Verifier.sol";
 
 /// On-chain verification of the lifted proof of seed, against the audited SP1 Groth16
 /// verifier (vendored from sp1-contracts v6.1.0), on a real fixture exported by the
-/// host (`s3-wrap`, fully local native-gnark wrap): the verifying-key hash, the public
+/// host (`lift`, fully local native-gnark wrap): the verifying-key hash, the public
 /// values (the postcard-encoded lift journal), and the EVM proof bytes.
 ///
 /// The positive case measures gas for the proof-verification call a relying contract

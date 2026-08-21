@@ -3,6 +3,7 @@
 //! Shared host-side helpers for the SNARK lifter: the development statement fixture,
 //! the program input framing, and SP1 execution/verification drivers.
 
+use sp1_core_executor::SP1CoreOpts;
 use sp1_sdk::{
     Elf, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey,
     blocking::{EnvProver, Prover},
@@ -99,6 +100,7 @@ pub fn expectation_for(
         expected_output: input.expected_output.clone(),
         binding: input.binding.clone(),
         min_responses,
+        proof_format_version: zkboo::PROOF_FORMAT_VERSION,
     };
 }
 
@@ -142,6 +144,27 @@ pub fn execute_lift(
     }
     let journal = decode_journal(public_values.as_slice())?;
     return Ok((journal, report));
+}
+
+/// Builds the prover client for a run, together with a one-line record of the proving
+/// configuration it will use.
+///
+/// `SP1CoreOpts::default()` reads `SHARD_SIZE`, `ELEMENT_THRESHOLD`, `HEIGHT_THRESHOLD`
+/// and `TRACE_CHUNK_SLOTS` from the environment, so proving cost is tunable without a
+/// rebuild. That cuts both ways: a timing is meaningless unless the configuration it was
+/// measured under is recorded next to it, so every driver prints this summary before it
+/// starts proving.
+pub fn prover_client() -> (EnvProver, String) {
+    let opts = SP1CoreOpts::default();
+    let summary = format!(
+        "shard_size={} element_threshold={} height_threshold={} trace_chunk_slots={} rayon_threads={}",
+        opts.shard_size,
+        opts.sharding_threshold.element_threshold,
+        opts.sharding_threshold.height_threshold,
+        opts.trace_chunk_slots,
+        std::env::var("RAYON_NUM_THREADS").unwrap_or_else(|_| "unset".to_string()),
+    );
+    return (EnvProver::from_env_with_opts(Some(opts)), summary);
 }
 
 /// The complete relying-party gate over a lifted SP1 proof: verifies the proof against

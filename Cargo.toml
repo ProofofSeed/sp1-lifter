@@ -11,9 +11,11 @@ version = "0.1.0"
 edition = "2024"
 license = "LGPL-3.0-or-later"
 
-# The zkboo crates depend on one another by crates.io version "0.1.0"; these patches
+# The zkboo crates depend on one another by crates.io version "1.0.0"; these patches
 # redirect every zkboo dependency to the local working trees (<zkboo>), so local
-# changes propagate. Without them, the published 0.1.0 would be silently used instead.
+# changes propagate. Without them, cargo would resolve against crates.io instead —
+# where 1.0.0 is not yet published. Drop this table once the 1.0.0 release is on
+# crates.io, so that a released artefact builds against released crates.
 #
 # tiny-keccak is patched to SP1's accelerated fork (the Keccak precompile): inside the
 # zkVM, zkboo's Keccak256Hasher drives the precompile; on host targets the fork
@@ -25,7 +27,6 @@ zkboo-hmac = { path = "../../zkboo/zkboo-hmac" }
 zkboo-modular = { path = "../../zkboo/zkboo-modular" }
 zkboo-ecc = { path = "../../zkboo/zkboo-ecc" }
 zkboo-circuit-hash = { path = "../../zkboo/zkboo-circuit-hash" }
-zkboo-profiling = { path = "../../zkboo/zkboo-profiling" }
 zkboo-bip32 = { path = "../../zkboo/zkboo-bip32" }
 zkboo-keccak = { path = "../../zkboo/zkboo-keccak" }
 zkboo-ripemd160 = { path = "../../zkboo/zkboo-ripemd160" }

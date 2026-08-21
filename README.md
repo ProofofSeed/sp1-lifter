@@ -11,10 +11,16 @@ Requires the SP1 toolchain (`sp1up`; sdk 6.x with the `succinct` rust toolchain)
 ```sh
 cargo run --release -p snark-lifter-host --bin cycle-probe           # instruction-law sweep
 cargo run --release -p snark-lifter-host --bin s1-acceptance         # reject matrix + full-scale 219
-cargo run --release -p snark-lifter-host --bin s2-prove -- 219       # compressed (succinct) proof
-cargo run --release -p snark-lifter-host --bin s3-wrap -- 219        # local Groth16 wrap + Foundry fixture
+cargo run --release -p snark-lifter-host --bin lift -- 219           # prove + wrap + Foundry fixture
+cargo run --release -p snark-lifter-host --bin lift -- 8 compressed  # throughput probe, no wrap
 (cd verifier && forge test)                                          # on-chain verify + gas + rejects
 ```
+
+`lift` performs one proving pass: in the default `groth16` mode the single SP1 call runs core → compress → shrink → wrap, so the on-chain fixture costs one pass rather than two.
+`compressed` mode is for throughput probes at small repetition counts; it is not a stage to run before `groth16`.
+
+Proving cost is tunable from the environment without a rebuild — `SHARD_SIZE`, `ELEMENT_THRESHOLD`, `HEIGHT_THRESHOLD` and `TRACE_CHUNK_SLOTS` are read by `SP1CoreOpts::default()`, and `RAYON_NUM_THREADS` caps parallelism.
+`lift` prints the configuration it used before it starts, because a proving time means nothing without it.
 
 ## Structure
 

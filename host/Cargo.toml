@@ -12,12 +12,15 @@ build = "build.rs"
 # Go, arm64-native) — no Docker, no external service. Practically verified on this
 # machine 2026-08-19.
 sp1-sdk = { version = "6.0.1", features = ["blocking", "native-gnark"] }
+# Prover tuning knobs (shard thresholds, trace chunk slots) live in `SP1CoreOpts`, which
+# the SDK does not re-export.
+sp1-core-executor = { version = "6.0.1" }
 hex = { version = "0.4" }
 postcard = { version = "1.1", features = ["alloc"] }
 serde = { version = "1.0.228" }
-zkboo = { version = "0.1.0", features = ["keccak", "u32", "u64", "parallel"] }
-zkboo-bip32 = { version = "0.1.0" }
-zkboo-circuit-hash = { version = "0.1.0" }
+zkboo = { version = "1.0.0", features = ["keccak", "u32", "u64", "parallel"] }
+zkboo-bip32 = { version = "1.0.0" }
+zkboo-circuit-hash = { version = "1.0.0" }
 snark-lifter-statement = { path = "../statement" }
 
 [build-dependencies]
@@ -32,9 +35,5 @@ name = "s1-acceptance"
 path = "src/bin/s1_acceptance.rs"
 
 [[bin]]
-name = "s2-prove"
-path = "src/bin/s2_prove.rs"
-
-[[bin]]
-name = "s3-wrap"
-path = "src/bin/s3_wrap.rs"
+name = "lift"
+path = "src/bin/lift.rs"

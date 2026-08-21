@@ -13,6 +13,7 @@
 //! - R3 wrong fingerprint expectation → `check_journal` FingerprintMismatch
 //! - R4 too few responses (8 < 219) → `check_journal` TooFewResponses
 //! - R5 empty proof (accepted by the ZKBoo verifier by design) → `check_journal` TooFewResponses
+//! - R8 wrong proof format version → `check_journal` ProofFormatMismatch
 //! - R6 wrong statement expectation → `check_journal` StatementMismatch
 //! - R7 structurally malformed response (oversized AND-message) → replay shape check
 //!   ("view replay error"), fail-closed
@@ -147,6 +148,18 @@ fn main() {
             &journal,
             &exp,
             JournalCheckError::StatementMismatch,
+        );
+
+        // R8: wrong proof format — the circuit fingerprint is blind to a change of the
+        // view-commitment scheme, so the format the program attests must be checked in
+        // its own right.
+        let mut exp = expectation_for(&input, n as u32);
+        exp.proof_format_version += 1;
+        expect_consumer_refusal(
+            "R8 wrong proof format",
+            &journal,
+            &exp,
+            JournalCheckError::ProofFormatMismatch,
         );
 
         // R7: structurally malformed response (oversized AND-message vector) — refused
