@@ -205,3 +205,25 @@ On a toy circuit, 23 of 23 cases behaved as predicted: an honest proof built at 
 The empty proof remains the single degenerate case that verifies, because it has no challenges to check; `s1-acceptance` R5 confirms the count gate is what refuses it.
 
 ⚠️ Scope of the evidence: both probes drive the **sequential** `verify`, the path the guest compiles. That `par_verify` shares the derivation was established by reading both functions, not by probing the parallel path. An earlier note claiming the result held "on both verifier paths" overstated what was run.
+
+### Planned: the worker-pool sweep (designed 2026-08-21, pre-registered)
+
+`SP1CoreOpts` is not the only environment surface. `sp1-prover`'s worker pool is configured by a family of `SP1_WORKER_*` variables (`worker/config.rs`), every one of them env-read, sitting on hard-coded defaults beside a literal `TODO: base default values on system information`:
+
+| knob | default |
+|---|---:|
+| `SP1_WORKER_NUM_CORE_WORKERS` | 4 |
+| `SP1_WORKER_NUM_RECURSION_PROVER_WORKERS` | 8 |
+| `SP1_WORKER_NUM_RECURSION_EXECUTOR_WORKERS` | 4 |
+| `SP1_WORKER_NUM_PREPARE_REDUCE_WORKERS` | 4 |
+| `SP1_WORKER_NUM_SETUP_WORKERS` / `_SPLICING_WORKERS` | 2 / 2 |
+| `SP1_WORKER_MAX_REDUCE_ARITY` / `_MAX_COMPOSE_ARITY` | 4 / 4 |
+| `SP1_WORKER_VERIFY_INTERMEDIATES` | **true** |
+
+Three hypotheses, to be measured at n=8 against the 1 032.9 s baseline, one variable at a time:
+
+1. **`VERIFY_INTERMEDIATES=false`.** The default spawns a blocking `core_verifier(...).verify(...)` for **every shard proof as it is produced** (`worker/prover/core.rs:618-630`); at roughly 280 shards for a full run that is 280 verifications contending for the same cores. It is a prover-side self-check, and removing it is **soundness-neutral for a relying party**: the final proof still passes `check_lifted_proof` and the audited on-chain verifier, so this cannot make an invalid proof verify — it can only delay the discovery of a prover bug from the shard that produced it to the run that fails at the end. Expected to be the largest of the three.
+2. **`MAX_REDUCE_ARITY=8`.** Fewer recursion levels over the same leaves. ⚠️ Arity tables have misled this project before — recursion has cost more than the thing it recursed over — so this is a measurement, not a prediction.
+3. **Worker counts rebalanced to the 12-thread cap.** The defaults total 28 logical workers; whether raising the core and recursion-prover counts helps or simply adds contention is unknown.
+
+Each probe uses prebuilt binaries and changes exactly one variable, so a result is attributable. Nothing here can affect what a proof means — every one of these knobs is a scheduling or self-check decision on the prover side, and the verifier is unmoved.
