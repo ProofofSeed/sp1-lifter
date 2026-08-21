@@ -1,0 +1,25 @@
+── compressed proving run (n=219) ──
+  proved 219 ZKBoo responses in 102.99ms
+  zkVM compressed proving: 22954.42s
+  proof verified + journal gate passed in 25.82ms
+  lifted statement: 219 responses
+  compressed proof: 1272755 bytes → fixtures/lift-219.compressed-proof.bin
+compressed proving run: PASS
+    22963.56 real    270495.36 user     13960.88 sys
+        113882562560  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+          2147483647  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   1  signals received
+                   3  voluntary context switches
+           437624044  involuntary context switches
+    4465822528429350  instructions retired
+    1073804174846176  cycles elapsed
+        113511974896  peak memory footprint

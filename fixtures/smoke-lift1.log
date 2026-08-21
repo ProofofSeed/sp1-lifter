@@ -1,0 +1,39 @@
+── lift run (n=1, mode=groth16) ──
+  prover config: shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=3 rayon_threads=12
+  proved 1 ZKBoo responses natively in 4.44ms
+Setting environment variables took 43.792µs
+Reading R1CS took 7.96880975s
+Reading proving key took 1.019415625s
+Reading witness file took 206.583µs
+Deserializing JSON data took 12.026625ms
+Generating witness took 301.963583ms
+[90m14:33:00[0m DBG constraint system solver done [36mnbConstraints=[0m15972262 [36mtook=[0m1820.602833
+[90m14:33:15[0m DBG prover done [36macceleration=[0mnone [36mbackend=[0mgroth16 [36mcurve=[0mbn254 [36mnbConstraints=[0m15972262 [36mtook=[0m14426.564208
+Generating proof took 16.247488s
+[90m14:33:15[0m [33mWRN[0m [1mignoring uninitialized slice[0m [36mslice name=[0mVars [36mslice type=[0m[]frontend.Variable
+[90m14:33:15[0m [33mWRN[0m [1mignoring uninitialized slice[0m [36mslice name=[0mVars [36mslice type=[0m[]frontend.Variable
+[90m14:33:15[0m [33mWRN[0m [1mignoring uninitialized slice[0m [36mslice name=[0mVars [36mslice type=[0m[]frontend.Variable
+[90m14:33:15[0m DBG verifier done [36mbackend=[0mgroth16 [36mcurve=[0mbn254 [36mtook=[0m0.673875
+  zkVM groth16 proving: 459.47s
+  proof verified + journal gate passed in 150.68ms (1 responses)
+  proof → fixtures/lift-1.groth16-proof.bin (1880 bytes on disk)
+  Foundry fixture → verifier/fixtures/lift-1.onchain.json (proof 356 bytes, public values 186 bytes)
+lift run: PASS
+      468.50 real      4987.52 user       184.79 sys
+        101298110464  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            36282555  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                6204  signals received
+                4413  voluntary context switches
+             8235459  involuntary context switches
+      79851984505478  instructions retired
+      19994297425162  cycles elapsed
+        100793247064  peak memory footprint

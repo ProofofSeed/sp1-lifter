@@ -57,6 +57,22 @@ contract LiftGroth16Test is Test {
     ///
     /// It is deliberately a pin: when the program legitimately changes, this fails, and
     /// updating it is the act of accepting the new program.
+    /// `REQUIRED_PROOF_FORMAT_VERSION` from the statement crate. It is the journal's
+    /// last field, so it is the last byte of the public values.
+    uint8 internal constant EXPECTED_PROOF_FORMAT_VERSION = 2;
+
+    /// `num_responses` for the classical-128 target, as postcard writes it: 219 is above
+    /// 127, so its LEB128 varint is two bytes, `0xDB 0x01`. It is the second-to-last
+    /// field, hence at `[length-3]` and `[length-2]`.
+    ///
+    /// Only enforced for the default fixture, which is the acceptance artefact. An
+    /// explicitly named fixture is a smoke at some smaller count and may attest any
+    /// number — but the suite's own header calls the count soundness-critical, and
+    /// without this a smoke fixture copied to the acceptance path would pass at the
+    /// same gas while attesting a single response.
+    uint8 internal constant N_EPS_VARINT_LOW = 0xDB;
+    uint8 internal constant N_EPS_VARINT_HIGH = 0x01;
+
     bytes32 internal constant EXPECTED_VKEY =
         0x004dc0b7561f87fc31370bec92a601824bf6619c47a232212d4fb3976298ca69;
 
@@ -105,6 +121,18 @@ contract LiftGroth16Test is Test {
         assembly { fingerprint := mload(add(pv, 34)) }
         require(fingerprint == EXPECTED_FINGERPRINT, "fixture attests a different circuit: regenerate it");
         require(vkey == EXPECTED_VKEY, "fixture comes from a different program: regenerate it");
+        uint256 pvLen = publicValues.length;
+        require(
+            uint8(publicValues[pvLen - 1]) == EXPECTED_PROOF_FORMAT_VERSION,
+            "fixture attests a different ZKBoo proof format"
+        );
+        if (!explicitFixture) {
+            require(
+                uint8(publicValues[pvLen - 3]) == N_EPS_VARINT_LOW
+                    && uint8(publicValues[pvLen - 2]) == N_EPS_VARINT_HIGH,
+                "acceptance fixture does not attest 219 responses"
+            );
+        }
     }
 
     function test_lift_verifies_and_measures_gas() public view {

@@ -1,6 +1,7 @@
 /target
 methods/guest/target
-/fixtures
+/fixtures/*
+!/fixtures/*.log
 verifier/fixtures
 verifier/out
 verifier/cache
