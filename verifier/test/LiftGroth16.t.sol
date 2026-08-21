@@ -36,6 +36,17 @@ contract LiftGroth16Test is Test {
     /// `LIFT_JOURNAL_VERSION` and a stale fixture fails loudly instead.
     uint8 internal constant EXPECTED_JOURNAL_VERSION = 2;
 
+    /// The structural fingerprint of the circuit this fixture must attest, sitting at
+    /// `publicValues[2..34]` (the journal's third field, a bare 32-byte digest).
+    ///
+    /// The version byte above catches a change of journal *layout*; this catches a
+    /// change of *circuit* that leaves the layout intact — which is the drift that
+    /// actually happened once already, when adopting the ZKB++ view commitment moved the
+    /// fingerprint from `33e1f70b…` to `e23ddb6a…` without touching the journal shape.
+    /// Update it deliberately when the circuit changes, which is the point.
+    bytes32 internal constant EXPECTED_FINGERPRINT =
+        0xe23ddb6a1be341ba770275fd73b33730a051dfc998cfa339fb19fabc57e2df1b;
+
     SP1Verifier internal verifier;
     bytes32 internal vkey;
     bytes internal publicValues;
@@ -53,13 +64,21 @@ contract LiftGroth16Test is Test {
         verifier = new SP1Verifier();
         if (!vm.isFile(fixture)) {
             require(!explicitFixture, "LIFT_FIXTURE set but the file does not exist");
+            // forge reports a fully skipped suite as `Suite result: ok`, which reads as
+            // a pass. Say plainly that nothing was verified.
+            console2.log("SKIPPED: no fixture at", fixture);
+            console2.log("This suite verified NOTHING. Generate it with: lift 219 groth16");
             vm.skip(true);
         }
         string memory json = vm.readFile(fixture);
         vkey = vm.parseJsonBytes32(json, ".vkey");
         publicValues = vm.parseJsonBytes(json, ".publicValues");
         proofBytes = vm.parseJsonBytes(json, ".proof");
-        require(publicValues.length > 1, "fixture public values are truncated");
+        require(publicValues.length >= 34, "fixture public values are truncated");
+        // Postcard encodes a u32 as a LEB128 varint, so the version occupies one byte
+        // only while it stays below 128. At 128 exactly the byte would be 0x80 and the
+        // next byte a continuation, and every offset below would silently shift.
+        require(uint8(publicValues[0]) < 0x80, "journal version is multi-byte: offsets below are invalid");
         require(
             uint8(publicValues[0]) == EXPECTED_JOURNAL_VERSION,
             "fixture journal version does not match the statement crate: regenerate it"
@@ -67,6 +86,10 @@ contract LiftGroth16Test is Test {
         // `valid` is the journal's second field; the program only ever commits `true`,
         // so anything else means the fixture was not produced by an accepting run.
         require(uint8(publicValues[1]) == 1, "fixture journal does not attest a valid proof");
+        bytes32 fingerprint;
+        bytes memory pv = publicValues;
+        assembly { fingerprint := mload(add(pv, 34)) }
+        require(fingerprint == EXPECTED_FINGERPRINT, "fixture attests a different circuit: regenerate it");
     }
 
     function test_lift_verifies_and_measures_gas() public view {

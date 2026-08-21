@@ -16,6 +16,8 @@ cargo run --release -p snark-lifter-host --bin lift -- 8 compressed  # throughpu
 (cd verifier && forge test)                                          # on-chain verify + gas + rejects
 ```
 
+The Foundry suite reads a fixture that `lift` generates; without one it **skips**, and a fully skipped suite still prints `Suite result: ok`, so check for `5 passed` rather than `ok`.
+
 `lift` performs one proving pass: in the default `groth16` mode the single SP1 call runs core → compress → shrink → wrap, so the on-chain fixture costs one pass rather than two.
 `compressed` mode is for throughput probes at small repetition counts; it is not a stage to run before `groth16`.
 

@@ -152,8 +152,8 @@ pub fn execute_lift(
 /// `SP1CoreOpts::default()` reads `SHARD_SIZE`, `ELEMENT_THRESHOLD`, `HEIGHT_THRESHOLD`
 /// and `TRACE_CHUNK_SLOTS` from the environment, so proving cost is tunable without a
 /// rebuild. That cuts both ways: a timing is meaningless unless the configuration it was
-/// measured under is recorded next to it, so every driver prints this summary before it
-/// starts proving.
+/// measured under is recorded next to it, so every driver that proves prints this
+/// summary first. (`s1-acceptance` and `cycle-probe` only execute, and print nothing.)
 pub fn prover_client() -> (EnvProver, String) {
     let opts = SP1CoreOpts::default();
     let summary = format!(
@@ -175,9 +175,9 @@ pub fn prover_client() -> (EnvProver, String) {
 /// ⚠️ This is the setting that decides whether a run means anything: under `mock` the
 /// prover fabricates a proof and its verifier only compares public inputs, so a driver
 /// would print the same success line and write the same artefact paths as a real run.
-/// The core options above are also passed only to the CPU prover — every other backend
-/// discards them — so a summary that omitted the backend would be describing settings
-/// that were not in force.
+/// The core options above also reach proving only on the CPU path — no other backend
+/// proves with them (CUDA forwards them to its execution node but not to the GPU
+/// prover) — so a summary omitting the backend could describe settings not in force.
 pub fn prover_backend() -> String {
     return std::env::var("SP1_PROVER").unwrap_or_else(|_| "cpu".to_string());
 }
