@@ -100,7 +100,7 @@ pub fn expectation_for(
         expected_output: input.expected_output.clone(),
         binding: input.binding.clone(),
         min_responses,
-        proof_format_version: zkboo::PROOF_FORMAT_VERSION,
+        proof_format_version: snark_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION,
     };
 }
 
@@ -157,14 +157,29 @@ pub fn execute_lift(
 pub fn prover_client() -> (EnvProver, String) {
     let opts = SP1CoreOpts::default();
     let summary = format!(
-        "shard_size={} element_threshold={} height_threshold={} trace_chunk_slots={} rayon_threads={}",
+        "backend={} shard_size={} element_threshold={} height_threshold={} \
+         trace_chunk_slots={} memory_limit={} rayon_threads={}",
+        prover_backend(),
         opts.shard_size,
         opts.sharding_threshold.element_threshold,
         opts.sharding_threshold.height_threshold,
         opts.trace_chunk_slots,
+        opts.memory_limit,
         std::env::var("RAYON_NUM_THREADS").unwrap_or_else(|_| "unset".to_string()),
     );
     return (EnvProver::from_env_with_opts(Some(opts)), summary);
+}
+
+/// The prover backend `SP1_PROVER` selects, defaulting to `cpu`.
+///
+/// ⚠️ This is the setting that decides whether a run means anything: under `mock` the
+/// prover fabricates a proof and its verifier only compares public inputs, so a driver
+/// would print the same success line and write the same artefact paths as a real run.
+/// The core options above are also passed only to the CPU prover — every other backend
+/// discards them — so a summary that omitted the backend would be describing settings
+/// that were not in force.
+pub fn prover_backend() -> String {
+    return std::env::var("SP1_PROVER").unwrap_or_else(|_| "cpu".to_string());
 }
 
 /// The complete relying-party gate over a lifted SP1 proof: verifies the proof against

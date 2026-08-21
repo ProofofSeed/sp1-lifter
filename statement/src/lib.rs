@@ -151,6 +151,17 @@ pub struct LiftInput {
 /// Version tag of the [`LiftJournal`] layout; bump on any change to its shape.
 pub const LIFT_JOURNAL_VERSION: u32 = 2;
 
+/// The ZKBoo proof format this statement is defined over (`zkboo::PROOF_FORMAT_VERSION`
+/// at the revision this crate was written against).
+///
+/// Declared here rather than read from the linked `zkboo`, deliberately. Deriving the
+/// requirement from whatever version a consumer happens to link would make the check
+/// track the consumer instead of constraining it: a consumer that downgraded its `zkboo`
+/// would silently begin *requiring* the older format rather than refusing it. Pinning it
+/// means a format change is a decision someone makes here, and until they do, proofs
+/// carrying the new format are refused.
+pub const REQUIRED_PROOF_FORMAT_VERSION: u32 = 2;
+
 /// The journal committed by the lift guest: the complete lifted statement.
 ///
 /// A receipt over this journal attests: "a ZKBoo proof with `num_responses` responses,

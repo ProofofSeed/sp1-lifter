@@ -59,7 +59,7 @@ This milestone makes the single pass the only path, and replaces the assumption 
 
 Scope: a single `lift` driver that proves once and emits both the proof and the Foundry fixture; SP1's tracing subscriber installed so runs report their phase structure; the prover knobs the SP1 code actually reads (`SHARD_SIZE`, `ELEMENT_THRESHOLD`, `HEIGHT_THRESHOLD`, `TRACE_CHUNK_SLOTS` — all read by `SP1CoreOpts::default()` from the environment, hence tunable without a rebuild) swept at a fixed statement size; and the chosen configuration recorded alongside every timing it produced.
 
-⚠️ Two knobs that look like levers are not: `full_size_shards` is referenced only in `opts.rs` and never read on the CPU path, and `drop_ldes`/`recompute_gkr_trace` are hardcoded `false` and trade memory *for* recompute.
+⚠️ Three knobs look like levers and are not: `full_size_shards`, `drop_ldes` and `recompute_gkr_trace` are each referenced only in `opts.rs` and never consulted anywhere in the 6.4.0 prover. (An earlier draft of this line credited the latter two with trading memory for recompute, which is what their docstrings imply and what nothing in the code does — the Metal lesson, repeated one file away from where it was being applied.)
 
 **Acceptance:** a single-process `lift 219` produces a Groth16 proof that passes the full relying-party gate and verifies under `forge` at recorded gas; its log records the prover configuration it ran under; and `knowledge/` carries the sweep record — wall time and peak RSS for every configuration tried — with the configuration used for the full run justified by that measurement rather than by assumption.
 

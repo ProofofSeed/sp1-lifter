@@ -25,6 +25,17 @@ import {Verifier} from "../src/vendor/Groth16Verifier.sol";
 /// the statement crate specifies. Omitting the count check alone re-opens acceptance of
 /// proofs at prover-chosen soundness (the ZKBoo verifier accepts even the empty proof).
 contract LiftGroth16Test is Test {
+    /// `LIFT_JOURNAL_VERSION` from the statement crate. The journal is postcard-encoded
+    /// and `version` is its first field, so for any value below 128 the first byte of
+    /// the public values is the version varint.
+    ///
+    /// This is a FRESHNESS guard, not the journal gate: fixtures are generated
+    /// artefacts that outlive the program they came from, and a fixture built by an
+    /// older program stays internally consistent, so `verifyProof` accepts it and the
+    /// suite would go green against a program that no longer exists. Bump this with
+    /// `LIFT_JOURNAL_VERSION` and a stale fixture fails loudly instead.
+    uint8 internal constant EXPECTED_JOURNAL_VERSION = 2;
+
     SP1Verifier internal verifier;
     bytes32 internal vkey;
     bytes internal publicValues;
@@ -48,6 +59,14 @@ contract LiftGroth16Test is Test {
         vkey = vm.parseJsonBytes32(json, ".vkey");
         publicValues = vm.parseJsonBytes(json, ".publicValues");
         proofBytes = vm.parseJsonBytes(json, ".proof");
+        require(publicValues.length > 1, "fixture public values are truncated");
+        require(
+            uint8(publicValues[0]) == EXPECTED_JOURNAL_VERSION,
+            "fixture journal version does not match the statement crate: regenerate it"
+        );
+        // `valid` is the journal's second field; the program only ever commits `true`,
+        // so anything else means the fixture was not produced by an accepting run.
+        require(uint8(publicValues[1]) == 1, "fixture journal does not attest a valid proof");
     }
 
     function test_lift_verifies_and_measures_gas() public view {

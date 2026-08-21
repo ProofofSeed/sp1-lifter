@@ -152,7 +152,11 @@ fn main() {
 
         // R8: wrong proof format — the circuit fingerprint is blind to a change of the
         // view-commitment scheme, so the format the program attests must be checked in
-        // its own right.
+        // its own right. Note the limit of what this can demonstrate: only one guest
+        // build exists here, so mutating the expectation shows that the comparison
+        // fires, not that a genuinely mis-formatted proof is caught. The threat it
+        // guards is a consumer that upgrades zkboo while still pinning an older
+        // verifying key, which no single-build test can stage.
         let mut exp = expectation_for(&input, n as u32);
         exp.proof_format_version += 1;
         expect_consumer_refusal(

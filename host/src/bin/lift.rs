@@ -21,7 +21,7 @@ use std::time::Instant;
 use sp1_sdk::{HashableKey, ProvingKey, blocking::{ProveRequest, Prover}};
 use snark_lifter_host::{
     HARDENED_OFFSET, LIFT_ELF, bip32_vector_1, check_lifted_proof, expectation_for,
-    lift_input_for, lift_stdin, prover_client, vector_1_proof,
+    lift_input_for, lift_stdin, prover_backend, prover_client, vector_1_proof,
 };
 use zkboo::params::n_eps;
 
@@ -48,6 +48,15 @@ fn main() {
     }
     sp1_sdk::setup_logger();
     let (client, config) = prover_client();
+    // A mock proof carries no evidence — its verifier only compares public inputs — and
+    // this driver writes the artefacts that the on-chain acceptance consumes. Refuse
+    // rather than produce a fixture indistinguishable from a real one.
+    assert_ne!(
+        prover_backend(),
+        "mock",
+        "refusing to write lift artefacts under SP1_PROVER=mock: a mock proof would \
+         pass the gate and be saved as a fixture"
+    );
     println!("── lift run (n={n}, mode={mode}) ──");
     println!("  prover config: {config}");
     let t = Instant::now();
