@@ -158,7 +158,9 @@ Halving `ELEMENT_THRESHOLD`/`HEIGHT_THRESHOLD` costs **24.7% in time** and retur
 
 ⚠️ Three knobs read like levers and are not: `full_size_shards`, `drop_ldes` and `recompute_gkr_trace` are each referenced only in `opts.rs` and never consulted anywhere in the 6.4.0 prover. Checking that at the source, rather than trusting the field's existence and its docstring, is the standing lesson from the Metal episode.
 
-**Chosen configuration: `TRACE_CHUNK_SLOTS=3`, stock shard thresholds, 12 threads** — measured optimum inside this machine's memory envelope, worth 9.5% on every run for a one-line environment change.
+**Chosen configuration: `TRACE_CHUNK_SLOTS=3`, stock shard thresholds, 12 threads** — the measured optimum at n=8, inside this machine's memory envelope.
+
+🚨 **This gain did not survive contact with full scale. See the full-scale result below: at n=219 the same setting came in 0.84% *slower* than the default configuration, not 9.5% faster.** The n=8 measurement was not noise — two independent runs at `slots=2` and `slots=3` both landed near 1 033 s against 1 141.6 s, and total CPU time fell with it — so the effect is real at n=8 and absent at n=219. A 219-response run has roughly 280 shards against roughly 12 at n=8; whatever the chunk slots relieve at a dozen shards is already saturated at a few hundred. **Treat every number in the sweep table above as a statement about n=8 only.**
 
 ### Scaling constants for planning
 
@@ -227,3 +229,29 @@ Three hypotheses, to be measured at n=8 against the 1 032.9 s baseline, one vari
 3. **Worker counts rebalanced to the 12-thread cap.** The defaults total 28 logical workers; whether raising the core and recursion-prover counts helps or simply adds contention is unknown.
 
 Each probe uses prebuilt binaries and changes exactly one variable, so a result is attributable. Nothing here can affect what a proof means — every one of these knobs is a scheduling or self-check decision on the prover side, and the verifier is unmoved.
+
+### Full-scale result on the released tree (2026-08-21): ACCEPTANCE MET, projection MISSED
+
+`lift 219 groth16`, single pass, prebuilt binary, `TRACE_CHUNK_SLOTS=3`, 12 threads, zkboo 1.0.0 at the pinned revisions.
+
+| | measured |
+|---|---:|
+| zkVM groth16 pipeline (core → compress → shrink → wrap) | **23 320.2 s (6 h 28 m 40 s)** |
+| whole run, wall | 23 329.3 s |
+| peak RSS | 112.2 GB |
+| gnark stage inside that | 25.4 s (R1CS read 7.9, pk read 1.0, prove 16.2, verify 0.7) |
+| EVM proof / public values | 356 B / 187 B (one varint byte more than n=1, the response count) |
+| relying-party gate | green, 219 responses |
+| **on-chain (`forge`, all seven fixture guards + 4 rejects)** | **5/5, `verifyProof` = 270 441 gas** |
+
+**The pre-registered acceptance is met**: a single-process `lift 219` produced a Groth16 proof that passed the full gate and verified under `forge` at recorded gas, its log records the configuration it ran under, and `knowledge/` carries the sweep record. The acceptance's last clause — that the configuration be *justified by measurement rather than assumption* — is where this run indicts its own method: the justification was an n=8 measurement, and it did not hold.
+
+**What actually improved, and what did not:**
+
+- **The harness fix is real and confirmed at full scale: 46 079 s → 23 320 s, a factor of 1.98.** Proving once instead of twice is the entire gain.
+- **The configuration change bought nothing**: 23 320.2 s against the previous full-scale groth16 pass at stock settings, 23 125.0 s — **0.84% slower**. Within run-to-run noise, and in the wrong direction. (Two short review agents did millisecond-scale `forge` and file reads during the first ninety minutes; that cannot account for a percent.)
+- **The projection was wrong by 11.1%**: 20 984 s predicted, 23 320 s measured. It was built by scaling the n=8 marginal law by the n=8 configuration gain, so it inherited the error twice over.
+
+**The methodological lesson, which is the durable output of this run:** a cheap probe at n=8 answered a different question than the one asked. Shard count is the variable the prover's scheduling knobs act on, and it differs by more than an order of magnitude between the probe and the real workload. This repeats a lesson already recorded on the STARK track — behaviour that is invisible at four queries can dominate at three hundred — in the opposite direction: a gain visible at a dozen shards evaporates at a few hundred. **Any future prover-configuration claim must be validated at a shard count within reach of the real one before it is believed, and small-n probes are for screening candidates, not for sizing them.**
+
+Note this cuts the other way for the next lever: `SP1_WORKER_VERIFY_INTERMEDIATES` verifies *per shard*, so its cost grows with shard count and an n=8 probe would **understate** it — the mirror image of the error above.
