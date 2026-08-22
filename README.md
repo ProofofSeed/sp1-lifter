@@ -28,6 +28,7 @@ Proving cost is tunable from the environment without a rebuild — `SHARD_SIZE`,
 
 - `statement/` — shared host/program definitions: the proof-of-seed circuits, the fixed Keccak-256 crypto suite, the postcard wire format, and the reference journal gate.
 - `program/` — the SP1 program: a thin shim around `zkboo::verifier::verify`.
+- `elephant/`, `program-elephant/` — the secp256k1 Ethereum-address statement and its guest, kept separate so that probing it cannot move the production verifying key. See `knowledge/elephant-cost.md`.
 - `host/` — proof generation, execution/proving drivers, and the acceptance harnesses.
 - `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0).
 - `knowledge/` — design record, milestone plan, and measured numbers.
