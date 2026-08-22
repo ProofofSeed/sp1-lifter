@@ -65,6 +65,10 @@ Scope: a single `lift` driver that proves once and emits both the proof and the 
 
 ⚠️ The full-scale run must not be made against an uncommitted `<zkboo>` working tree: the guest ELF depends on it, so the run's verifying key and fixture would not be attributable to any recorded revision.
 
+**DONE (2026-08-21).** A single-process `lift 219 groth16` on the released zkboo 1.0.0 tree proved the full lift in **23 320.2 s (6 h 28 m 40 s)**, peak RSS 112.2 GB, and its 356-byte proof verified under `forge` at **270 441 gas, 5/5**, having passed the full relying-party gate and every fixture guard. Against the previous two-run chain of 46 079 s that is a factor of **1.98**, and all of it comes from proving once instead of twice.
+
+The acceptance's final clause — that the configuration be justified by measurement rather than assumption — **failed on its own terms, and the failure is the milestone's most useful output.** The configuration was chosen from an n=8 sweep showing 9.5%; at n=219 it returned −0.84%, and a second knob tested directly at full scale returned 0.54%. Both are noise. A short run has around a dozen shards against a full run's ~280, so the scheduling knobs were measured on a workload that does not resemble the one they were chosen for. **Small runs screen candidates; they do not size them** — and no prover-configuration claim should be believed here until it has been measured at a shard count within reach of the real one.
+
 ## Later, separately probed
 
 - The secp256k1 elephant statements (~42 MB/response ⇒ ~9 GB of proof data through the guest at 219): probe guest cycles on a single response before committing to anything.
