@@ -270,3 +270,83 @@ Hypothesis 1 was tested where the previous mistake said it had to be — at full
 **The sweep is abandoned here, and the reason generalises past these knobs.** Two full-scale interventions have now returned nothing, and the profile says why. This run's own trace attributes only 1.45% (337 s over 1.74M invocations) to Keccak trace generation and 25.6 s to the wrap; the top-level proving spans carry no busy time at `info`, so the work sits below them. The sp1-metal probe suite profiled this very workload — *"the ProofofSeed snark-lifter's compressed proof at n=8, 1007 s wall"* — and found **GKR 46.8%, PCS opening 19.0%, zerocheck 15.0%, commit 13.7%**: about 95% of the run is field arithmetic inside sumcheck-shaped phases. None of the remaining knobs (`MAX_REDUCE_ARITY`, worker counts) touches that; they schedule it. With `user/real` already at 11.8 against a 12-thread cap, there is no idleness for a scheduler to reclaim.
 
 **What this leaves.** Proving cost is now bounded by two things and neither is configuration: the instruction count (zkboo's territory, 17.7% already banked) and the per-instruction proving rate (~209k/s). On the second, the measured, non-GPU opportunity is that SP1's CPU prover does its field arithmetic on scalar values — 0 packed-type mentions across `slop-sumcheck`, `slop-multilinear`, `slop-jagged`, `slop-basefold-prover`, `slop-dft`, and 1 of 65 files in `sp1-hypercube` — where packed NEON measures 3.26× on the GKR round and 2.31–4.65× on the folds. Against a ~70% share that is roughly **1.9× end to end**, on the hardware already here, in upstream code that a `[patch.crates-io]` fork can reach and that is **vkey-neutral and soundness-neutral** to change: the verifying key is a function of the program, not the prover, so a packed prover produces proofs the same audited verifier accepts, with no fixture regeneration — and a mistake in it cannot forge, only fail to verify.
+
+## The elephant probe (2026-08-22): the Ethereum-address statement, measured
+
+The statement that actually binds a proof of seed to an Ethereum account is
+`address = Keccak256(x_be ‖ y_be)[12:]` where `Q = (x,y) = d·G` on secp256k1. Everything the
+lifter had measured until now was on the hash-only side of the proof-of-seed suite; this is the
+expensive side, probed at one, two and four responses rather than by committing months of machine
+time to find out.
+
+The probe lives in its own crate and its own guest (`elephant/`, `program-elephant/`), deliberately
+outside the production statement crate: that crate's shape fixes the guest ELF and hence the
+verifying key the on-chain suite pins, and a probe must not move it. Verified after building: the
+Foundry suite still passes 5/5 at the same key.
+
+### Measured, at the circuit
+
+| | hardened child | Ethereum address | ratio |
+|---|---:|---:|---:|
+| response size | ~58 KiB | **11.28 MB** | 190× |
+| full proof at 219 responses | 12.7 MB | **2.47 GB** | — |
+| circuit execution | — | 269 ms | — |
+| native prove, 1 response | ~5 ms | 1.16 s | — |
+| native verify, 1 response | ~2.1 ms | **511 ms** | 243× |
+
+⚠️ `zkboo-bip32/README.md` still lists 42.3 MB per response for this statement. That table predates
+the optimisation round; the measured figure is **11.28 MB**, 3.75× smaller, and the full-scale proof
+data is **2.47 GB rather than the ~9.3 GB** quoted from the stale number.
+
+### Measured, in the zkVM
+
+| n | instructions | executor wall | peak RSS |
+|---:|---:|---:|---:|
+| 1 | 30 495 877 378 | 185.2 s | 15.1 GB |
+| 2 | 40 917 254 932 | 248.8 s | 15.7 GB |
+| 4 | 61 760 022 190 | 378.0 s | 16.5 GB |
+
+**Fitted law: `instructions = 2.007e10 + 1.042e10 × n`.** The two independent marginal estimates
+(n=1→2 and n=2→4) agree to **0.0001%**, so the law is trustworthy in a way a single point never is —
+and the single point would have misled badly: the **fixed term is 66% of the n=1 total**, being the
+in-guest circuit-fingerprint pass over a secp256k1 circuit plus the decode of a 13.4 MB frame.
+Extrapolating from n=1 alone overstates the full-scale cost by **2.90×**. At 219 responses that same
+fixed term is 0.87% of the total and can be ignored.
+
+Note the shape of the cost: **481× the hardened child per response against a 190× response size**, so
+the elephant is ~2.5× more expensive per byte. The cost is replaying scalar-multiplication gates,
+which no precompile relieves — SP1's Keccak accelerator does nothing for field arithmetic. Note also
+that the zkVM needs roughly 6–12× the instructions the native verifier uses here, where on the hash
+statement it sat at rough parity: 256-bit field arithmetic compiles far less favourably to RISC-V
+than hashing does.
+
+### What it would cost
+
+At 219 responses: **2.302e12 instructions**, and at this machine's measured proving rate of
+204 687 instructions/s that is **130 days** — **482× the 6 h 28 m the hardened-child lift takes**.
+
+⚠️ The rate is the hardened-child statement's, assumed to carry over. It has **not** been measured on
+an elephant workload, whose instruction mix is entirely different, and no elephant response has been
+proved — only executed. Treat 130 days as an order-of-magnitude statement, not a figure.
+
+Scaled onto other hardware, each factor an extrapolation stacked on the last: ~35 days on valkyrie's
+64 cores, ~13 days with one of its GPUs at sp1-metal's projected 10×, ~3 days with four or five cards
+busy on one proof. **None of these is a route to lifting this statement as a single proof.**
+
+### The structural obstacle, and why the obvious fix is unsound
+
+219 responses look like 219 independent verification tasks that a cluster could divide. **They are
+not, and this repository has already proved they are not.** The Fiat-Shamir challenge is derived from
+the view commitments of exactly the responses present in the proof, so a subset re-derives different
+challenges and fails — truncations, sub-ranges, sparse selections and reorderings were all built and
+all rejected (recorded above). Splitting the work therefore cannot mean splitting the proof: any
+division has to keep a global challenge check over all 219 responses while distributing the replay,
+which is a design in its own right — the same global-Fiat-Shamir gate the STARK track identified as
+the correctness condition for any lifter.
+
+**The honest conclusion of this probe: the Ethereum-address statement is not liftable by this route
+at classical-128, on any hardware currently available to the project, and the gap is ~2 orders of
+magnitude rather than something a better configuration closes.** What the probe has bought is that
+this is now measured rather than assumed, and that the two cheap levers are visible: the per-response
+instruction count (zkboo's circuit, where 3.75× has already been found once) and the proving rate
+(where packing the CPU prover's scalar field arithmetic is worth ~1.9× and costs no soundness).

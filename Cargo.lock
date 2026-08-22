@@ -3970,12 +3970,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "snark-lifter-elephant"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "snark-lifter-statement",
+ "zkboo",
+ "zkboo-bip32",
+]
+
+[[package]]
 name = "snark-lifter-host"
 version = "0.1.0"
 dependencies = [
  "hex",
  "postcard",
  "serde",
+ "snark-lifter-elephant",
  "snark-lifter-statement",
  "sp1-build",
  "sp1-core-executor",
@@ -3983,6 +3994,7 @@ dependencies = [
  "zkboo",
  "zkboo-bip32",
  "zkboo-circuit-hash",
+ "zkboo-profiling",
 ]
 
 [[package]]
@@ -3991,6 +4003,17 @@ version = "0.1.0"
 dependencies = [
  "postcard",
  "snark-lifter-statement",
+ "sp1-zkvm",
+ "zkboo",
+ "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "snark-lifter-program-elephant"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "snark-lifter-elephant",
  "sp1-zkvm",
  "zkboo",
  "zkboo-circuit-hash",
@@ -5967,6 +5990,13 @@ dependencies = [
 
 [[package]]
 name = "zkboo-modular"
+version = "1.0.0"
+dependencies = [
+ "zkboo",
+]
+
+[[package]]
+name = "zkboo-profiling"
 version = "1.0.0"
 dependencies = [
  "zkboo",

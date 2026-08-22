@@ -1,0 +1,13 @@
+[package]
+name = "snark-lifter-elephant"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "The secp256k1 proof-of-seed statement (Ethereum address) and its wire format, for probing lift cost."
+publish = false
+
+[dependencies]
+serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
+zkboo = { version = "1.0.0", features = ["keccak", "u32", "u64"] }
+zkboo-bip32 = { version = "1.0.0" }
+snark-lifter-statement = { path = "../statement" }
