@@ -255,3 +255,18 @@ Each probe uses prebuilt binaries and changes exactly one variable, so a result 
 **The methodological lesson, which is the durable output of this run:** a cheap probe at n=8 answered a different question than the one asked. Shard count is the variable the prover's scheduling knobs act on, and it differs by more than an order of magnitude between the probe and the real workload. This repeats a lesson already recorded on the STARK track — behaviour that is invisible at four queries can dominate at three hundred — in the opposite direction: a gain visible at a dozen shards evaporates at a few hundred. **Any future prover-configuration claim must be validated at a shard count within reach of the real one before it is believed, and small-n probes are for screening candidates, not for sizing them.**
 
 Note this cuts the other way for the next lever: `SP1_WORKER_VERIFY_INTERMEDIATES` verifies *per shard*, so its cost grows with shard count and an n=8 probe would **understate** it — the mirror image of the error above.
+
+### The worker-pool sweep, abandoned on two full-scale nulls (2026-08-22)
+
+Hypothesis 1 was tested where the previous mistake said it had to be — at full scale, one variable changed against the 23 320.2 s run on the same tree.
+
+| n=219, same tree, `TRACE_CHUNK_SLOTS=3` | pipeline | CPU time | peak RSS |
+|---|---:|---:|---:|
+| `VERIFY_INTERMEDIATES` default (true) | 23 320.2 s | 274 679 s | 112.2 GB |
+| `VERIFY_INTERMEDIATES=false` | **23 194.7 s** | 273 641 s | 116.4 GB |
+
+**0.54% — inside run-to-run noise.** Removing ~280 shard verifications from a full run is worth almost nothing, and in hindsight the reason is arithmetic rather than scheduling: verifying a shard proof is orders of magnitude cheaper than producing one, and the verifications run on a blocking pool that overlaps with proving anyway. The expectation that this would be the largest of the three knobs was wrong.
+
+**The sweep is abandoned here, and the reason generalises past these knobs.** Two full-scale interventions have now returned nothing, and the profile says why. This run's own trace attributes only 1.45% (337 s over 1.74M invocations) to Keccak trace generation and 25.6 s to the wrap; the top-level proving spans carry no busy time at `info`, so the work sits below them. The sp1-metal probe suite profiled this very workload — *"the ProofofSeed snark-lifter's compressed proof at n=8, 1007 s wall"* — and found **GKR 46.8%, PCS opening 19.0%, zerocheck 15.0%, commit 13.7%**: about 95% of the run is field arithmetic inside sumcheck-shaped phases. None of the remaining knobs (`MAX_REDUCE_ARITY`, worker counts) touches that; they schedule it. With `user/real` already at 11.8 against a 12-thread cap, there is no idleness for a scheduler to reclaim.
+
+**What this leaves.** Proving cost is now bounded by two things and neither is configuration: the instruction count (zkboo's territory, 17.7% already banked) and the per-instruction proving rate (~209k/s). On the second, the measured, non-GPU opportunity is that SP1's CPU prover does its field arithmetic on scalar values — 0 packed-type mentions across `slop-sumcheck`, `slop-multilinear`, `slop-jagged`, `slop-basefold-prover`, `slop-dft`, and 1 of 65 files in `sp1-hypercube` — where packed NEON measures 3.26× on the GKR round and 2.31–4.65× on the folds. Against a ~70% share that is roughly **1.9× end to end**, on the hardware already here, in upstream code that a `[patch.crates-io]` fork can reach and that is **vkey-neutral and soundness-neutral** to change: the verifying key is a function of the program, not the prover, so a packed prover produces proofs the same audited verifier accepts, with no fixture regeneration — and a mistake in it cannot forge, only fail to verify.
