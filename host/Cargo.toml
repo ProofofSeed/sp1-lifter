@@ -22,6 +22,8 @@ zkboo = { version = "1.0.0", features = ["keccak", "u32", "u64", "parallel"] }
 zkboo-bip32 = { version = "1.0.0" }
 zkboo-circuit-hash = { version = "1.0.0" }
 snark-lifter-statement = { path = "../statement" }
+snark-lifter-elephant = { path = "../elephant" }
+zkboo-profiling = { version = "1.0.0" }
 
 [build-dependencies]
 sp1-build = { version = "6.0.1" }
@@ -37,3 +39,7 @@ path = "src/bin/s1_acceptance.rs"
 [[bin]]
 name = "lift"
 path = "src/bin/lift.rs"
+
+[[bin]]
+name = "elephant-probe"
+path = "src/bin/elephant_probe.rs"

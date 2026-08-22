@@ -4,7 +4,7 @@
 
 [workspace]
 resolver = "3"
-members = ["statement", "program", "host"]
+members = ["statement", "program", "elephant", "program-elephant", "host"]
 
 [workspace.package]
 version = "0.1.0"
@@ -28,6 +28,7 @@ zkboo-modular = { path = "../../zkboo/zkboo-modular" }
 zkboo-ecc = { path = "../../zkboo/zkboo-ecc" }
 zkboo-circuit-hash = { path = "../../zkboo/zkboo-circuit-hash" }
 zkboo-bip32 = { path = "../../zkboo/zkboo-bip32" }
+zkboo-profiling = { path = "../../zkboo/zkboo-profiling" }
 zkboo-keccak = { path = "../../zkboo/zkboo-keccak" }
 zkboo-ripemd160 = { path = "../../zkboo/zkboo-ripemd160" }
 tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", tag = "patch-2.0.2-sp1-6.0.0" }

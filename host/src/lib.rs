@@ -21,6 +21,9 @@ pub use zkboo_bip32::HARDENED_OFFSET;
 /// The lift program ELF, built by `sp1-build` from `program/`.
 pub const LIFT_ELF: Elf = include_elf!("snark-lifter-program");
 
+/// The elephant probe program ELF (secp256k1 Ethereum-address statement).
+pub const ELEPHANT_ELF: Elf = include_elf!("snark-lifter-program-elephant");
+
 /// Executor-side word pool.
 pub type WP = OwnedFlexibleWordPool<usize>;
 /// Prover-side word-triple pool.
