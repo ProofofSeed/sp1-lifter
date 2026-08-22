@@ -51,7 +51,7 @@ n = 219 (classical-128): ZKBoo proving 104 ms (parallel, host-native), guest acc
 - **The rzup-distributed `r0vm` for aarch64-apple-darwin is CPU-only** (no Metal strings in the binary; observed 1571% CPU). An un-accelerated n=1 succinct prove (138M cycles, ~133 segments + recursion) had not finished after 55 minutes and was abandoned — the un-accelerated CPU path extrapolates to multiple days at 219 and is **infeasible**; this triggered the plan's Keccak-acceleration contingency.
 - **Keccak acceleration adopted** (guest-only `tiny-keccak` patch to `risc0/tiny-keccak` tag `tiny-keccak/v2.0.2-risczero.0`): guest cycles drop 3.45× (see `cycle-law.md`). The S1 acceptance (7-way reject matrix + full-scale positive) re-ran green on the accelerated guest — same circuit fingerprint (`33e1f70b…`, the fingerprint is of the ZKBoo circuit, not the guest), new image id.
 - **Metal proving requires the full-Xcode Metal shader compiler**, which is not installed (Command Line Tools only; `risc0-sys` metal build fails at `xcrun metal`). Not adopted unilaterally — a ~12 GB Xcode install is Stefano's call; the S2 acceptance (receipt verifies) does not require Metal. Flagged as the obvious speed lever if proving times matter later.
-- Segment size is tunable via `ExecutorEnv::segment_limit_po2` (s2-prove's second argument); larger segments cut the per-segment lift/join recursion count, which CPU profiling suggests dominates.
+- (RISC Zero era, superseded) Segment size was tunable via `ExecutorEnv::segment_limit_po2`; larger segments cut the per-segment lift/join recursion count. Neither the API nor that driver exists under SP1 — the equivalent knobs are `ELEMENT_THRESHOLD`/`HEIGHT_THRESHOLD`, swept below, and `lift`'s second argument is the proof mode.
 
 ### Proving measurements and the stack switch (2026-08-19)
 
@@ -106,7 +106,7 @@ zkboo crate revisions pinned at chain launch (all working trees clean): zkboo `f
 
 The relaunched chain (prebuilt binaries, 12-thread cap, pinned zkboo revs above) completed both full-scale legs on the post-drift circuit:
 
-- **S2 (compressed prove, n=219): PASS** — proving wall **22 963.6 s (6 h 23 m)**, peak RSS 113.9 GB, compressed proof the constant 1 272 755 bytes, relying-party gate green. 24% faster than the first-pass run on the pre-drift circuit (30 358.8 s), tracking the −17.7% instruction count. New capped law point: ≈ 105 s/response.
+- **S2 (compressed prove, n=219): PASS** — proving **22 954.4 s**, whole leg **22 963.6 s (6 h 23 m)**, peak RSS 113.9 GB, compressed proof the constant 1 272 755 bytes, relying-party gate green. 24% faster than the first-pass run on the pre-drift circuit (30 358.8 s), tracking the −17.7% instruction count. New capped law point: ≈ 105 s/response.
 - **S3 (Groth16 wrap, n=219): PASS** — full core→compress→shrink→native-gnark pipeline **23 125.0 s (6 h 25 m)**, leg wall 23 134.2 s, peak RSS 115.3 GB; wrapped proof 356 bytes, public values 186 bytes (the n=1 smoke's 185 plus one varint byte for the count); relying-party gate green on 219 responses; fixture `verifier/fixtures/lift-219.onchain.json`.
 - **On-chain acceptance (forge, audited SP1VerifierGroth16 v6.1.0): 5/5 PASS, `verifyProof` = 270 441 gas** — identical to the smoke figure, as expected for a constant-size proof. Rejects: corrupted proof / wrong vkey / wrong public values → `ProofInvalid`; wrong selector → `WrongVerifierSelector`. (The corrupted-proof case's reported gas remains the known cheatcode accounting artifact of the reverted pairing frame.)
 
@@ -115,3 +115,158 @@ Total sequential chain wall: 12 h 48 m at the ~75% CPU cap. Headline caveats for
 ### S3 smoke, end-to-end on a real proof (n=1, 2026-08-19)
 
 The full local chain works: `s3-wrap 1` (core→compress→shrink→**native Groth16 wrap**, 512 s at 12 cores, peak 104 GB) produced a 356-byte EVM proof + 185-byte public values (the postcard journal), passing the relying-party gate; the Foundry suite on that fixture: **5/5 PASS, `verifyProof` = 270 441 gas**, rejects green (corrupted proof / wrong vkey / wrong public values → `ProofInvalid`; wrong selector → `WrongVerifierSelector`; the corrupted-proof case's reported gas is a cheatcode accounting artifact of the reverted pairing frame, not a real cost). The wrapped proof is constant-size and the journal layout is n-independent, so the full-scale gas will match this figure up to a few bytes of varint.
+
+## S4 — proving cost: what it is actually made of (2026-08-21)
+
+### The 12 h 48 m was half harness
+
+`s3-wrap` calls `client.prove(...).groth16()`, which runs core → compress → shrink → wrap from scratch; it never consumed the compressed proof the S2 leg had just produced.
+Running S2 and S3 as separate acceptances therefore paid for core proving and compression twice.
+Measured from the two logs: S2 22 954.4 s, S3 23 125.0 s, difference **171 s** — that is the entire shrink+wrap stage, of which gnark itself is ~26 s (R1CS read 8.0 s, proving-key read 1.0 s, prove 16.2 s, verify 0.7 s).
+**The real end-to-end cost of the full-scale lift was 6 h 26 m, not 12 h 48 m.**
+`lift` replaces both drivers with a single pass; `compressed` mode survives only as a throughput probe.
+
+### The remaining cost is intrinsic, and the guest is not the problem
+
+Executor at n=1: 51 926 665 instructions; at n=219: 4 773 338 580. (Both **pre-upgrade**, i.e. before the journal gained `proof_format_version`; the current figure is 4 773 338 656, recorded below. The law below is fitted on the pre-upgrade pair, and the 76-instruction difference does not move it.)
+Fitting the pair gives **21.66M instructions per response + ~30M fixed** (frame decode plus the in-guest circuit-fingerprint pass) — the fixed part is 0.6% at full scale.
+
+Two suspicions were checked and both are dead ends:
+
+- **Word width.** The `u32`/`u64` zkboo features are enabled in `statement/` and `program/`, so SHA-512 runs on native 64-bit words. There is no 8× byte-serial penalty to reclaim.
+- **Replay-backend overhead.** At ~370 instructions per response byte (vs ~2 400/byte for the software-Keccak risc0 baseline) the SP1 Keccak precompile is plainly firing, and `zkboo-bip32/README.md` puts native verification of a hardened-child response at ~2.1 ms — order 10–25M instructions on this CPU, against the guest's 21.66M. **The guest runs at approximately native efficiency**; the refcounted `WordRef`/`MemoryManager`/`WordPairPool` machinery built for a 30 KB secure element is not measurably dead weight inside the zkVM. (Caveat: that README figure is a parallel measurement, so the single-core comparison is uncertain by perhaps 2×; it bounds the lever, it does not price it exactly.)
+
+What remains is arithmetic: ~4.77e9 instructions of genuine verification work proved at **~209k instructions/s** on 12 CPU threads, i.e. ~24 000× slower than native execution. That is the cost of CPU zkVM proving, and it is not a defect to be optimised away.
+
+### Prover configuration sweep (n=8, prebuilt binaries, 12-thread cap)
+
+`SP1CoreOpts::default()` reads `SHARD_SIZE`, `ELEMENT_THRESHOLD`, `HEIGHT_THRESHOLD` and `TRACE_CHUNK_SLOTS` from the environment, so these are tunable **without a rebuild** — which is why the sweep could be run against the accepted tree's own binaries, with no exposure to zkboo drift.
+The full-scale runs to date used stock defaults; none of these knobs had ever been set.
+
+| configuration | wall | CPU time | peak RSS |
+|---|---:|---:|---:|
+| default (`trace_chunk_slots=5`) | 1 141.6 s | 11 979.8 s | 112.4 GB |
+| `TRACE_CHUNK_SLOTS=3` | **1 032.9 s** | 11 035.6 s | 110.2 GB |
+| `TRACE_CHUNK_SLOTS=2` | 1 034.4 s | 11 087.6 s | 111.3 GB |
+| `slots=3` + halved shard thresholds | 1 287.9 s | 14 035.4 s | **63.5 GB** |
+
+Fewer chunk slots is **9.5% faster and 7.9% less CPU work** — a genuine reduction in work, not a scheduling artefact — and the gain **saturates at 3**: dropping to 2 gives back nothing (1 034.4 s, inside the noise).
+Peak memory barely moves across all three, so the ~110 GB is not held by the chunk slots; it is also essentially workload-independent (112.4 GB at n=8 against 113.9 GB at n=219), i.e. a fixed prover allocation rather than a function of the job.
+That matters for the next lever: bigger shards mean fewer recursion leaves but cost memory, and on a 137 GB machine already peaking at 110 GB the fast direction may simply be unavailable — which is exactly the constraint a 400 GB machine would not have.
+
+Halving `ELEMENT_THRESHOLD`/`HEIGHT_THRESHOLD` costs **24.7% in time** and returns **42% of the memory**, which identifies what the ~110 GB is made of: **peak RSS scales with shard size**. The trade is clean and monotone — bigger shards mean fewer recursion leaves and less time, at proportionally more memory. Extrapolating the same ratio, the next doubling (805M elements) would want ~190 GB, so on a 137 GB machine **the fast direction exists but is memory-blocked**; the chosen configuration sits at the largest shard the machine can hold. A 400 GB machine has no such ceiling, which is a measured reason to expect it to beat this one by more than its core count alone.
+
+⚠️ Three knobs read like levers and are not: `full_size_shards`, `drop_ldes` and `recompute_gkr_trace` are each referenced only in `opts.rs` and never consulted anywhere in the 6.4.0 prover. Checking that at the source, rather than trusting the field's existence and its docstring, is the standing lesson from the Metal episode.
+
+**Chosen configuration: `TRACE_CHUNK_SLOTS=3`, stock shard thresholds, 12 threads** — the measured optimum at n=8, inside this machine's memory envelope.
+
+🚨 **This gain did not survive contact with full scale. See the full-scale result below: at n=219 the same setting came in 0.84% *slower* than the default configuration, not 9.5% faster.** The n=8 measurement was not noise — two independent runs at `slots=2` and `slots=3` both landed near 1 033 s against 1 141.6 s, and total CPU time fell with it — so the effect is real at n=8 and absent at n=219. A 219-response run has roughly 280 shards against roughly 12 at n=8; whatever the chunk slots relieve at a dozen shards is already saturated at a few hundred. **Treat every number in the sweep table above as a statement about n=8 only.**
+
+### Scaling constants for planning
+
+From the n=8 and n=219 points at the 12-thread cap on the default configuration: **103.4 s per response + ~315 s fixed** per proving run. The fixed part is 27% of an n=8 probe and 1.4% of a full-scale run, so small-n probes understate marginal improvements and must not be extrapolated naively.
+
+## zkboo 1.0.0 (2026-08-21)
+
+The zkboo stack finished its development line and moved to **1.0.0**; all ten crates are committed and clean, and the lifter's manifests now require `1.0.0`.
+The `[patch.crates-io]` table stays for now because 1.0.0 is not yet published; it should be dropped once it is, so that a released artefact builds against released crates rather than local working trees.
+
+Three changes landed after the revisions this repo had pinned (`zkboo` `ffe5807` → `08e732d`), and each was assessed before adoption:
+
+- **`PROOF_FORMAT_VERSION` (= 2)** names the response-byte layout together with the view-commitment scheme it is checked against. Its rationale matters to us directly: **a circuit fingerprint cannot see a commitment-scheme change** — adopting the ZKB++ commitment changed every commitment, and hence every Fiat-Shamir challenge, while leaving circuits and protocol parameters untouched. The lifter's journal committed only the fingerprint, so two incompatible proof formats would have produced indistinguishable journals. The verifying key does bind the format (it is compiled into the program), but only implicitly. The journal now commits `proof_format_version` and `check_journal` enforces it (`ProofFormatMismatch`, reject-matrix case R8); `LIFT_JOURNAL_VERSION` is bumped to 2. Our pinned revision was already format 2, so this records a property that already held rather than changing one.
+- **Ranged response generation** (`ProofBuilder::skip_iters`) lets a prover emit any half-open range of the response sequence. This looks like a soundness hazard for a count-based gate: commit to N ≫ 219 iterations, see which survive the challenge (~2/3 of them), and emit only 219 winners. **It is not one.** The challenge entropy is hashed over the view commitments of exactly the responses *present in the proof*, and the regenerated challenge sequence is compared position by position; dropping responses changes the entropy, hence every challenge, so the retained responses stop matching. The relevant path is the **sequential** `verify`, which is what the guest compiles — `program/src/main.rs` imports it by name, so no feature flag can change that. Both it and `par_verify` live in `zkboo/src/verifier/functions.rs` (at `verify` and `par_verify` respectively) and carry the same derivation. Selection is self-defeating and a partial range does not verify standalone — it must be reassembled. `skip_iters` is a prover-side convenience (resumable, retriable, splittable proving), not a verifier-side relaxation, and `num_responses ≥ 219` remains exactly the right gate.
+- **No change to the serialised `Proof`/`Response` shape** (the diff touches `lib.rs`, `params.rs`, `builder.rs` and tests only), so the `LiftInput` wire format is unchanged and `LIFT_FRAME_VERSION` stays at 1.
+
+### Acceptance evidence on the zkboo 1.0.0 tree (2026-08-21)
+
+Measured on the rebuilt tree, so the upgrade's neutrality is recorded rather than asserted:
+
+- **Reject matrix: 8/8**, every refusal naming its refuser (R1/R2 tampered proof and wrong binding → refused by the program; R3/R4/R5/R6/R8 → refused by `check_journal`; R7 malformed response → view replay error).
+- **R8 validated by check-removal**: deleting the format check makes it fail with `expected Err(ProofFormatMismatch), got Ok(())`, and restoring it returns the matrix to green.
+- **Full-scale positive (n=219)**: circuit fingerprint **`e23ddb6a…`** — unchanged from the pre-upgrade pin — and **4 773 338 656** whole-program instructions against 4 773 338 580 before, a difference of **76**. Two changes landed together — the new journal field and the zkboo revision bump — so attributing the whole delta to the field is the plausible reading rather than an isolated measurement; what is established is that the upgrade moved the instruction count by 76 in 4.77e9 and left the fingerprint identical. Executor wall 30.23 s.
+- **Single-pass driver end to end (n=1, groth16)** — note this ran on the driver as it stood before the review fixes, so its log predates the `backend=`/`memory_limit=` fields; the differences are a `println!`, an `assert_ne!`, and `expectation_for` sourcing the format version from the statement crate instead of the linked `zkboo` (numerically identical). The statement crate itself also changed, which relinks the guest — and it is the guest that determines the verifying key now pinned in the on-chain suite *from this very fixture*. The added item is a `const`, which emits nothing into the loadable image, and SP1 derives the key from the program's instructions and memory image rather than from raw ELF bytes, so the key should not have moved; the full-scale fixture is what will settle it. The milestone's acceptance is that run, not this one: 459.5 s against 512 s for the superseded two-driver path at the same count, 356-byte proof, 186-byte public values, gate green; `forge` 5/5 with `verifyProof` at **270 441 gas**, unchanged by the extra journal field as expected for a constant-size proof.
+
+⚠️ Provenance of the sweep numbers above: those four probes were run with the *previous* binaries, which predate the configuration line this milestone adds, so their logs carry the old banner and no `prover config:` record — the mapping from setting to measurement rests on the filenames. The numbers still transfer, because `SP1CoreOpts::default()` already read the environment before this work and `from_env_with_opts(Some(SP1CoreOpts::default()))` is a behavioural no-op against the previous `from_env()` on the CPU path. Runs from here on record their own configuration.
+
+⚠️ Fixtures are generated artefacts that outlive the program that produced them, and a fixture from an older program stays internally consistent — `verifyProof` accepts it, so the Foundry suite goes green against a program that no longer exists. This actually happened: after the upgrade, `verifier/fixtures/lift-219.onchain.json` still held a journal at version 1 under the superseded verifying key while the suite's default path pointed at it. The stale artefacts were deleted, and the suite now refuses a fixture it should not accept, on every count it can reach, each validated by staging a corrupted fixture and watching it fail with its own message: the journal's **version byte** must match the statement crate (a layout change), the **fingerprint** at `publicValues[2..34]` must match the circuit (a circuit change — this is the drift that actually happened once, when the ZKB++ commitment moved `33e1f70b…` to `e23ddb6a…` without touching the journal shape), the **verifying key** must match the program (a program change that alters neither of the above; without this the suite attests nothing about which program ran, since `vkey` is read from the fixture and handed straight to `verifyProof`), the version must be **single-byte**, since every offset below it shifts silently once the version reaches 128; the **proof format** must match; and — for the default fixture, which is the acceptance artefact — the journal must attest **219 responses**, without which a smoke fixture copied to the acceptance path passes at identical gas while attesting a single response, the same accident class as the stale fixture above. A suite that skips for want of a fixture now says so through `vm.skip`'s reason string: `console2` logs from a skipped `setUp` are discarded by forge at every verbosity, so a logged warning there is dead code.
+
+### Full-scale run on the released tree (launched 2026-08-21)
+
+Launched with prebuilt binaries — no cargo inside the run, so it is immune to any further movement in the dependency trees — at the swept configuration `TRACE_CHUNK_SLOTS=3`, `RAYON_NUM_THREADS=12`, `GOMAXPROCS=12`, stock shard thresholds. Single pass: `lift 219 groth16` runs core → compress → shrink → wrap once and emits both the proof and the Foundry fixture.
+
+zkboo revisions pinned at launch, every crate **pushed and clean** (0 unpushed, 0 dirty), so the resulting verifying key and fixture are attributable to published revisions rather than to a local working tree: zkboo `ca156da`, zkboo-sha2 `41ef52c`, zkboo-hmac `d8b12cd`, zkboo-modular `9f7624e`, zkboo-ecc `4ebff06`, zkboo-keccak `642fca6`, zkboo-circuit-hash `a775387`, zkboo-bip32 `02d2d4b`, zkboo-ripemd160 `5c367b4` — all at 1.0.0. The acceptance above was measured on this same tree: the `Release 1.0.0` commit was already in the working tree when those binaries were built, which is why rebuilding against the pushed revisions recompiled nothing. (The earlier pin of `08e732d` and its siblings names the *pre-upgrade* tree, not the tree the acceptance ran on.)
+
+Projection to be checked against the outcome: ~5 h 50 m, from the marginal law (93.6 s/response after the 9.5% configuration gain) plus ~171 s for the wrap.
+
+### The partial-proof question, tested (2026-08-21)
+
+Reasoning from the source said a partial proof cannot verify. Two independently written probes tested it, and both agree; the ranged cases correspond to zkboo's own committed `tests/test_ranged_proof.rs`.
+
+On a toy circuit, 23 of 23 cases behaved as predicted: an honest proof built at any `num_iters` verifies; the full range `[0,9)` verifies; and a **truncated prefix** (each of 1..8 of 9), an arbitrary **sub-range** (`[0,k)`, `[4,9)`), a **sparse selection of 9 responses out of 30 iterations**, a **reversal**, a **duplication** and a valid proof with foreign responses appended all fail. On the real `HardenedChildCircuit` — the lifted statement itself — a 12-response proof verifies while its 8-response prefix, a subset with the middle four dropped, and a reordering all fail.
+
+The empty proof remains the single degenerate case that verifies, because it has no challenges to check; `s1-acceptance` R5 confirms the count gate is what refuses it.
+
+⚠️ Scope of the evidence: both probes drive the **sequential** `verify`, the path the guest compiles. That `par_verify` shares the derivation was established by reading both functions, not by probing the parallel path. An earlier note claiming the result held "on both verifier paths" overstated what was run.
+
+### Planned: the worker-pool sweep (designed 2026-08-21, pre-registered)
+
+`SP1CoreOpts` is not the only environment surface. `sp1-prover`'s worker pool is configured by a family of `SP1_WORKER_*` variables (`worker/config.rs`), every one of them env-read, sitting on hard-coded defaults beside a literal `TODO: base default values on system information`:
+
+| knob | default |
+|---|---:|
+| `SP1_WORKER_NUM_CORE_WORKERS` | 4 |
+| `SP1_WORKER_NUM_RECURSION_PROVER_WORKERS` | 8 |
+| `SP1_WORKER_NUM_RECURSION_EXECUTOR_WORKERS` | 4 |
+| `SP1_WORKER_NUM_PREPARE_REDUCE_WORKERS` | 4 |
+| `SP1_WORKER_NUM_SETUP_WORKERS` / `_SPLICING_WORKERS` | 2 / 2 |
+| `SP1_WORKER_MAX_REDUCE_ARITY` / `_MAX_COMPOSE_ARITY` | 4 / 4 |
+| `SP1_WORKER_VERIFY_INTERMEDIATES` | **true** |
+
+Three hypotheses, to be measured at n=8 against the 1 032.9 s baseline, one variable at a time:
+
+1. **`VERIFY_INTERMEDIATES=false`.** The default spawns a blocking `core_verifier(...).verify(...)` for **every shard proof as it is produced** (`worker/prover/core.rs:618-630`); at roughly 280 shards for a full run that is 280 verifications contending for the same cores. It is a prover-side self-check, and removing it is **soundness-neutral for a relying party**: the final proof still passes `check_lifted_proof` and the audited on-chain verifier, so this cannot make an invalid proof verify — it can only delay the discovery of a prover bug from the shard that produced it to the run that fails at the end. Expected to be the largest of the three.
+2. **`MAX_REDUCE_ARITY=8`.** Fewer recursion levels over the same leaves. ⚠️ Arity tables have misled this project before — recursion has cost more than the thing it recursed over — so this is a measurement, not a prediction.
+3. **Worker counts rebalanced to the 12-thread cap.** The defaults total 28 logical workers; whether raising the core and recursion-prover counts helps or simply adds contention is unknown.
+
+Each probe uses prebuilt binaries and changes exactly one variable, so a result is attributable. Nothing here can affect what a proof means — every one of these knobs is a scheduling or self-check decision on the prover side, and the verifier is unmoved.
+
+### Full-scale result on the released tree (2026-08-21): ACCEPTANCE MET, projection MISSED
+
+`lift 219 groth16`, single pass, prebuilt binary, `TRACE_CHUNK_SLOTS=3`, 12 threads, zkboo 1.0.0 at the pinned revisions.
+
+| | measured |
+|---|---:|
+| zkVM groth16 pipeline (core → compress → shrink → wrap) | **23 320.2 s (6 h 28 m 40 s)** |
+| whole run, wall | 23 329.3 s |
+| peak RSS | 112.2 GB |
+| gnark stage inside that | 25.4 s (R1CS read 7.9, pk read 1.0, prove 16.2, verify 0.7) |
+| EVM proof / public values | 356 B / 187 B (one varint byte more than n=1, the response count) |
+| relying-party gate | green, 219 responses |
+| **on-chain (`forge`, all seven fixture guards + 4 rejects)** | **5/5, `verifyProof` = 270 441 gas** |
+
+**The pre-registered acceptance is met**: a single-process `lift 219` produced a Groth16 proof that passed the full gate and verified under `forge` at recorded gas, its log records the configuration it ran under, and `knowledge/` carries the sweep record. The acceptance's last clause — that the configuration be *justified by measurement rather than assumption* — is where this run indicts its own method: the justification was an n=8 measurement, and it did not hold.
+
+**What actually improved, and what did not:**
+
+- **The harness fix is real and confirmed at full scale: 46 079 s → 23 320 s, a factor of 1.98.** Proving once instead of twice is the entire gain.
+- **The configuration change bought nothing**: 23 320.2 s against the previous full-scale groth16 pass at stock settings, 23 125.0 s — **0.84% slower**. Within run-to-run noise, and in the wrong direction. (Two short review agents did millisecond-scale `forge` and file reads during the first ninety minutes; that cannot account for a percent.)
+- **The projection was wrong by 11.1%**: 20 984 s predicted, 23 320 s measured. It was built by scaling the n=8 marginal law by the n=8 configuration gain, so it inherited the error twice over.
+
+**The methodological lesson, which is the durable output of this run:** a cheap probe at n=8 answered a different question than the one asked. Shard count is the variable the prover's scheduling knobs act on, and it differs by more than an order of magnitude between the probe and the real workload. This repeats a lesson already recorded on the STARK track — behaviour that is invisible at four queries can dominate at three hundred — in the opposite direction: a gain visible at a dozen shards evaporates at a few hundred. **Any future prover-configuration claim must be validated at a shard count within reach of the real one before it is believed, and small-n probes are for screening candidates, not for sizing them.**
+
+Note this cuts the other way for the next lever: `SP1_WORKER_VERIFY_INTERMEDIATES` verifies *per shard*, so its cost grows with shard count and an n=8 probe would **understate** it — the mirror image of the error above.
+
+### The worker-pool sweep, abandoned on two full-scale nulls (2026-08-22)
+
+Hypothesis 1 was tested where the previous mistake said it had to be — at full scale, one variable changed against the 23 320.2 s run on the same tree.
+
+| n=219, same tree, `TRACE_CHUNK_SLOTS=3` | pipeline | CPU time | peak RSS |
+|---|---:|---:|---:|
+| `VERIFY_INTERMEDIATES` default (true) | 23 320.2 s | 274 679 s | 112.2 GB |
+| `VERIFY_INTERMEDIATES=false` | **23 194.7 s** | 273 641 s | 116.4 GB |
+
+**0.54% — inside run-to-run noise.** Removing ~280 shard verifications from a full run is worth almost nothing, and in hindsight the reason is arithmetic rather than scheduling: verifying a shard proof is orders of magnitude cheaper than producing one, and the verifications run on a blocking pool that overlaps with proving anyway. The expectation that this would be the largest of the three knobs was wrong.
+
+**The sweep is abandoned here, and the reason generalises past these knobs.** Two full-scale interventions have now returned nothing, and the profile says why. This run's own trace attributes only 1.45% (337 s over 1.74M invocations) to Keccak trace generation and 25.6 s to the wrap; the top-level proving spans carry no busy time at `info`, so the work sits below them. The sp1-metal probe suite profiled this very workload — *"the ProofofSeed snark-lifter's compressed proof at n=8, 1007 s wall"* — and found **GKR 46.8%, PCS opening 19.0%, zerocheck 15.0%, commit 13.7%**: about 95% of the run is field arithmetic inside sumcheck-shaped phases. None of the remaining knobs (`MAX_REDUCE_ARITY`, worker counts) touches that; they schedule it. With `user/real` already at 11.8 against a 12-thread cap, there is no idleness for a scheduler to reclaim.
+
+**What this leaves.** Proving cost is now bounded by two things and neither is configuration: the instruction count (zkboo's territory, 17.7% already banked) and the per-instruction proving rate (~209k/s). On the second, the measured, non-GPU opportunity is that SP1's CPU prover does its field arithmetic on scalar values — 0 packed-type mentions across `slop-sumcheck`, `slop-multilinear`, `slop-jagged`, `slop-basefold-prover`, `slop-dft`, and 1 of 65 files in `sp1-hypercube` — where packed NEON measures 3.26× on the GKR round and 2.31–4.65× on the folds. Against a ~70% share that is roughly **1.9× end to end**, on the hardware already here, in upstream code that a `[patch.crates-io]` fork can reach and that is **vkey-neutral and soundness-neutral** to change: the verifying key is a function of the program, not the prover, so a packed prover produces proofs the same audited verifier accepts, with no fixture regeneration — and a mistake in it cannot forge, only fail to verify.

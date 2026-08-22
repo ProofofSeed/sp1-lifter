@@ -1,0 +1,25 @@
+── compressed proving run (n=8) ──
+  proved 8 ZKBoo responses in 8.84ms
+  zkVM compressed proving: 1287.86s
+  proof verified + journal gate passed in 26.04ms
+  lifted statement: 8 responses
+  compressed proof: 1272754 bytes → fixtures/lift-8.compressed-proof.bin
+compressed proving run: PASS
+     1296.13 real     14035.39 user       821.44 sys
+         63512018944  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+           127986901  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   3  voluntary context switches
+            36225707  involuntary context switches
+     243429305008939  instructions retired
+      57054962382547  cycles elapsed
+         62680349208  peak memory footprint

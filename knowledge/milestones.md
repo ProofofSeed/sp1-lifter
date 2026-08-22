@@ -51,6 +51,24 @@ The Docker question for the local STARK→Groth16 wrap is resolved (accept Docke
 
 **Acceptance:** a real proof-of-seed lift verifies on-chain (forge) at measured gas in the expected ~250–300k range, plus a reject matrix (wrong journal, wrong image id, corrupted seal).
 
+## S4 — One-pass proving and a measured prover configuration
+
+The first full-scale chain cost 12 h 48 m for 6 h 26 m of work: `s2-prove` and `s3-wrap` were run as separate acceptances, and the wrap driver re-proved core and compression from scratch rather than consuming the compressed proof the previous leg had just produced.
+The wrap proper is ~171 s of that (gnark itself ~26 s); everything else is the one proving pass.
+This milestone makes the single pass the only path, and replaces the assumption that SP1's stock prover configuration is the right one with a measurement.
+
+Scope: a single `lift` driver that proves once and emits both the proof and the Foundry fixture; SP1's tracing subscriber installed so runs report their phase structure; the prover knobs the SP1 code actually reads (`SHARD_SIZE`, `ELEMENT_THRESHOLD`, `HEIGHT_THRESHOLD`, `TRACE_CHUNK_SLOTS` — all read by `SP1CoreOpts::default()` from the environment, hence tunable without a rebuild) swept at a fixed statement size; and the chosen configuration recorded alongside every timing it produced.
+
+⚠️ Three knobs look like levers and are not: `full_size_shards`, `drop_ldes` and `recompute_gkr_trace` are each referenced only in `opts.rs` and never consulted anywhere in the 6.4.0 prover. (An earlier draft of this line credited the latter two with trading memory for recompute, which is what their docstrings imply and what nothing in the code does — the Metal lesson, repeated one file away from where it was being applied.)
+
+**Acceptance:** a single-process `lift 219` produces a Groth16 proof that passes the full relying-party gate and verifies under `forge` at recorded gas; its log records the prover configuration it ran under; and `knowledge/` carries the sweep record — wall time and peak RSS for every configuration tried — with the configuration used for the full run justified by that measurement rather than by assumption.
+
+⚠️ The full-scale run must not be made against an uncommitted `<zkboo>` working tree: the guest ELF depends on it, so the run's verifying key and fixture would not be attributable to any recorded revision.
+
+**DONE (2026-08-21).** A single-process `lift 219 groth16` on the released zkboo 1.0.0 tree proved the full lift in **23 320.2 s (6 h 28 m 40 s)**, peak RSS 112.2 GB, and its 356-byte proof verified under `forge` at **270 441 gas, 5/5**, having passed the full relying-party gate and every fixture guard. Against the previous two-run chain of 46 079 s that is a factor of **1.98**, and all of it comes from proving once instead of twice.
+
+The acceptance's final clause — that the configuration be justified by measurement rather than assumption — **failed on its own terms, and the failure is the milestone's most useful output.** The configuration was chosen from an n=8 sweep showing 9.5%; at n=219 it returned −0.84%, and a second knob tested directly at full scale returned 0.54%. Both are noise. A short run has around a dozen shards against a full run's ~280, so the scheduling knobs were measured on a workload that does not resemble the one they were chosen for. **Small runs screen candidates; they do not size them** — and no prover-configuration claim should be believed here until it has been measured at a shard count within reach of the real one.
+
 ## Later, separately probed
 
 - The secp256k1 elephant statements (~42 MB/response ⇒ ~9 GB of proof data through the guest at 219): probe guest cycles on a single response before committing to anything.

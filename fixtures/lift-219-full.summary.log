@@ -1,0 +1,35 @@
+── lift run (n=219, mode=groth16) ──
+  prover config: backend=cpu shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=3 memory_limit=25769803776 rayon_threads=12
+  proved 219 ZKBoo responses natively in 82.04ms
+Setting environment variables took 51.959µs
+Reading R1CS took 7.872131042s
+Reading proving key took 1.020955083s
+Reading witness file took 186.416µs
+Deserializing JSON data took 11.433625ms
+Generating witness took 298.625125ms
+Generating proof took 16.191120583s
+  zkVM groth16 proving: 23320.21s
+  proof verified + journal gate passed in 149.65ms (219 responses)
+  proof → fixtures/lift-219.groth16-proof.bin (1881 bytes on disk)
+  Foundry fixture → verifier/fixtures/lift-219.onchain.json (proof 356 bytes, public values 187 bytes)
+lift run: PASS
+    23329.28 real    274679.47 user     13921.94 sys
+        112159031296  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+          2147483647  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                6271  signals received
+                4467  voluntary context switches
+           441827076  involuntary context switches
+    4489637561935019  instructions retired
+    1089294819945840  cycles elapsed
+        111763292944  peak memory footprint
+    23329.28 real    274679.47 user     13921.94 sys
+        112159031296  maximum resident set size

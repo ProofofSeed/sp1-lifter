@@ -12,5 +12,5 @@ serde = { version = "1.0.228", default-features = false, features = ["derive", "
 # postcard layout of `Words` and hence the `LiftInput` wire format. They are pinned here,
 # in the one crate both sides depend on; enabling further word features anywhere in either
 # workspace changes the frame layout and MUST bump `LIFT_FRAME_VERSION` in src/lib.rs.
-zkboo = { version = "0.1.0", features = ["keccak", "u32", "u64"] }
-zkboo-bip32 = { version = "0.1.0" }
+zkboo = { version = "1.0.0", features = ["keccak", "u32", "u64"] }
+zkboo-bip32 = { version = "1.0.0" }

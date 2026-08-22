@@ -1,6 +1,14 @@
 /target
 methods/guest/target
-/fixtures
+/fixtures/*
+# The measurement record is tracked; the raw prover traces are not. With RUST_LOG on,
+# a full-scale run emits ~135k span lines — 261 MB for 33 lines of signal — so each run
+# is distilled to a *.summary.log and the trace stays local.
+!/fixtures/probe-*.log
+!/fixtures/smoke-*.log
+!/fixtures/s2-*.log
+!/fixtures/s3-*.log
+!/fixtures/*.summary.log
 verifier/fixtures
 verifier/out
 verifier/cache

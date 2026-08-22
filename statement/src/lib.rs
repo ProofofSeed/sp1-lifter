@@ -149,7 +149,18 @@ pub struct LiftInput {
 }
 
 /// Version tag of the [`LiftJournal`] layout; bump on any change to its shape.
-pub const LIFT_JOURNAL_VERSION: u32 = 1;
+pub const LIFT_JOURNAL_VERSION: u32 = 2;
+
+/// The ZKBoo proof format this statement is defined over (`zkboo::PROOF_FORMAT_VERSION`
+/// at the revision this crate was written against).
+///
+/// Declared here rather than read from the linked `zkboo`, deliberately. Deriving the
+/// requirement from whatever version a consumer happens to link would make the check
+/// track the consumer instead of constraining it: a consumer that downgraded its `zkboo`
+/// would silently begin *requiring* the older format rather than refusing it. Pinning it
+/// means a format change is a decision someone makes here, and until they do, proofs
+/// carrying the new format are refused.
+pub const REQUIRED_PROOF_FORMAT_VERSION: u32 = 2;
 
 /// The journal committed by the lift guest: the complete lifted statement.
 ///
@@ -186,6 +197,16 @@ pub struct LiftJournal {
     pub binding: Vec<u8>,
     /// Number of responses (repetitions) in the verified proof.
     pub num_responses: u32,
+    /// The ZKBoo proof format the program was built against (`zkboo::PROOF_FORMAT_VERSION`):
+    /// the layout of the response bytes together with the view-commitment scheme they are
+    /// checked against.
+    ///
+    /// ⚠️ This cannot be inferred from `fingerprint`: adopting the ZKB++ view commitment
+    /// changed every commitment — and hence every Fiat-Shamir challenge — while leaving
+    /// circuits and protocol parameters untouched, so the circuit hash is blind to it.
+    /// The verifying key does bind it (the format is compiled into the program), but only
+    /// implicitly; committing it makes the attested format legible to a journal consumer.
+    pub proof_format_version: u32,
 }
 
 /// What a journal consumer requires of a [`LiftJournal`].
@@ -204,6 +225,8 @@ pub struct JournalExpectation {
     /// Minimum acceptable number of responses (e.g. `n_eps(64) == 219` for the
     /// classical-128 target).
     pub min_responses: u32,
+    /// Required ZKBoo proof format version.
+    pub proof_format_version: u32,
 }
 
 /// Why a [`LiftJournal`] was refused by [`check_journal`].
@@ -222,21 +245,23 @@ pub enum JournalCheckError {
     /// Fewer responses than the required minimum (soundness is (2/3)^k in the count;
     /// the ZKBoo verifier itself accepts any count, the empty proof included).
     TooFewResponses,
+    /// The attested ZKBoo proof format differs from the required one.
+    ProofFormatMismatch,
 }
 
 /// Checks a [`LiftJournal`] against a [`JournalExpectation`].
 ///
-/// ⚠️ **Mandatory precondition: the receipt carrying this journal must first be verified
-/// against the expected guest image id.** The journal alone does not identify the crypto
-/// suite (`H`/`PV`/`S`) or the circuit family — those are fixed at guest compile time and
-/// bound only by the image id, so a variant guest (weaker hash, different circuit, lower
-/// standards) could commit an identical-shaped journal. This function checks the journal
-/// *contents* only; the host-side `check_lifted_receipt` helper fuses the two steps, and
-/// the on-chain verifier receives the image id as an explicit argument for the same
-/// reason.
+/// ⚠️ **Mandatory precondition: the proof carrying this journal must first be verified
+/// against the expected verifying key.** The journal alone does not identify the crypto
+/// suite (`H`/`PV`/`S`) or the circuit family — those are fixed at program compile time
+/// and bound only by the verifying key, so a variant program (weaker hash, different
+/// circuit, lower standards) could commit an identical-shaped journal. This function
+/// checks the journal *contents* only; the host-side `check_lifted_proof` helper fuses
+/// the two steps, and the on-chain verifier takes the verifying key as an explicit
+/// argument for the same reason.
 ///
 /// Given that precondition, this is the reference consumer-side gate: everything a
-/// relying party must additionally check before treating a receipt over this journal as
+/// relying party must additionally check before treating a proof over this journal as
 /// an authorisation. The on-chain verifier contract must enforce exactly these checks.
 pub fn check_journal(
     journal: &LiftJournal,
@@ -262,6 +287,9 @@ pub fn check_journal(
     }
     if journal.num_responses < expectation.min_responses {
         return Err(JournalCheckError::TooFewResponses);
+    }
+    if journal.proof_format_version != expectation.proof_format_version {
+        return Err(JournalCheckError::ProofFormatMismatch);
     }
     return Ok(());
 }

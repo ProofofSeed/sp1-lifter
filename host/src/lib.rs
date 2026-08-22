@@ -3,6 +3,7 @@
 //! Shared host-side helpers for the SNARK lifter: the development statement fixture,
 //! the program input framing, and SP1 execution/verification drivers.
 
+use sp1_core_executor::SP1CoreOpts;
 use sp1_sdk::{
     Elf, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey,
     blocking::{EnvProver, Prover},
@@ -99,6 +100,7 @@ pub fn expectation_for(
         expected_output: input.expected_output.clone(),
         binding: input.binding.clone(),
         min_responses,
+        proof_format_version: snark_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION,
     };
 }
 
@@ -142,6 +144,42 @@ pub fn execute_lift(
     }
     let journal = decode_journal(public_values.as_slice())?;
     return Ok((journal, report));
+}
+
+/// Builds the prover client for a run, together with a one-line record of the proving
+/// configuration it will use.
+///
+/// `SP1CoreOpts::default()` reads `SHARD_SIZE`, `ELEMENT_THRESHOLD`, `HEIGHT_THRESHOLD`
+/// and `TRACE_CHUNK_SLOTS` from the environment, so proving cost is tunable without a
+/// rebuild. That cuts both ways: a timing is meaningless unless the configuration it was
+/// measured under is recorded next to it, so every driver that proves prints this
+/// summary first. (`s1-acceptance` and `cycle-probe` only execute, and print nothing.)
+pub fn prover_client() -> (EnvProver, String) {
+    let opts = SP1CoreOpts::default();
+    let summary = format!(
+        "backend={} shard_size={} element_threshold={} height_threshold={} \
+         trace_chunk_slots={} memory_limit={} rayon_threads={}",
+        prover_backend(),
+        opts.shard_size,
+        opts.sharding_threshold.element_threshold,
+        opts.sharding_threshold.height_threshold,
+        opts.trace_chunk_slots,
+        opts.memory_limit,
+        std::env::var("RAYON_NUM_THREADS").unwrap_or_else(|_| "unset".to_string()),
+    );
+    return (EnvProver::from_env_with_opts(Some(opts)), summary);
+}
+
+/// The prover backend `SP1_PROVER` selects, defaulting to `cpu`.
+///
+/// ⚠️ This is the setting that decides whether a run means anything: under `mock` the
+/// prover fabricates a proof and its verifier only compares public inputs, so a driver
+/// would print the same success line and write the same artefact paths as a real run.
+/// The core options above are handed only to the CPU prover: `from_env_with_opts`
+/// passes them to the `cpu` arm and drops them for every other backend, so a summary
+/// omitting the backend could be describing settings that were not in force.
+pub fn prover_backend() -> String {
+    return std::env::var("SP1_PROVER").unwrap_or_else(|_| "cpu".to_string());
 }
 
 /// The complete relying-party gate over a lifted SP1 proof: verifies the proof against

@@ -1,0 +1,38 @@
+── Groth16 wrap run (n=219, native gnark) ──
+  proved 219 ZKBoo responses in 98.38ms
+Setting environment variables took 60.792µs
+Reading R1CS took 8.03678075s
+Reading proving key took 1.018962583s
+Reading witness file took 183.458µs
+Deserializing JSON data took 11.268916ms
+Generating witness took 303.934208ms
+[90m14:30:52[0m DBG constraint system solver done [36mnbConstraints=[0m15972262 [36mtook=[0m1826.361209
+[90m14:31:06[0m DBG prover done [36macceleration=[0mnone [36mbackend=[0mgroth16 [36mcurve=[0mbn254 [36mnbConstraints=[0m15972262 [36mtook=[0m14358.1945
+Generating proof took 16.184884166s
+[90m14:31:06[0m [33mWRN[0m [1mignoring uninitialized slice[0m [36mslice name=[0mVars [36mslice type=[0m[]frontend.Variable
+[90m14:31:06[0m [33mWRN[0m [1mignoring uninitialized slice[0m [36mslice name=[0mVars [36mslice type=[0m[]frontend.Variable
+[90m14:31:06[0m [33mWRN[0m [1mignoring uninitialized slice[0m [36mslice name=[0mVars [36mslice type=[0m[]frontend.Variable
+[90m14:31:06[0m DBG verifier done [36mbackend=[0mgroth16 [36mcurve=[0mbn254 [36mtook=[0m0.700417
+  zkVM Groth16 pipeline: 23125.03s
+  proof verified + journal gate passed (219 responses)
+  Groth16 proof → fixtures/lift-219.groth16-proof.bin
+  Foundry fixture → verifier/fixtures/lift-219.onchain.json (proof 356 bytes, public values 186 bytes)
+    23134.23 real    272492.81 user     14040.12 sys
+        115294306304  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+          2147483647  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                6449  signals received
+                4572  voluntary context switches
+           441203373  involuntary context switches
+    4488616361085207  instructions retired
+    1081667423500193  cycles elapsed
+        114463607704  peak memory footprint
+CHAIN DONE
