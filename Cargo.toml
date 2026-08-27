@@ -1,5 +1,5 @@
 # Workspace for the SNARK lifter: a classically-secure succinct lift of ZKBoo
-# proofs of seed, cheap to verify on Ethereum L1 today. Stack: SP1 (sdk 6.0.1),
+# proofs of seed, cheap to verify on Ethereum L1 today. Stack: SP1 (sdk 6.4.0),
 # ratified 2026-08-19 — see knowledge/milestones.md for the amendment record.
 
 [workspace]
@@ -20,24 +20,15 @@ version = "0.1.0"
 edition = "2024"
 license = "LGPL-3.0-or-later"
 
-# The zkboo crates depend on one another by crates.io version "1.0.0"; these patches
-# redirect every zkboo dependency to the local working trees (<zkboo>), so local
-# changes propagate. Without them, cargo would resolve against crates.io instead —
-# where 1.0.0 is not yet published. Drop this table once the 1.0.0 release is on
-# crates.io, so that a released artefact builds against released crates.
-#
 # tiny-keccak is patched to SP1's accelerated fork (the Keccak precompile): inside the
 # zkVM, zkboo's Keccak256Hasher drives the precompile; on host targets the fork
 # compiles to the stock implementation, so digests are identical everywhere.
+#
+# The zkboo crates are NOT patched. They are required at an exact version and resolved
+# from crates.io, so that what a proof was made with is recorded in Cargo.lock with a
+# checksum rather than in whatever state a working tree happened to be in. A path patch
+# whose local version stops satisfying the requirement is silently ignored by cargo and
+# the published crate is resolved instead, with no warning at all; that failure has
+# already cost this project a round of proofs that were well-formed and did not verify.
 [patch.crates-io]
-zkboo = { path = "../../zkboo/zkboo" }
-zkboo-sha2 = { path = "../../zkboo/zkboo-sha2" }
-zkboo-hmac = { path = "../../zkboo/zkboo-hmac" }
-zkboo-modular = { path = "../../zkboo/zkboo-modular" }
-zkboo-ecc = { path = "../../zkboo/zkboo-ecc" }
-zkboo-circuit-hash = { path = "../../zkboo/zkboo-circuit-hash" }
-zkboo-bip32 = { path = "../../zkboo/zkboo-bip32" }
-zkboo-profiling = { path = "../../zkboo/zkboo-profiling" }
-zkboo-keccak = { path = "../../zkboo/zkboo-keccak" }
-zkboo-ripemd160 = { path = "../../zkboo/zkboo-ripemd160" }
 tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", tag = "patch-2.0.2-sp1-6.0.0" }

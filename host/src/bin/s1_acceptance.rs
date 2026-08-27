@@ -86,6 +86,7 @@ fn main() {
 
     if rejects {
         println!("── reject matrix (n=8) ──");
+        println!("  zkboo: {}", snark_lifter_host::zkboo_provenance());
         let n = 8;
         let (_, output, proof) = vector_1_proof(n, SEED_ENTROPY, BINDING);
         let (_, chain_code) = bip32_vector_1();

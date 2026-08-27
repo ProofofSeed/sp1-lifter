@@ -51,6 +51,7 @@ fn main() {
         .unwrap_or(1);
     assert!(n >= 1, "response count must be positive");
     println!("── elephant probe (Ethereum address = Keccak256(x_be ‖ y_be)[12:], n={n}) ──");
+    println!("  zkboo: {}", snark_lifter_host::zkboo_provenance());
 
     let circuit = EthereumAddressCircuit::with_witness(PRIV_KEY.to_vec());
     let t = Instant::now();

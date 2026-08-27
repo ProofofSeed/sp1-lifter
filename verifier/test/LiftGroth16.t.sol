@@ -42,10 +42,12 @@ contract LiftGroth16Test is Test {
     /// The version byte above catches a change of journal *layout*; this catches a
     /// change of *circuit* that leaves the layout intact — which is the drift that
     /// actually happened once already, when adopting the ZKB++ view commitment moved the
-    /// fingerprint from `33e1f70b…` to `e23ddb6a…` without touching the journal shape.
+    /// fingerprint from `33e1f70b…` to `e23ddb6a…` without touching the journal shape,
+    /// and again when zkboo 2.0.0 gave every circuit a trailing assertion word and moved it
+    /// to `d4825905…`.
     /// Update it deliberately when the circuit changes, which is the point.
     bytes32 internal constant EXPECTED_FINGERPRINT =
-        0xe23ddb6a1be341ba770275fd73b33730a051dfc998cfa339fb19fabc57e2df1b;
+        0xd48259056d4b45ae38cb57178a6487fa7ffafbf0360e09248ab9c317efeb0a2b;
 
     /// The verifying key of the program the fixture must come from.
     ///
@@ -59,7 +61,7 @@ contract LiftGroth16Test is Test {
     /// updating it is the act of accepting the new program.
     /// `REQUIRED_PROOF_FORMAT_VERSION` from the statement crate. It is the journal's
     /// last field, so it is the last byte of the public values.
-    uint8 internal constant EXPECTED_PROOF_FORMAT_VERSION = 2;
+    uint8 internal constant EXPECTED_PROOF_FORMAT_VERSION = 3;
 
     /// `num_responses` for the classical-128 target, as postcard writes it: 219 is above
     /// 127, so its LEB128 varint is two bytes, `0xDB 0x01`. It is the second-to-last
@@ -74,7 +76,7 @@ contract LiftGroth16Test is Test {
     uint8 internal constant N_EPS_VARINT_HIGH = 0x01;
 
     bytes32 internal constant EXPECTED_VKEY =
-        0x004dc0b7561f87fc31370bec92a601824bf6619c47a232212d4fb3976298ca69;
+        0x004290a12d1ecd14ebd8d11a441cc25a80c311e84246ff5df1c023d5885c1b88;
 
     SP1Verifier internal verifier;
     bytes32 internal vkey;

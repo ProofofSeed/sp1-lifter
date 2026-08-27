@@ -7,10 +7,10 @@ description = "zkVM program: aggregates per-response leaf proofs under the globa
 publish = false
 
 [dependencies]
-sp1-zkvm = { version = "6.0.1", features = ["verify"] }
+sp1-zkvm = { version = "=6.4.0", features = ["verify"] }
 postcard = { version = "1.1", default-features = false, features = ["alloc"] }
 sha2 = { version = "0.10", default-features = false }
-zkboo = { version = "1.0.0", features = ["keccak", "u32", "u64"] }
-zkboo-circuit-hash = { version = "1.0.0" }
+zkboo = { version = "=2.0.0", features = ["keccak", "u32", "u64"] }
+zkboo-circuit-hash = { version = "=2.0.0" }
 snark-lifter-statement = { path = "../statement" }
 snark-lifter-split = { path = "../split" }

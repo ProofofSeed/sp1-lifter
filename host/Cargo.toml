@@ -11,26 +11,26 @@ build = "build.rs"
 # native-gnark: the Groth16/PLONK wrap runs in-process via a locally-built gnark (pure
 # Go, arm64-native) — no Docker, no external service. Practically verified on this
 # machine 2026-08-19.
-sp1-sdk = { version = "6.0.1", features = ["blocking", "native-gnark"] }
+sp1-sdk = { version = "=6.4.0", features = ["blocking", "native-gnark"] }
 # Prover tuning knobs (shard thresholds, trace chunk slots) live in `SP1CoreOpts`, which
 # the SDK does not re-export.
-sp1-core-executor = { version = "6.0.1" }
+sp1-core-executor = { version = "=6.4.0" }
 hex = { version = "0.4" }
 postcard = { version = "1.1", features = ["alloc"] }
 serde = { version = "1.0.228" }
-zkboo = { version = "1.0.0", features = ["keccak", "u32", "u64", "parallel"] }
-zkboo-bip32 = { version = "1.0.0" }
-zkboo-circuit-hash = { version = "1.0.0" }
+zkboo = { version = "=2.0.0", features = ["keccak", "u32", "u64", "parallel"] }
+zkboo-bip32 = { version = "=2.0.0" }
+zkboo-circuit-hash = { version = "=2.0.0" }
 snark-lifter-statement = { path = "../statement" }
 snark-lifter-elephant = { path = "../elephant" }
 snark-lifter-split = { path = "../split" }
 sha2 = { version = "0.10" }
-sp1-prover = { version = "6.0.1" }
-sp1-hypercube = { version = "6.0.1" }
-zkboo-profiling = { version = "1.0.0" }
+sp1-prover = { version = "=6.4.0" }
+sp1-hypercube = { version = "=6.4.0" }
+zkboo-profiling = { version = "=2.0.0" }
 
 [build-dependencies]
-sp1-build = { version = "6.0.1" }
+sp1-build = { version = "=6.4.0" }
 
 [[bin]]
 name = "cycle-probe"

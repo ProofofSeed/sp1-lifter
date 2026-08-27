@@ -37,6 +37,16 @@ pub type WTP = OwnedFlexibleWordTriplePool<usize>;
 /// Verifier-side word-pair pool.
 pub type WPP = OwnedFlexibleWordPairPool<usize>;
 
+/// What the zkboo crates in this binary actually are, taken from the lockfile at build time.
+///
+/// Printed by every driver next to the prover configuration, for the same reason the prover
+/// configuration is printed: a measurement means nothing without the thing it measured. The
+/// build refuses outright if any zkboo crate resolves from anywhere but crates.io at the
+/// required version — see `build.rs` for the failure this guards against.
+pub fn zkboo_provenance() -> &'static str {
+    return env!("ZKBOO_PROVENANCE");
+}
+
 /// Decodes a hex string (must have even length and valid digits).
 pub fn from_hex(s: &str) -> Vec<u8> {
     return (0..s.len())
@@ -176,6 +186,7 @@ pub fn prover_client() -> (EnvProver, String) {
         opts.memory_limit,
         std::env::var("RAYON_NUM_THREADS").unwrap_or_else(|_| "unset".to_string()),
     );
+    let summary = format!("{summary}\n  zkboo: {}", zkboo_provenance());
     return (EnvProver::from_env_with_opts(Some(opts)), summary);
 }
 

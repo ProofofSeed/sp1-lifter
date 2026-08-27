@@ -26,6 +26,7 @@ const SEED_ENTROPY: &[u8] = b"snark-lifter cycle probe entropy";
 const BINDING: &[u8] = b"";
 
 fn main() {
+    println!("  zkboo: {}", snark_lifter_host::zkboo_provenance());
     let mut iters: Vec<usize> = std::env::args()
         .skip(1)
         .map(|a| a.parse().expect("iteration counts must be positive integers"))
