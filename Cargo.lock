@@ -2838,7 +2838,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
  "heck",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "log",
  "multimap",
  "once_cell",
@@ -2858,7 +2858,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -3986,10 +3986,14 @@ dependencies = [
  "hex",
  "postcard",
  "serde",
+ "sha2",
  "snark-lifter-elephant",
+ "snark-lifter-split",
  "snark-lifter-statement",
  "sp1-build",
  "sp1-core-executor",
+ "sp1-hypercube",
+ "sp1-prover",
  "sp1-sdk",
  "zkboo",
  "zkboo-bip32",
@@ -4017,6 +4021,39 @@ dependencies = [
  "sp1-zkvm",
  "zkboo",
  "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "snark-lifter-program-leaf"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "snark-lifter-split",
+ "snark-lifter-statement",
+ "sp1-zkvm",
+ "zkboo",
+]
+
+[[package]]
+name = "snark-lifter-program-root"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "sha2",
+ "snark-lifter-split",
+ "snark-lifter-statement",
+ "sp1-zkvm",
+ "zkboo",
+ "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "snark-lifter-split"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "snark-lifter-statement",
+ "zkboo",
 ]
 
 [[package]]
@@ -4634,6 +4671,7 @@ dependencies = [
  "libm",
  "rand 0.8.7",
  "sha2",
+ "slop-algebra",
  "sp1-lib",
  "sp1-primitives",
 ]
@@ -5949,7 +5987,7 @@ dependencies = [
 
 [[package]]
 name = "zkboo-bip32"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "zkboo",
  "zkboo-ecc",

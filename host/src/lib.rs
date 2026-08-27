@@ -24,6 +24,12 @@ pub const LIFT_ELF: Elf = include_elf!("snark-lifter-program");
 /// The elephant probe program ELF (secp256k1 Ethereum-address statement).
 pub const ELEPHANT_ELF: Elf = include_elf!("snark-lifter-program-elephant");
 
+/// The split-and-aggregate probe's leaf program ELF (one response per proof).
+pub const LEAF_ELF: Elf = include_elf!("snark-lifter-program-leaf");
+
+/// The split-and-aggregate probe's root program ELF (cross-leaf global Fiat-Shamir gate).
+pub const ROOT_ELF: Elf = include_elf!("snark-lifter-program-root");
+
 /// Executor-side word pool.
 pub type WP = OwnedFlexibleWordPool<usize>;
 /// Prover-side word-triple pool.
@@ -247,4 +253,94 @@ fn rebuild_response(response: &Response<S, S>, msg: Words) -> Response<S, S> {
             response.input_share_2().unwrap().clone(),
         ),
     };
+}
+
+
+// ─── split-and-aggregate probe ────────────────────────────────────────────────────
+
+/// Assembles a [`LeafInput`](snark_lifter_split::LeafInput) frame for one response.
+pub fn leaf_input_for(
+    input: &LiftInput,
+    position: usize,
+) -> snark_lifter_split::LeafInput {
+    return snark_lifter_split::LeafInput {
+        version: snark_lifter_split::LEAF_FRAME_VERSION,
+        chain_code: input.chain_code.clone(),
+        index: input.index,
+        expected_output: input.expected_output.clone(),
+        binding: input.binding.clone(),
+        position: position as u32,
+        response: input.proof[position].clone(),
+    };
+}
+
+/// Builds the leaf program's stdin.
+pub fn leaf_stdin(input: &snark_lifter_split::LeafInput) -> SP1Stdin {
+    let frame = postcard::to_allocvec(input).expect("serialize leaf frame");
+    let mut stdin = SP1Stdin::new();
+    stdin.write_vec(frame);
+    return stdin;
+}
+
+/// Computes a leaf journal natively — the same replay the leaf guest performs.
+///
+/// Used to exercise the cross-leaf gate without paying for zkVM proofs, and to check
+/// that the guest's journal is the one the host expects.
+pub fn leaf_journal_native(
+    input: &LiftInput,
+    position: usize,
+) -> snark_lifter_split::LeafJournal {
+    use zkboo::{circuit::Circuit, verifier::replay::ViewReplayerBackend};
+    let response = &input.proof[position];
+    assert!(response.is_well_formed(), "response {position} is malformed");
+    let circuit = HardenedChildCircuit::public_only(input.chain_code.clone(), input.index);
+    let replayer = ViewReplayerBackend::<H, PV, S, WPP>::new(response).into_view_replayer();
+    circuit.exec(&replayer);
+    let commitments = replayer
+        .finalize_with_arg(&input.expected_output)
+        .expect("native replay");
+    return snark_lifter_split::LeafJournal {
+        version: snark_lifter_split::LEAF_JOURNAL_VERSION,
+        position: position as u32,
+        statement_digest: snark_lifter_split::statement_digest(
+            &input.chain_code,
+            input.index,
+            &input.expected_output,
+            &input.binding,
+        ),
+        party: response.challenge().index() as u8,
+        commitments: commitments.map(|c| snark_lifter_split::LeafCommitment {
+            digest: *c.digest(),
+            output_share: c.output_share().clone(),
+        }),
+    };
+}
+
+/// Assembles the root frame from the leaf journals' public-value bytes.
+pub fn root_input_for(
+    input: &LiftInput,
+    leaf_vk: [u32; 8],
+    leaf_public_values: Vec<Vec<u8>>,
+) -> snark_lifter_split::RootInput {
+    return snark_lifter_split::RootInput {
+        version: snark_lifter_split::ROOT_FRAME_VERSION,
+        chain_code: input.chain_code.clone(),
+        index: input.index,
+        expected_output: input.expected_output.clone(),
+        binding: input.binding.clone(),
+        leaf_vk,
+        leaf_public_values,
+    };
+}
+
+/// Decodes the root program's committed public values.
+pub fn decode_root_journal(
+    public_values: &[u8],
+) -> Result<snark_lifter_split::RootJournal, String> {
+    let (journal, rest) = postcard::take_from_bytes(public_values)
+        .map_err(|e| format!("root journal decode failed: {e}"))?;
+    if !rest.is_empty() {
+        return Err(format!("root journal decode failed: {} trailing bytes", rest.len()));
+    }
+    return Ok(journal);
 }

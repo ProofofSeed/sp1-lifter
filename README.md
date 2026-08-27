@@ -31,4 +31,5 @@ Proving cost is tunable from the environment without a rebuild — `SHARD_SIZE`,
 - `elephant/`, `program-elephant/` — the secp256k1 Ethereum-address statement and its guest, kept separate so that probing it cannot move the production verifying key. See `knowledge/elephant-cost.md`.
 - `host/` — proof generation, execution/proving drivers, and the acceptance harnesses.
 - `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0).
+- `split/`, `program-leaf/`, `program-root/` — the split-and-aggregate probe: one proof per response plus a root carrying the cross-leaf global Fiat-Shamir gate, which is what makes the lift distributable and streamable. See `knowledge/split-and-streaming.md`.
 - `knowledge/` — design record, milestone plan, and measured numbers.

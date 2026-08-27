@@ -4,7 +4,16 @@
 
 [workspace]
 resolver = "3"
-members = ["statement", "program", "elephant", "program-elephant", "host"]
+members = [
+    "statement",
+    "program",
+    "elephant",
+    "program-elephant",
+    "split",
+    "program-leaf",
+    "program-root",
+    "host",
+]
 
 [workspace.package]
 version = "0.1.0"

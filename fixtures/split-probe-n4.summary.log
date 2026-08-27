@@ -1,0 +1,36 @@
+── split-and-aggregate probe (n=4, mode=both) ──
+  prover config: backend=cpu shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  proved 4 ZKBoo responses natively in 4.86ms
+── cross-leaf gate matrix (n=4, no proving) ──
+  control (all 4 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 0: challenge 1 != 2) ✓
+  G2 substituted response: refused (leaf 0: challenge 1 != 2) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 0: challenge 1 != 0) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 0: challenge 1 != 0) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+
+── monolithic baseline (one program, all 4 responses) ──
+  monolithic compressed proving: 606.08s (gate green)
+
+── split: 4 leaf proofs, then one root ──
+  leaf 0: 123.43s, 351 bytes of public values
+  leaf 1: 124.20s, 347 bytes of public values
+  leaf 2: 121.81s, 349 bytes of public values
+  leaf 3: 122.37s, 349 bytes of public values
+  root: 226.53s (gate green, 4 responses, leaf key pinned)
+
+── result (n=4) ──
+  monolithic, one machine           606.08s
+  leaves, summed (4 × ~124.20s)       491.81s
+  root                              226.53s
+  split, one machine                718.34s
+  split, critical path              350.73s  (slowest leaf + root)
+  split overhead on one machine        1.19×
+  speedup with 4 machines              1.73×
+  root share of critical path          64.6%
+split-and-aggregate probe: PASS

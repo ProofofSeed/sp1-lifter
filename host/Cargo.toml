@@ -23,6 +23,10 @@ zkboo-bip32 = { version = "1.0.0" }
 zkboo-circuit-hash = { version = "1.0.0" }
 snark-lifter-statement = { path = "../statement" }
 snark-lifter-elephant = { path = "../elephant" }
+snark-lifter-split = { path = "../split" }
+sha2 = { version = "0.10" }
+sp1-prover = { version = "6.0.1" }
+sp1-hypercube = { version = "6.0.1" }
 zkboo-profiling = { version = "1.0.0" }
 
 [build-dependencies]
@@ -43,3 +47,7 @@ path = "src/bin/lift.rs"
 [[bin]]
 name = "elephant-probe"
 path = "src/bin/elephant_probe.rs"
+
+[[bin]]
+name = "split-probe"
+path = "src/bin/split_probe.rs"

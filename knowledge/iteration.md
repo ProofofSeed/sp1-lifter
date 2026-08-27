@@ -286,6 +286,18 @@ Foundry suite still passes 5/5 at the same key.
 
 ### Measured, at the circuit
 
+> 🔴 **STALE INPUT, 2026-08-26 — the elephant shrank 3.8× and this note's arithmetic has not been redone.**
+> The device now measures **2,995,675 B** (public key), **2,955,830 B** (normal child) and **2,907,372 B**
+> (Ethereum address) per response, against the **11.28 MB** this note is built on, after zkboo 2.0.0's
+> prover advice, in-circuit assertions and affine comb. All three were proved *and verified* on hardware
+> (`ledger-app/docs/benchmarks.md`, `whitepaper/on-device-measurements.md`).
+>
+> Guest instruction count scales with the ZKBoo trace the lifter replays, so the lift cost plausibly falls
+> by a similar factor — but **that has not been measured**, and nothing here should be scaled by hand.
+> The hash-statement response is likewise **51,297–51,691 B measured**, not ~58 KiB.
+> **On the re-measurement list: re-run the cycle-law probe against the current circuits.**
+
+
 | | hardened child | Ethereum address | ratio |
 |---|---:|---:|---:|
 | response size | ~58 KiB | **11.28 MB** | 190× |
