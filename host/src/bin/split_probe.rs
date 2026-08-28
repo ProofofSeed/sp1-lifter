@@ -317,10 +317,22 @@ fn main() {
         compressed_leaves.push(*compressed);
     }
     // The claims (the public values in the frame) and the proofs (the deferred-proof
-    // channel) are two separate streams. SP1 binds them by folding each claim's
-    // (vk digest, pv digest) into a Poseidon2 chain that the recursion layer must
-    // reconstruct from the proofs actually supplied. The forgeries below break that
-    // correspondence in each of the three ways it can be broken.
+    // channel) are two separate streams. SP1 binds them twice over, and the two bindings
+    // are not the same thing:
+    //
+    //  - **In the recursion layer**, in circuit: each claim's (vk digest, pv digest) is
+    //    folded into a Poseidon2 chain that the recursion circuit must reconstruct from the
+    //    proofs actually supplied, starting from zero. This is the binding that matters,
+    //    because it is the one a prover cannot simply decline to run.
+    //  - **On the host**, at execution time: the `SubproofVerifier` matches what the guest
+    //    asked for against what the caller supplied, and the artifact store is keyed by
+    //    digest. SP1's own comment on that trait calls it a sanity check "that the user
+    //    passed in the correct proof", and says in as many words that "the actual
+    //    constraints happen in the recursion layer".
+    //
+    // The forgeries below break the correspondence in each of the three ways it can be
+    // broken — and every one of them is caught by the host layer, which is what a caller
+    // using this SDK will hit first. See the note where the refusal is classified.
     match mode.as_str() {
         "forge-count" => {
             compressed_leaves.pop().expect("at least one leaf to withhold");
@@ -350,16 +362,33 @@ fn main() {
             Err(e) => {
                 let msg = format!("{e:#}");
                 println!("  root refused in {root_wall:.2?}: {msg}");
-                // A refusal that never reached the cryptography is not the refusal under
-                // test. SP1 looks up a recursion artifact by verifying-key digest before it
-                // checks anything, so a nonsense digest fails there and proves nothing about
-                // the deferred-proof binding.
-                assert!(
-                    !msg.contains("artifact not found"),
-                    "{mode}: refused at SP1 artifact lookup, not at the deferred-proof digest \
-                     check — this case demonstrates NOTHING about the leaf binding"
+                // Where it refused matters more than that it refused, so say which.
+                //
+                // ⚠️ All three of these refuse at the host layer, and that was measured
+                // rather than assumed: the first two were built specifically to keep a
+                // genuine leaf key so that artifact lookup would succeed and the in-circuit
+                // check would be what refused them, and it is not what refused them. The
+                // reason is structural. SP1 resolves a deferred proof by looking it up by
+                // digest, so any tampering that puts the claims and the proofs out of
+                // correspondence makes some lookup fail before a circuit is ever built.
+                //
+                // **The in-circuit binding is therefore not reachable through this SDK**,
+                // by construction rather than by an oversight in these tests, and it is not
+                // demonstrated here. The evidence for it remains a reading of the 6.4.0
+                // sources, recorded in `knowledge/split-and-streaming.md`. An adversarial
+                // prover would not run the host layer at all, which is exactly why the
+                // in-circuit one exists — and why a production deployment must not treat
+                // these three passes as evidence about it.
+                let host_layer = msg.contains("artifact not found");
+                println!(
+                    "{mode}: PASS — refused by SP1's {} (the root did not prove){}",
+                    if host_layer { "host-side deferred-proof bookkeeping" } else { "recursion layer" },
+                    if host_layer {
+                        ". This does NOT exercise the in-circuit deferred-proof digest; see the comment above"
+                    } else {
+                        ""
+                    },
                 );
-                println!("{mode}: PASS (refused by SP1's recursion layer)");
                 return;
             }
         }

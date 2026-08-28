@@ -98,23 +98,8 @@ position check is well-formedness, not soundness, and is documented as such.
 
 ### What the probe does NOT establish
 
-- **The leaf-key binding rests on SP1's recursion layer, and the probe now tests it.** How
-  it works, read out of the 6.4.0 sources rather than assumed: each `verify_sp1_proof` call
-  folds `(vk_digest, pv_digest)` into a running Poseidon2 chain
-  (`sp1-zkvm/src/syscalls/verify.rs`), the chain is committed into the program's own public
-  values at halt (`COMMIT_DEFERRED_PROOFS` in `halt.rs`), and the recursion circuit asserts
-  that the digest it reconstructs from the child proofs actually supplied equals the
-  committed one, starting from zero (`sp1-recursion-circuit/src/machine/complete.rs`). The
-  chain is order-dependent and length-dependent, so a root cannot claim 219 leaves and
-  supply four, nor reorder them, nor substitute one. The `forge` mode exercises the
-  key-mismatch direction empirically: it re-runs the root over the cached leaves under a
-  corrupted `leaf_vk` and requires proving to FAIL.
-- **`leaf_vk` is prover-chosen.** The root takes it as input and commits it, so a relying
-  party can pin it — but a production root would compile it in as a constant, moving the pin
-  inside the root's own verifying key. As it stands the root's journal must be checked for
-  `leaf_vk` as well as everything `check_journal` covers.
-- **No Groth16 wrap.** All proofs here are compressed. The wrap is ~171 s and constant, so
-  it changes the totals below by a fixed amount and the on-chain gas not at all.
+The leaf-key binding. It has its own section at the end of this document, because what happened when
+it was finally tested is the most useful thing in here.
 
 ## Does the current lifter need all 219 responses up front?
 
@@ -274,35 +259,67 @@ Remaining work, in order:
 3. **Pin the leaf verifying key as a compile-time constant in the root**, retiring the
    prover-chosen `leaf_vk` input.
 4. ~~Validate `root(N)` at n≈64 before quoting the 23-minute figure anywhere.~~ **Done, 2026-08-28**: the fit spans 4 to 64 on a quiet machine and the discarded slope survived.
+5. **Exercise the in-circuit leaf binding, which the stock SDK will not let these tests reach.** It
+   needs a root proved against a deliberately inconsistent (claims, proofs) pair, which the SDK's own
+   bookkeeping refuses to assemble — so it needs the recursion layer driven directly, below the SDK.
+   Until then that binding rests on a source reading; see the last section.
 
 Not needed, on the measurements above: the chained/tree root (the marginal cost is too small to
 be worth overlapping), the guest-side streaming frame (a leaf holds one response by construction),
 and any patch to SP1.
 
-## The forged-leaf negative, and why its first form proved nothing
+## The forged-leaf negatives: run at last, and they do not reach what they were built for
 
-The root's binding to its leaves is not enforced by any code in this repository — it is
-SP1's. The mechanism, read out of the 6.4.0 sources: each `verify_sp1_proof` folds
-`(vk_digest, pv_digest)` into a running Poseidon2 chain in the guest, the chain is committed
-into the program's public values at halt, and the recursion circuit asserts that the digest
-it reconstructs from the child proofs *actually supplied* equals the committed one, starting
-from zero. Order- and length-dependent, so the claims and the proofs cannot diverge.
+The root's binding to its leaves is not enforced by any code in this repository — it is SP1's, and
+SP1 enforces it **twice, in two different places, and only one of them matters.**
 
-The first attempt to test this corrupted the leaf verifying-key digest the root claims. The
-root did fail — and the test, which asserted only that proving failed, called it a pass. The
-error was **`artifact not found`**: SP1 looks up a recursion artifact by verifying-key digest
-before it checks anything cryptographic, and a corrupted digest names no artifact. **The run
-never reached the binding it was supposed to test.** A refusal that stops short of the
-mechanism under test is not evidence about that mechanism, and the test as written could not
-tell the difference.
+- **In the recursion layer, in circuit.** Each `verify_sp1_proof` folds `(vk_digest, pv_digest)` into
+  a running Poseidon2 chain in the guest; the chain is committed into the program's public values at
+  halt; and the recursion circuit asserts that the digest it reconstructs from the child proofs
+  *actually supplied* equals the committed one, starting from zero. Order- and length-dependent, so
+  the claims and the proofs cannot diverge. **This is the binding that matters**, because it is the
+  one a prover cannot decline to run.
+- **On the host, at execution time.** The `SubproofVerifier` matches what the guest asked for against
+  what the caller supplied, and the deferred-proof artifact store is keyed by digest. SP1's own
+  comment on that trait (`sp1-core-executor/src/subproof.rs`) calls it a sanity check "that the user
+  passed in the correct proof", and adds that "the actual constraints happen in the recursion layer".
 
-Three negatives now replace it, and each asserts it did not stop at artifact lookup:
+**All three negatives were run on 2026-08-28, all three refuse, and all three refuse at the host
+layer** — `artifact not found`, at about 104 s, before a recursion circuit exists.
 
-- `forge-vk` — corrupted leaf verifying key (kept, but expected to fail at artifact lookup,
-  which the assertion now rejects rather than counts);
-- `forge-count` — the root claims `n` leaves and supplies `n-1` proofs, with a genuine key;
-- `forge-order` — the proofs are supplied in an order the claims do not match.
+That includes the two that were written specifically to get past it. `forge-count` and `forge-order`
+keep a genuine leaf verifying key precisely so that lookup would succeed and the in-circuit check
+would be what refuses them, and it is not what refuses them. **The reason is structural rather than a
+defect in the tests**: SP1 resolves a deferred proof by looking it up by digest, so any tampering
+that puts claims and proofs out of correspondence makes some lookup fail before anything is built.
 
-The last two keep a real verifying key precisely so that artifact lookup succeeds and the
-deferred-proof digest check is what refuses them. **None has been run yet**; they belong to
-the quiet-machine relaunch.
+So: **the in-circuit binding is not reachable through the stock SDK, and it is not demonstrated
+here.** The evidence for it is a reading of the 6.4.0 sources and nothing more, and a deployment must
+not read these three passes as evidence about it. An adversarial prover would not run the host layer
+at all, which is exactly why the in-circuit one exists.
+
+What the three cases *do* establish is that a caller using this SDK cannot assemble a root whose
+claims and proofs disagree — which is worth having, and is not what the tests were labelled as
+establishing until now.
+
+Each is validated by removing its tamper: with the withheld proof restored, `forge-count` proves and
+the test fails with "the root PROVED with the leaf claims and the leaf proofs out of correspondence".
+
+### Why the first form of this test proved even less
+
+The first attempt corrupted the leaf verifying-key digest and asserted only that proving failed. It
+did fail — with `artifact not found`, the same host-layer refusal — and the test called it a pass.
+**A refusal that stops short of the mechanism under test is not evidence about that mechanism**, and
+the test as written could not tell the difference. The assertion added afterwards to catch that is
+what caught all three of these, and is the reason this section says what it says instead of claiming
+three green negatives.
+
+### Still open
+
+**`leaf_vk` is prover-chosen.** The root takes it as input and commits it, so a relying party can pin
+it — but a production root would compile it in as a constant, moving the pin inside the root's own
+verifying key. As it stands the root's journal must be checked for `leaf_vk` as well as everything
+`check_journal` covers.
+
+**No Groth16 wrap in the split.** All proofs in the probe are compressed. The wrap is ~171 s and
+constant, so it shifts the totals by a fixed amount and the on-chain gas not at all.
