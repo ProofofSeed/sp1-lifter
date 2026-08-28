@@ -116,6 +116,59 @@ narrowing and what a fix would need; every long run here now uses the safe setti
 over 4 to 64. The discarded fit's slope was right to 1.3%, which is recorded and is not a reason to
 have believed it: it was a 27× extrapolation from a machine under load.
 
+## S6 — An elephant leaf and root, measured
+
+On the slate 2026-08-28. The split has only ever run the hardened-child statement, and the two
+figures that matter most about the Ethereum-address statement are projections from it: ~1.5 h for a
+leaf and ~4.6 h of wall clock given enough machines. Both come from applying a refitted instruction
+law and a proving rate measured on a different statement. One leaf and one root would make them
+measurements.
+
+**No device is needed.** The lifter generates its own ZKBoo proofs natively from a test private key;
+the Flex never enters the loop.
+
+Scope: the leaf and root programs are compiled against `HardenedChildCircuit`, and the elephant
+statement has a different shape — no public parameters, a 20-byte address as output — so it needs its
+own leaf and root guests, its own frame and journal types, and a statement digest over its own
+public data. Kept outside the production statement crate, as the elephant probe already is, so that
+probing cannot move the pinned verifying key.
+
+**Acceptance:** the cross-leaf gate matrix passes on the elephant statement with its control
+accepting; one elephant leaf and one elephant root over a small number of leaves are proved and
+verified, with wall clock and peak RSS recorded; and the root's journal passes the same
+relying-party gate the monolithic lift's does.
+
+Expect roughly 1.5 h per leaf and ~3 h for the root's fingerprint pass, so about six hours of runs
+for a leaf plus a small-N root — and the fixed term is the thing to watch, since on this statement
+it is two thirds of a single-response run and it is paid once by the root rather than once per leaf.
+
+## 🔵 TODO — reinvestigate removing Poseidon
+
+**Ruled 2026-08-28 (Stefano): keep Poseidon for now.** Recorded here so the question is not lost.
+
+The investigation is `knowledge/poseidon-exposure.md`. In short: none of the exposure is ours — ZKBoo
+and the device are Keccak-256 and untouched — and all of it is SP1's, where Poseidon2 is the trace
+commitment, the sponge, the Fiat-Shamir challenger, the deferred-proof chain the split rests on, and
+a second instantiation over BN254 for the wrap. A break would not leak a seed; it would let someone
+forge a lift.
+
+Swapping it is not a configuration change. The `IopCtx` abstraction is the right shape and the
+instantiation is a one-line alias, but the recursion layer verifies the hash *in circuit*, with
+Poseidon2 in the recursion VM's instruction set as chips of its own. And a bit-oriented replacement is
+out on measured grounds: **63,192 trace cells per Keccak-f permutation against 179 for Poseidon2 —
+353× per permutation, 83× per absorbed byte** (`fixtures/air-width-probe.log`).
+
+**What to do when this is picked up again, in order:**
+
+1. **Get the actual claim, with a reference.** Four readings — Poseidon v1 rather than Poseidon2,
+   particular parameter sets, the BN254 instantiation only, or algebraic hashes in general — lead to
+   four different answers, and three of them make replacing the hash the wrong move. Nothing should
+   be scoped before this.
+2. Only then choose between re-parameterising, a different algebraic hash (none ships in the `slop`
+   tree, so it would have to be written), or a change of proving stack.
+3. Whatever is decided applies to the **STARK lifter** too, which ratified Poseidon2-inner and has no
+   BN254 layer beneath which part of the question is moot.
+
 ## Later, separately probed
 
 - ~~The secp256k1 elephant statements.~~ **Probed 2026-08-22, refitted 2026-08-28 — see `elephant-cost.md`.** The instruction law is now `5.1004e9 + 2.4627e9 × n`, fitted over four response counts to within 0.002%, against `2.007e10 + 1.042e10 × n` before. **The ruling that this statement is not liftable is withdrawn**: ≈130 days became ≈13.6, of which 4.23× is zkboo's circuit and 2.27× is GPU proving, and the two terms of the law did not scale together — which is why the note said to refit rather than divide. The gap is one order of magnitude, not two, and the split that divides it across machines is built and gated but has never been run on this statement. Building an elephant leaf and root is the next thing worth doing.
