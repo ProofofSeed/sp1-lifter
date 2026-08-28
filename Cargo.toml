@@ -32,3 +32,30 @@ license = "LGPL-3.0-or-later"
 # already cost this project a round of proofs that were well-formed and did not verify.
 [patch.crates-io]
 tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", tag = "patch-2.0.2-sp1-6.0.0" }
+
+# GPU proving on Apple Silicon, via the Metal backend for SP1 Hypercube. SP1's own GPU
+# story is CUDA-only, so without this the prover falls back to the CPU on this machine.
+#
+# All six must be patched even though this workspace names one or none of them directly:
+# `[patch.crates-io]` matches by package name, and they have to resolve to the same copies
+# the SDK uses. `p3-uni-stark` contains no GPU code and has no feature to enable — it
+# carries a one-line fix labelling preprocessed columns as preprocessed, which is harmless
+# upstream and is not harmless to something that compiles those constraints into a kernel:
+# without it four recursion AIRs read the main trace where they meant the preprocessed one,
+# and compressed proofs do not verify.
+#
+# Pinned to a tag rather than to the local checkout at <sp1-metal>,
+# deliberately: a path patch would let an edit in that checkout move what was measured
+# after it was measured, and this repository already keeps a note about that failure.
+#
+# ⚠️ Once this table is in place, *both* arms of a comparison run through the fork — the
+# CPU arm is the fork's CPU path, reached by the SP1_METAL_* runtime switches rather than
+# by dropping the patch. That is the comparison sp1-metal itself recommends, because only
+# then does nothing but the path under test differ; it is not the same thing as comparing
+# against the published crates.
+sp1-hypercube        = { git = "https://github.com/hashberg-io/sp1-metal", tag = "v0.1.0" }
+slop-jagged          = { git = "https://github.com/hashberg-io/sp1-metal", tag = "v0.1.0" }
+slop-multilinear     = { git = "https://github.com/hashberg-io/sp1-metal", tag = "v0.1.0" }
+slop-basefold-prover = { git = "https://github.com/hashberg-io/sp1-metal", tag = "v0.1.0" }
+slop-dft             = { git = "https://github.com/hashberg-io/sp1-metal", tag = "v0.1.0" }
+p3-uni-stark         = { git = "https://github.com/hashberg-io/sp1-metal", tag = "v0.1.0" }
