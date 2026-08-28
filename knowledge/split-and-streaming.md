@@ -318,10 +318,18 @@ three green negatives.
 
 ### Still open
 
-**`leaf_vk` is prover-chosen.** The root takes it as input and commits it, so a relying party can pin
-it — but a production root would compile it in as a constant, moving the pin inside the root's own
-verifying key. As it stands the root's journal must be checked for `leaf_vk` as well as everything
-`check_journal` covers.
+**~~`leaf_vk` is prover-chosen.~~ ✅ Pinned, 2026-08-28.** The roots compile the leaf verifying key in
+(`pinned-keys/`), so a root's own verifying key now says which leaf program it will admit — there is
+no longer a field outside `check_journal` that a relying party can forget. The frame still carries a
+claimed key and the journal still commits one, so a journal stays self-describing, and the root
+refuses any claim that disagrees with what it used.
+
+It cost nothing measurable: 112.29 s for a root over four leaves against 112.18 s unpinned.
+
+The constant lives in a crate of its own because the leaf programs must **not** link it — a leaf that
+did would change its own key whenever that key was recorded, which does not converge. `vkeys`
+recomputes both keys from the leaf ELFs, refuses if either has drifted, and prints the correct value;
+it was demonstrated red by pinning zeros first.
 
 **No Groth16 wrap in the split.** All proofs in the probe are compressed. The wrap is ~171 s and
 constant, so it shifts the totals by a fixed amount and the on-chain gas not at all.

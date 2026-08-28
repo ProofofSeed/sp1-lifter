@@ -22,6 +22,7 @@ use snark_lifter_split::{
     ELEPHANT_SPLIT_FRAME_VERSION, ElephantRootInput, LeafJournal, ROOT_JOURNAL_VERSION,
     aggregate, statement_digest_generic,
 };
+use snark_lifter_pinned_keys::LEAF_ELEPHANT_VK;
 use zkboo_circuit_hash::hash_circuit;
 
 const NO_PUBLIC_PARAMS: &[u8] = &[];
@@ -33,10 +34,18 @@ pub fn main() {
     // 1. Admit every leaf proof under the expected leaf verifying key. The public-value bytes
     //    hashed here are the very bytes decoded below, so the journal the gate reads is the
     //    journal the leaf proof attests — not a re-encoding of it.
+    // The leaf key is COMPILED IN, so this root's own verifying key says which leaf program
+    // it will admit — there is no longer a field a relying party can forget to check. The
+    // frame still carries the claimed key and the journal still commits it, so a journal
+    // remains self-describing; this refuses any claim that disagrees with what was used.
+    if input.leaf_vk != LEAF_ELEPHANT_VK {
+        sp1_zkvm::io::commit_slice(b"REFUSED: claimed leaf key is not the pinned one");
+        panic!("claimed leaf key is not the pinned one");
+    }
     let mut leaves: Vec<LeafJournal> = Vec::with_capacity(input.leaf_public_values.len());
     for public_values in &input.leaf_public_values {
         let pv_digest: [u8; 32] = Sha256::digest(public_values).into();
-        sp1_zkvm::lib::verify::verify_sp1_proof(&input.leaf_vk, &pv_digest);
+        sp1_zkvm::lib::verify::verify_sp1_proof(&LEAF_ELEPHANT_VK, &pv_digest);
         leaves.push(postcard::from_bytes(public_values).expect("malformed leaf journal"));
     }
     // 2. The cross-leaf global Fiat-Shamir gate.
@@ -63,7 +72,7 @@ pub fn main() {
             num_responses: leaves.len().try_into().expect("response count exceeds u32"),
             proof_format_version: zkboo::PROOF_FORMAT_VERSION,
         },
-        leaf_vk: input.leaf_vk,
+        leaf_vk: LEAF_ELEPHANT_VK,
     };
     sp1_zkvm::io::commit_slice(&postcard::to_allocvec(&journal).expect("encode root journal"));
 }

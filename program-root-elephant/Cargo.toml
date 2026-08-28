@@ -14,3 +14,4 @@ zkboo = { version = "=2.0.0", features = ["keccak", "u32", "u64"] }
 zkboo-circuit-hash = { version = "=2.0.0" }
 snark-lifter-elephant = { path = "../elephant" }
 snark-lifter-split = { path = "../split" }
+snark-lifter-pinned-keys = { path = "../pinned-keys" }

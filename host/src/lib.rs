@@ -38,6 +38,12 @@ pub const LEAF_ELEPHANT_ELF: Elf = include_elf!("snark-lifter-program-leaf-eleph
 /// The elephant root program ELF.
 pub const ROOT_ELEPHANT_ELF: Elf = include_elf!("snark-lifter-program-root-elephant");
 
+/// The leaf verifying key `program-root` has compiled in.
+pub use snark_lifter_pinned_keys::LEAF_VK as PINNED_LEAF_VK;
+
+/// The leaf verifying key `program-root-elephant` has compiled in.
+pub use snark_lifter_pinned_keys::LEAF_ELEPHANT_VK as PINNED_LEAF_ELEPHANT_VK;
+
 /// Executor-side word pool.
 pub type WP = OwnedFlexibleWordPool<usize>;
 /// Prover-side word-triple pool.
