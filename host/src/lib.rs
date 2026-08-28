@@ -32,6 +32,12 @@ pub const LEAF_ELF: Elf = include_elf!("snark-lifter-program-leaf");
 /// The split-and-aggregate probe's root program ELF (cross-leaf global Fiat-Shamir gate).
 pub const ROOT_ELF: Elf = include_elf!("snark-lifter-program-root");
 
+/// The elephant leaf program ELF (one secp256k1 response per proof).
+pub const LEAF_ELEPHANT_ELF: Elf = include_elf!("snark-lifter-program-leaf-elephant");
+
+/// The elephant root program ELF.
+pub const ROOT_ELEPHANT_ELF: Elf = include_elf!("snark-lifter-program-root-elephant");
+
 /// Executor-side word pool.
 pub type WP = OwnedFlexibleWordPool<usize>;
 /// Prover-side word-triple pool.

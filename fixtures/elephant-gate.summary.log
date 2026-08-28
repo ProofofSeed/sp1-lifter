@@ -1,0 +1,11 @@
+── elephant split (n=2, mode=gate) ──
+  proved 24 elephant responses natively in 1.11s
+── cross-leaf gate matrix on the elephant statement (n=24, no proving) ──
+  control (all 24 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 0: challenge 2 != 0) ✓
+  G4 reordered responses: refused (leaf 0: challenge 0 != 2) ✓
+  G6 tampered commitment: refused (leaf 3: challenge 2 != 0) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+

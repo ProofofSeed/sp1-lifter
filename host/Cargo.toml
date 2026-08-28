@@ -75,3 +75,7 @@ path = "src/bin/split_probe.rs"
 [[bin]]
 name = "stream-lift"
 path = "src/bin/stream_lift.rs"
+
+[[bin]]
+name = "elephant-split"
+path = "src/bin/elephant_split.rs"

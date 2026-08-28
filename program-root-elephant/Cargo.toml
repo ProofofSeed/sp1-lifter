@@ -1,0 +1,16 @@
+[package]
+name = "snark-lifter-program-root-elephant"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "zkVM program: aggregates elephant leaf proofs under the cross-leaf Fiat-Shamir gate."
+publish = false
+
+[dependencies]
+sp1-zkvm = { version = "=6.4.0", features = ["verify"] }
+postcard = { version = "1.1", default-features = false, features = ["alloc"] }
+sha2 = { version = "0.10", default-features = false }
+zkboo = { version = "=2.0.0", features = ["keccak", "u32", "u64"] }
+zkboo-circuit-hash = { version = "=2.0.0" }
+snark-lifter-elephant = { path = "../elephant" }
+snark-lifter-split = { path = "../split" }

@@ -4139,6 +4139,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "snark-lifter-program-leaf-elephant"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "snark-lifter-elephant",
+ "snark-lifter-split",
+ "sp1-zkvm",
+ "zkboo",
+]
+
+[[package]]
 name = "snark-lifter-program-root"
 version = "0.1.0"
 dependencies = [
@@ -4146,6 +4157,19 @@ dependencies = [
  "sha2",
  "snark-lifter-split",
  "snark-lifter-statement",
+ "sp1-zkvm",
+ "zkboo",
+ "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "snark-lifter-program-root-elephant"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "sha2",
+ "snark-lifter-elephant",
+ "snark-lifter-split",
  "sp1-zkvm",
  "zkboo",
  "zkboo-circuit-hash",

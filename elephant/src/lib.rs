@@ -86,3 +86,115 @@ pub struct ElephantInput {
     /// The ZKBoo proof to verify.
     pub proof: LiftProof,
 }
+
+/// Version tag of the [`ElephantJournal`] layout; bump on any change to its shape.
+pub const ELEPHANT_JOURNAL_VERSION: u32 = 1;
+
+/// The journal an elephant lift commits: the complete lifted statement.
+///
+/// The hardened child's `LiftJournal` without a chain code or an index, because this statement
+/// has no public circuit parameters — the witness is a private key and the output is the
+/// address that key controls. Everything else is the same, for the same reasons, and
+/// `num_responses` is soundness-critical here exactly as it is there: `zkboo::verify` accepts a
+/// proof with any number of responses, the empty proof included, and a k-response proof has
+/// soundness (2/3)^k.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ElephantJournal {
+    /// Journal layout version; must equal [`ELEPHANT_JOURNAL_VERSION`].
+    pub version: u32,
+    /// Whether the ZKBoo proof verified (always `true` in a committed journal).
+    pub valid: bool,
+    /// Structural fingerprint of the verified circuit, computed in-guest.
+    pub fingerprint: S,
+    /// The circuit output the proof was verified against: the 20-byte address, and the
+    /// assertion word every zkboo circuit now emits last.
+    pub expected_output: Words,
+    /// The challenge binding the proof was verified under.
+    pub binding: Vec<u8>,
+    /// Number of responses (repetitions) in the verified proof.
+    pub num_responses: u32,
+    /// The ZKBoo proof format the program was built against.
+    pub proof_format_version: u32,
+}
+
+/// The journal an elephant **root** commits: the lift, plus the leaf key it admitted under.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ElephantRootJournal {
+    /// Layout version.
+    pub version: u32,
+    /// The lifted statement, in the shape a monolithic elephant lift would commit.
+    pub lift: ElephantJournal,
+    /// The verifying key every admitted leaf proof carried.
+    ///
+    /// ⚠️ Prover-chosen: the root takes it as input and commits it, so a relying party must
+    /// check it as well as everything [`check_elephant_journal`] covers. Compiling it in as a
+    /// constant would move the pin inside the root's own verifying key; see
+    /// `knowledge/split-and-streaming.md`.
+    pub leaf_vk: [u32; 8],
+}
+
+/// What a journal consumer requires of an [`ElephantJournal`].
+pub struct ElephantExpectation {
+    /// Required circuit fingerprint.
+    pub fingerprint: S,
+    /// Required circuit output.
+    pub expected_output: Words,
+    /// Required challenge binding.
+    pub binding: Vec<u8>,
+    /// Minimum acceptable number of responses.
+    pub min_responses: u32,
+    /// Required ZKBoo proof format version.
+    pub proof_format_version: u32,
+}
+
+/// Why an [`ElephantJournal`] was refused.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ElephantCheckError {
+    /// The journal layout version is not [`ELEPHANT_JOURNAL_VERSION`].
+    VersionMismatch,
+    /// The committed verdict is not `true`.
+    NotValid,
+    /// The in-guest circuit fingerprint differs from the required one.
+    FingerprintMismatch,
+    /// The expected output differs from the required statement.
+    StatementMismatch,
+    /// The binding differs from the required one.
+    BindingMismatch,
+    /// Fewer responses than the required minimum.
+    TooFewResponses,
+    /// The attested ZKBoo proof format differs from the required one.
+    ProofFormatMismatch,
+}
+
+/// Checks an [`ElephantJournal`] against an [`ElephantExpectation`].
+///
+/// ⚠️ **Mandatory precondition: the proof carrying this journal must first be verified against
+/// the expected verifying key**, which alone binds the crypto suite and the circuit family. The
+/// same precondition, for the same reason, as the hardened child's `check_journal`.
+pub fn check_elephant_journal(
+    journal: &ElephantJournal,
+    expectation: &ElephantExpectation,
+) -> Result<(), ElephantCheckError> {
+    if journal.version != ELEPHANT_JOURNAL_VERSION {
+        return Err(ElephantCheckError::VersionMismatch);
+    }
+    if !journal.valid {
+        return Err(ElephantCheckError::NotValid);
+    }
+    if journal.fingerprint != expectation.fingerprint {
+        return Err(ElephantCheckError::FingerprintMismatch);
+    }
+    if journal.expected_output != expectation.expected_output {
+        return Err(ElephantCheckError::StatementMismatch);
+    }
+    if journal.binding != expectation.binding {
+        return Err(ElephantCheckError::BindingMismatch);
+    }
+    if journal.num_responses < expectation.min_responses {
+        return Err(ElephantCheckError::TooFewResponses);
+    }
+    if journal.proof_format_version != expectation.proof_format_version {
+        return Err(ElephantCheckError::ProofFormatMismatch);
+    }
+    return Ok(());
+}
