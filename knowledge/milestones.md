@@ -156,7 +156,7 @@ Swapping it is not a configuration change. The `IopCtx` abstraction is the right
 instantiation is a one-line alias, but the recursion layer verifies the hash *in circuit*, with
 Poseidon2 in the recursion VM's instruction set as chips of its own. And a bit-oriented replacement is
 out on measured grounds: **63,192 trace cells per Keccak-f permutation against 179 for Poseidon2 —
-353× per permutation, 83× per absorbed byte** (`fixtures/air-width-probe.log`).
+353× per permutation, 83× per absorbed byte** (`fixtures/probe-air-width.log`).
 
 **What to do when this is picked up again, in order:**
 
