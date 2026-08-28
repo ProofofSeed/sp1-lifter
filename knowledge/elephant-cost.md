@@ -115,23 +115,60 @@ built, its cross-leaf Fiat-Shamir gate passes a nine-case refusal matrix with th
 and `root(N)` is measured — see `split-and-streaming.md`. A leaf is an independent `prove` call, so
 the leaves distribute over machines and the root is near-fixed.
 
-Projected onto the address statement, at the rate above:
+### The elephant leaf and root have now been built and run
 
-| | projected |
+**Measured 2026-08-28**, safe-GPU configuration (`SP1_METAL_MERKLE=0`), 12 Rayon threads:
+`fixtures/elephant-leaves-n2.summary.log` and `fixtures/elephant-root-n2.summary.log`.
+
+| | projected | **measured** | |
+|---|---:|---:|---:|
+| one elephant leaf | ~1.5 h | see below | |
+| **an elephant root over 2 leaves** | ~3.1 h | **4 h 19 m 50 s** (15,589.86 s) | **1.40× over** |
+| root peak RSS | — | **74.37 GB** (83.60 GB footprint) | |
+
+The root **passed**: gate green over 2 responses, fingerprint `4d6c3501…`. So the architecture runs
+on this statement, which is the thing that was in doubt.
+
+⚠️ **The two leaf timings taken alongside it are contaminated and are not quoted here.** A sibling
+session was proving on the same machine for part of both. A clean single-leaf re-time is what the
+leaf row above will carry.
+
+### Why one root point is enough to project to 219, and how far that goes
+
+`root(2)` alone cannot separate a fixed term from a per-leaf one. It does not have to, because the
+per-leaf term was already measured on the hardened-child statement — `root(N) = 102.0 + 2.55·N` on
+the safe GPU, fitted over 4 to 64 leaves — and **that term is statement-independent.**
+
+That is not an assumption; it is visible in the artefacts. A leaf's compressed proof is:
+
+| statement | compressed leaf proof |
 |---|---:|
-| one leaf (the marginal term; a leaf computes no fingerprint) | ~1.5 h |
-| the root's own fingerprint pass over a secp256k1 circuit (paid once) | ~3.1 h |
-| total work, 219 leaves and a root | ~326 h |
-| **wall clock with enough machines** | **~4.6 h** |
+| Ethereum address (elephant) | 1,272,772 B |
+| hardened child | 1,272,919 – 1,272,923 B |
 
-⚠️ **Projected, not measured.** The split probe has only ever run the hardened-child statement; no
-elephant leaf or elephant root has been built, and the root's leaf-admission cost is extrapolated
-from a fit over 4 to 64 hardened-child leaves. What is measured is the instruction law above and the
-proving rate on a different statement.
+**0.012% apart**, and the difference is public-values serialisation. The recursion layer's work to
+admit one leaf is a function of the leaf proof's shape, and the shape does not depend on which
+statement produced it. So:
 
-So the honest statement is no longer "not liftable". It is: **a single machine needs about two weeks,
-and the architecture that removes that has been built and gated but not run on this statement.**
-Building an elephant leaf and root, and measuring one of each, is the next thing worth doing here.
+- elephant root fixed term ≈ **15,585 s** (4 h 20 m) — the secp256k1 fingerprint pass, paid once
+- **root(219) ≈ 15,585 + 219 × 2.55 ≈ 16,143 s ≈ 4 h 29 m**
+
+The leaf-admission term is 3.5% of the root at full scale. **Admitting all 219 leaves costs less than
+4% of what the root pays before it admits any of them.**
+
+### What a full split lift costs, revised
+
+| | projected | revised |
+|---|---:|---:|
+| the root | ~3.1 h | **~4.5 h** (measured fixed term + measured marginal) |
+| wall clock with enough machines | ~4.6 h | **~6 h** |
+
+⚠️ The leaf half of that is still the contaminated figure and will move when the clean re-time lands.
+The root half is now measured.
+
+So the honest statement is no longer "not liftable", and it is no longer a projection either: **a
+single machine needs about two weeks; the architecture that divides it has been built, gated, and
+now run on this statement, and it brings the wall clock to about six hours given enough machines.**
 
 ## Why the cost is shaped this way
 

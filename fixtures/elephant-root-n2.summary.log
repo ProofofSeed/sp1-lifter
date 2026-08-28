@@ -4,3 +4,23 @@
   zkboo: 10 crates from crates.io: zkboo=2.0.0/2386749a zkboo-bip32=2.0.0/1f58056b zkboo-circuit-hash=2.0.0/87dd1319 zkboo-ecc=2.0.0/69d68082 zkboo-hmac=2.0.0/2d34d712 zkboo-keccak=2.0.0/c15d61fc zkboo-modular=2.0.0/e4f8f041 zkboo-profiling=2.0.0/671c6d28 zkboo-ripemd160=2.0.0/6efbdd90 zkboo-sha2=2.0.0/22fe8faf
   proved 2 elephant responses natively in 336.04ms
 ── elephant root over 2 leaves ──
+  root: 15589.86s (gate green, 2 responses, fingerprint 4d6c3501…)
+elephant split: PASS
+    15599.46 real    175605.80 user      6855.65 sys
+         74372399104  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+          1685579150  page reclaims
+                1011  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   2  signals received
+              191207  voluntary context switches
+            95800094  involuntary context switches
+    3049863367466424  instructions retired
+     694038924618478  cycles elapsed
+         83603715464  peak memory footprint

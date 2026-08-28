@@ -204,7 +204,8 @@ pub fn prover_client() -> (EnvProver, String) {
     return (EnvProver::from_env_with_opts(Some(opts)), summary);
 }
 
-/// The prover backend `SP1_PROVER` selects, defaulting to `cpu`.
+/// The prover backend `SP1_PROVER` selects, defaulting to `cpu`, together with whether
+/// this binary was built with GPU proving compiled in and which of its phases are armed.
 ///
 /// ⚠️ This is the setting that decides whether a run means anything: under `mock` the
 /// prover fabricates a proof and its verifier only compares public inputs, so a driver
@@ -212,8 +213,28 @@ pub fn prover_client() -> (EnvProver, String) {
 /// The core options above are handed only to the CPU prover: `from_env_with_opts`
 /// passes them to the `cpu` arm and drops them for every other backend, so a summary
 /// omitting the backend could be describing settings that were not in force.
+///
+/// 🪤 `SP1_PROVER` alone is **not** enough, and reporting it alone was a defect. Metal
+/// proving is a compile-time feature inside the `cpu` arm, so a GPU run and a CPU run
+/// both print `cpu`, and the two differ by more than a factor of two — the largest
+/// single lever on every timing this repository records. Worse, `SP1_METAL_MERKLE=0` is
+/// mandatory for an unattended run (see `knowledge/gpu-corruption.md`), and a timing
+/// taken without it is not comparable to one taken with it. Both now appear here, so a
+/// summary line pins the configuration a number was actually measured under.
 pub fn prover_backend() -> String {
-    return std::env::var("SP1_PROVER").unwrap_or_else(|_| "cpu".to_string());
+    let selected = std::env::var("SP1_PROVER").unwrap_or_else(|_| "cpu".to_string());
+    if !cfg!(feature = "metal") {
+        return format!("{selected}/metal-not-built");
+    }
+    let mut switches: Vec<String> = std::env::vars()
+        .filter(|(name, _)| name.starts_with("SP1_METAL"))
+        .map(|(name, value)| format!("{name}={value}"))
+        .collect();
+    if switches.is_empty() {
+        return format!("{selected}/metal-built-all-phases-default");
+    }
+    switches.sort();
+    return format!("{selected}/metal-built[{}]", switches.join(" "));
 }
 
 /// The complete relying-party gate over a lifted SP1 proof: verifies the proof against

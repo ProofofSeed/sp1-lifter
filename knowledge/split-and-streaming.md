@@ -254,12 +254,17 @@ correctness caveat attached rather than a clock caveat.
 
 Remaining work, in order:
 
-1. **A streaming orchestrator** — per arriving response, build a `LeafInput` and dispatch a
-   `prove` into a pool; fire the root when the last leaf lands. No SP1, zkboo, or contract change.
+1. ~~A streaming orchestrator — per arriving response, build a `LeafInput` and dispatch a
+   `prove` into a pool; fire the root when the last leaf lands.~~ **Done, 2026-08-28**: `host/src/orchestrator.rs`
+   and the `stream-lift` driver. No SP1, zkboo, or contract change, as expected.
 2. **Per-response delivery from the device** — responses delimited and handed over as they
    complete rather than as one blob. Plumbing; the harness's framed pipe is the model.
-3. **Pin the leaf verifying key as a compile-time constant in the root**, retiring the
-   prover-chosen `leaf_vk` input.
+3. ~~Pin the leaf verifying key as a compile-time constant in the root, retiring the
+   prover-chosen `leaf_vk` input.~~ **Done, 2026-08-28** (`8e9cc0b`): both roots take their leaf key
+   from `pinned-keys`, and a claimed key that disagrees is refused before the loop. The leaf keys did
+   not move; both root keys did, which is the expected consequence and is why the pinned constant
+   lives in a crate the leaf programs do not link. Root cost unchanged: 112.29 s pinned against
+   112.18 s unpinned.
 4. ~~Validate `root(N)` at n≈64 before quoting the 23-minute figure anywhere.~~ **Done, 2026-08-28**: the fit spans 4 to 64 on a quiet machine and the discarded slope survived.
 5. **Exercise the in-circuit leaf binding, which the stock SDK will not let these tests reach.** It
    needs a root proved against a deliberately inconsistent (claims, proofs) pair, which the SDK's own
@@ -306,6 +311,31 @@ establishing until now.
 
 Each is validated by removing its tamper: with the withheld proof restored, `forge-count` proves and
 the test fails with "the root PROVED with the leaf claims and the leaf proofs out of correspondence".
+
+### Re-run under the pinned leaf key, and the pin does not move them
+
+Pinning the leaf verifying key (item 3 above) was expected to change what `forge-vk` does. It does
+not, and the expectation was wrong for a reason worth writing down.
+
+All three were re-run on 2026-08-28 against the pinned roots. **All three still refuse at
+`artifact not found`**, at 18.7 s, 105.8 s and 108.8 s, with the nine-case gate matrix green and the
+control accepting in each. Log: `fixtures/forge-negatives-pinned.summary.log`.
+
+The reasoning that expected otherwise was that `forge-vk` now has a new in-guest assertion to hit —
+the root rejects a claimed leaf key that disagrees with the constant. But **the guest never runs.**
+The host resolves each deferred proof by `(vk_digest, pv_digest)` before execution begins, and a
+forged key digest matches no artifact, so the run dies a layer above any guest code. Pinning moved
+what the guest would assert; it did not move where the refusal happens, because nothing reaches the
+guest.
+
+That makes the pin's assertion the same kind of object as the in-circuit binding itself: correct as
+far as a source reading goes, and unexercised. It is defence in depth against a caller who drives the
+recursion layer directly — which is the only caller that could ever reach it, and is precisely the
+caller the stock SDK will not let these tests impersonate.
+
+**This is the second time an expectation about these negatives has been wrong in the same direction**,
+and both times the error was to reason about which check *would* catch a tamper without asking
+whether control flow reaches that check at all.
 
 ### Why the first form of this test proved even less
 
