@@ -127,6 +127,16 @@ impl Circuit for HardenedChildCircuit {
 /// must bump this constant.
 pub const LIFT_FRAME_VERSION: u32 = 1;
 
+// zkboo 2.0.0 did not move this, and the reason is worth stating because it looks as though it
+// should have. That release invalidated every proof 1.x produced: every circuit's outputs now end
+// with an assertion word, so `expected_output` gains an entry and `PROOF_FORMAT_VERSION` is 3. But
+// this constant guards the *layout* of the frame, not the values in it, and neither the shape of
+// `LiftInput` nor the enabled word features changed — the assertion word is a `u8`, a type these
+// outputs already carry, so the postcard encoding of `Words` is unchanged. What catches a proof
+// from the old format is `REQUIRED_PROOF_FORMAT_VERSION` below, which is the mechanism built for
+// exactly this and which the journal gate enforces. Bumping a version tag whose documented
+// contract was not breached would make the next reader distrust the contract.
+
 /// The verification input frame passed from host to guest (postcard-encoded).
 ///
 /// Everything here is verifier-side data: the circuit's public parameters, the expected
@@ -160,7 +170,7 @@ pub const LIFT_JOURNAL_VERSION: u32 = 2;
 /// would silently begin *requiring* the older format rather than refusing it. Pinning it
 /// means a format change is a decision someone makes here, and until they do, proofs
 /// carrying the new format are refused.
-pub const REQUIRED_PROOF_FORMAT_VERSION: u32 = 2;
+pub const REQUIRED_PROOF_FORMAT_VERSION: u32 = 3;
 
 /// The journal committed by the lift guest: the complete lifted statement.
 ///

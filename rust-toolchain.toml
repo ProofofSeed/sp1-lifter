@@ -1,0 +1,10 @@
+# The host side of this workspace is pinned so that a proving time measured today is
+# comparable to one measured a week ago. Every recorded baseline here was taken on
+# stable 1.95.0, and the machine's rustup default has since moved to a nightly pinned
+# by a sibling project, so leaving this implicit would silently change the compiler
+# under the measurements.
+#
+# The zkVM programs are unaffected either way: `sp1-build` sets RUSTC explicitly to the
+# Succinct toolchain's rustc, which takes precedence over anything selected here.
+[toolchain]
+channel = "1.95.0"

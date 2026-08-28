@@ -286,6 +286,18 @@ Foundry suite still passes 5/5 at the same key.
 
 ### Measured, at the circuit
 
+> 🔴 **STALE INPUT, 2026-08-26 — the elephant shrank 3.8× and this note's arithmetic has not been redone.**
+> The device now measures **2,995,675 B** (public key), **2,955,830 B** (normal child) and **2,907,372 B**
+> (Ethereum address) per response, against the **11.28 MB** this note is built on, after zkboo 2.0.0's
+> prover advice, in-circuit assertions and affine comb. All three were proved *and verified* on hardware
+> (`ledger-app/docs/benchmarks.md`, `whitepaper/on-device-measurements.md`).
+>
+> Guest instruction count scales with the ZKBoo trace the lifter replays, so the lift cost plausibly falls
+> by a similar factor — but **that has not been measured**, and nothing here should be scaled by hand.
+> The hash-statement response is likewise **51,297–51,691 B measured**, not ~58 KiB.
+> **On the re-measurement list: re-run the cycle-law probe against the current circuits.**
+
+
 | | hardened child | Ethereum address | ratio |
 |---|---:|---:|---:|
 | response size | ~58 KiB | **11.28 MB** | 190× |
@@ -350,3 +362,106 @@ magnitude rather than something a better configuration closes.** What the probe 
 this is now measured rather than assumed, and that the two cheap levers are visible: the per-response
 instruction count (zkboo's circuit, where 3.75× has already been found once) and the proving rate
 (where packing the CPU prover's scalar field arithmetic is worth ~1.9× and costs no soundness).
+
+## S5 — the released ZKBoo, GPU proving, and the owed measurements (2026-08-28)
+
+### The upgrade cost no source change, and that is a finding about the version tags
+
+zkboo 2.0.0 is breaking — every circuit's outputs gain a trailing assertion word, so no 1.x proof
+verifies and `PROOF_FORMAT_VERSION` is 3 — and the lifter needed exactly one constant changed. The
+expected output comes from `exec`, so it grew the word on its own; the frame's layout did not change,
+because the assertion word is a `u8` among bytes the outputs already carried and the enabled word
+features are untouched.
+
+`LIFT_FRAME_VERSION` and `LIFT_JOURNAL_VERSION` therefore stayed where they were. Each guards a
+layout, no layout moved, and what catches a proof from the old format is `proof_format_version`,
+which the journal already commits and `check_journal` already enforces — the mechanism built for this
+exact case when the ZKB++ commitment changed. Bumping a tag whose contract was not breached would
+teach the next reader that the contracts are decorative.
+
+| | before (zkboo 1.0.0) | after (zkboo 2.0.0) |
+|---|---|---|
+| circuit fingerprint | `e23ddb6a…` | **`d4825905…`** |
+| whole-program instructions at n=219 | 4 773 338 656 | **4 775 013 465** (+0.035%) |
+| public values | 186 B | 187 B |
+| on-chain gas | 270 441 | **270 441** |
+
+The instruction count is the useful one: the assertion word costs a thirtieth of a percent on this
+statement, which is what it should cost for a circuit that asserts nothing and emits a constant.
+
+### Provenance is now the lockfile's problem, not a working tree's
+
+The manifests asked for `1.0.0` and patched it to local paths that had since become 2.0.0. **A patch
+whose local version stops satisfying the requirement is ignored by cargo without a word**, and the
+published crate is resolved instead. The ledger-app line lost a round of measurements to precisely
+this: proofs that were well-formed and did not verify, with a provenance field that read `git
+describe` on the working tree and so named a version the binary did not contain.
+
+The patches are gone, the requirements are exact, and `host/build.rs` refuses to build unless every
+zkboo crate resolves from a registry at the required version with a checksum. Both arms of the
+refusal were demonstrated by making the tree violate them. Every driver prints what it linked.
+
+### GPU proving, and the defect that bounds it
+
+Full account in `knowledge/gpu-proving.md` and `knowledge/gpu-corruption.md`.
+
+Compressed proving of a one-response lift, three arms, two runs each, on an idle machine:
+
+| arm | median | peak RSS |
+|---|---:|---:|
+| published SP1 6.4.0 | 274.9 s | 98.0–101.1 GB |
+| the fork, GPU forced off | 276.4 s | 87.8–89.7 GB |
+| the fork, GPU on | 58.3 s | 40.5–43.6 GB |
+
+**4.74×, and the third arm is why that number means anything**: with the patches in place both of the
+obvious arms run through the fork, so a slowed CPU path would be indistinguishable from a fast GPU.
+The fork's CPU path lands within 0.8% of the published prover.
+
+**And it produces a wrong proof about once in twenty, then parks the run for ever.** An intermittent
+Merkle root mismatch, caught by SP1's own shard verification — so nothing invalid is accepted and the
+risk is availability, not soundness — but retried silently and never returned from. Leaving the
+Merkle tree on the CPU has run 115 consecutive proofs clean, at 1.92× instead of 4.72×. The number to
+plan against here is 1.9× until it is fixed upstream.
+
+### `root(N)`, measured where it was owed
+
+| | CPU | GPU, safe |
+|---|---:|---:|
+| leaf (one response) | 109.72 s | 57.00 s |
+| root over 4 leaves | 205.61 s | 112.18 s |
+| root over 64 leaves | 527.20 s | 264.95 s |
+| fitted | 184.2 + 5.36·N | 102.0 + 2.55·N |
+
+Admitting one more leaf costs **4.5% of a leaf**. The discarded n=4/n=8 fit had the slope right to
+1.3% — recorded, and not a reason to have believed it: it was a 27× extrapolation taken on a machine
+under load, and this repository had already been burned by a small-n result that did not survive full
+scale.
+
+### The full-scale lift on the new stack (2026-08-28)
+
+`lift 219 groth16`, safe GPU setting, prebuilt binaries, released zkboo 2.0.0 from crates.io:
+
+| | zkboo 1.0.0, CPU (2026-08-21) | zkboo 2.0.0, GPU safe (2026-08-28) |
+|---|---:|---:|
+| one proving pass, core → compress → shrink → wrap | 23 320.2 s (6 h 28 m 40 s) | **10 296.11 s (2 h 51 m 36 s)** |
+| peak RSS | 112.2 GB | **77.5 GB** |
+| proof | 356 B | 356 B |
+| `forge` | 5/5 at 270 441 gas | **5/5 at 270 441 gas** |
+
+**2.27×**, and essentially all of it is the GPU: the zkboo upgrade moved the guest by 0.035% of its
+instructions, so the two changes on this branch do not have to be disentangled by argument.
+
+Marginal cost falls from 103.4 s per response to about 47 s, where a run at n = 8 had predicted
+2.50× rather than 2.27× — that n = 8 CPU point being the August one on zkboo 1.0.0, as is the
+full-scale baseline, so both ratios are against measurements taken before this branch rather than
+against a CPU arm re-run tonight. That is the same shape as the configuration sweep that did not survive full
+scale, in the mild direction rather than the catastrophic one: a short run still flatters, by a tenth
+instead of by everything.
+
+The run completed with no shard failure, over a body of shards far larger than the leaf proofs the
+GPU corruption was characterised on. That is the strongest single piece of evidence that leaving the
+Merkle tree on the CPU is enough.
+
+It is also the measurement `sp1-metal`'s own verdict names as the one that would change it — wall
+clock to a proof on this project's classical-128 lift, the workload its bar is written against and
+had never been run on.

@@ -6,14 +6,24 @@ See `knowledge/milestones.md` for what is established so far, including the reco
 
 ## Usage
 
-Requires the SP1 toolchain (`sp1up`; sdk 6.x with the `succinct` rust toolchain), Go (for the native gnark wrap), and the local zkboo working trees at `../../zkboo` (see the `[patch.crates-io]` table in `Cargo.toml`).
+Requires the SP1 toolchain (`sp1up`; sdk 6.4.0 with the `succinct` rust toolchain) and Go, for the native gnark wrap.
+The ZKBoo crates come from crates.io at the exact version the build script demands, so no local working tree is needed and none is used; a build that resolves them any other way is refused.
+
+Proving runs on the GPU. Build with `--features metal` and everything below goes through the Metal backend for SP1 Hypercube (`knowledge/gpu-proving.md`).
+To measure against the CPU, force the GPU path off with the switches in `fixtures/cpu-arm-switches.txt` rather than by rebuilding, so that both arms are one binary.
+
+⚠️ **Set `SP1_METAL_MERKLE=0` for any run you are not watching.** With every phase accelerated the backend is 4.7× faster than this machine's CPU prover on a one-response lift — and it also produces a proof that fails its own verification about once in twenty and then parks the run for ever. Leaving the Merkle tree on the CPU has run 115 consecutive proofs clean, at 1.9× on a single leaf and 2.3× on a full-scale lift. See `knowledge/gpu-corruption.md`.
 
 ```sh
-cargo run --release -p snark-lifter-host --bin cycle-probe           # instruction-law sweep
-cargo run --release -p snark-lifter-host --bin s1-acceptance         # reject matrix + full-scale 219
-cargo run --release -p snark-lifter-host --bin lift -- 219           # prove + wrap + Foundry fixture
-cargo run --release -p snark-lifter-host --bin lift -- 8 compressed  # throughput probe, no wrap
-(cd verifier && forge test)                                          # on-chain verify + gas + rejects
+cargo build --release -p snark-lifter-host --features metal   # once; the binaries below are in target/release
+
+./target/release/cycle-probe                # instruction-law sweep
+./target/release/s1-acceptance              # reject matrix + full-scale 219
+./target/release/lift 219                   # prove + wrap + Foundry fixture
+./target/release/lift 8 compressed          # throughput probe, no wrap
+./target/release/split-probe 4 both         # split-and-aggregate probe
+./target/release/elephant-probe             # the secp256k1 statement's cost
+(cd verifier && forge test)                 # on-chain verify + gas + rejects
 ```
 
 The Foundry suite reads a fixture that `lift` generates; without one it **skips**, and a fully skipped suite still prints `Suite result: ok`, so check for `5 passed` rather than `ok`.
@@ -31,4 +41,5 @@ Proving cost is tunable from the environment without a rebuild — `SHARD_SIZE`,
 - `elephant/`, `program-elephant/` — the secp256k1 Ethereum-address statement and its guest, kept separate so that probing it cannot move the production verifying key. See `knowledge/elephant-cost.md`.
 - `host/` — proof generation, execution/proving drivers, and the acceptance harnesses.
 - `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0).
-- `knowledge/` — design record, milestone plan, and measured numbers.
+- `split/`, `program-leaf/`, `program-root/` — the split-and-aggregate probe: one proof per response plus a root carrying the cross-leaf global Fiat-Shamir gate, which is what makes the lift distributable and streamable. See `knowledge/split-and-streaming.md`.
+- `knowledge/` — design record, milestone plan, and measured numbers, including `gpu-proving.md` for what the Metal backend does to this workload and `gpu-corruption.md` for the defect that bounds it.
