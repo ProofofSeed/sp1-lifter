@@ -71,3 +71,7 @@ path = "src/bin/elephant_probe.rs"
 [[bin]]
 name = "split-probe"
 path = "src/bin/split_probe.rs"
+
+[[bin]]
+name = "stream-lift"
+path = "src/bin/stream_lift.rs"

@@ -64,6 +64,19 @@ fn expect_refusal(name: &str, leaves: &[LeafJournal], digest: &snark_lifter_stat
     }
 }
 
+/// The smallest leaf count at which the refusal matrix means anything.
+///
+/// The challenge-based cases refuse because a re-derived party sequence stops matching the
+/// declared one — and a party is one of three, so a tampered set of `k` leaves can still
+/// match **by chance with probability 3^-k**. At n = 2 that is one in three, and
+/// `split-probe 2 gate` duly reports G1 *accepting* a set it must refuse: not a defect in
+/// the gate but the gate's soundness being probabilistic, exactly as ZKBoo's own is.
+///
+/// At 24 leaves a chance pass is below 3e-12, which is small enough that a green matrix is
+/// evidence rather than a coin toss. The matrix costs no proving, so running it at this
+/// floor regardless of the proving count is free.
+const MIN_GATE_LEAVES: usize = 24;
+
 /// The cross-leaf refusal matrix, on real leaf journals, without any proving.
 ///
 /// Each case is a way of assembling leaves that must not yield a lifted statement. The
@@ -206,11 +219,27 @@ fn main() {
         (lift_frame as f64 / n as f64) / 1024.0,
     );
 
+    // The matrix runs at its own count, never the proving count: it costs no proving, and
+    // below MIN_GATE_LEAVES a tampered set can satisfy the challenge check by luck.
+    let gate_n = n.max(MIN_GATE_LEAVES);
+    if gate_n != n {
+        println!(
+            "  (the gate matrix runs at {gate_n} leaves, not {n}: below {MIN_GATE_LEAVES} a \
+             tampered set passes by chance with probability 3^-k)"
+        );
+    }
+    let gate_input = if gate_n == n {
+        None
+    } else {
+        let (_, output, proof) = vector_1_proof(gate_n, SEED_ENTROPY, BINDING);
+        let (_, chain_code) = bip32_vector_1();
+        Some(lift_input_for(chain_code, HARDENED_OFFSET, output, BINDING, proof))
+    };
+    gate_matrix(gate_input.as_ref().unwrap_or(&input), gate_n);
+    drop(gate_input);
     if mode == "gate" {
-        gate_matrix(&input, n);
         return;
     }
-    gate_matrix(&input, n);
 
     let mut mono_wall = Duration::ZERO;
     if mode == "both" || mode == "mono" {

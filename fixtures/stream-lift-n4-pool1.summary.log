@@ -1,0 +1,23 @@
+── streamed lift (n=4, pool=1, arrival interval none (as fast as this machine produces them)) ──
+  prover config: backend=cpu shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  root journal passed the relying-party gate (4 responses)
+
+── timeline (n=4, pool=1) ──
+  challenge phase (global, before any response can exist): 0.01s
+  last response finished by the producer:                   0.02s
+  leaf proving, summed:                                    367.29s
+  root:                                                    181.85s
+  end to end:                                              549.28s
+
+  provers idle, waiting for a response to exist:            0.02s
+  finished responses queued, waiting for a prover:          535.85s
+  ⇒ the proving side is the bottleneck
+
+── what the pipeline is worth ──
+  ⚠️ proving is the bottleneck, so the overlap below is bounded by how fast leaves
+     are proved, not by how fast responses arrive. With 1 prover(s) against a leaf
+     of ~91.82s, one machine keeps pace only with an arrival interval above that.
+  produced, then lifted (no overlap):                       549.16s
+  streamed (this run):                                      549.28s
+  overlap saved:                                            0.00s (1.00x)
+streamed lift: PASS

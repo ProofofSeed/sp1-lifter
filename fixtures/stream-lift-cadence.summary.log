@@ -1,0 +1,28 @@
+=== A: single leaf, isolating the per-leaf cost ===
+  leaf proving, summed:                                    88.56s
+  root:                                                    159.40s
+  end to end:                                              247.99s
+
+=== B: device cadence 30s, one prover ===
+── streamed lift (n=8, pool=1, arrival interval 30.0s (modelled device cadence)) ──
+  root journal passed the relying-party gate (8 responses)
+
+── timeline (n=8, pool=1) ──
+  challenge phase (global, before any response can exist): 0.02s
+  last response finished by the producer:                   240.02s
+  leaf proving, summed:                                    715.71s
+  root:                                                    192.72s
+  end to end:                                              938.68s
+
+  provers idle, waiting for a response to exist:            30.02s
+  finished responses queued, waiting for a prover:          1639.50s
+  ⇒ the proving side is the bottleneck
+
+── what the pipeline is worth ──
+  ⚠️ proving is the bottleneck, so the overlap below is bounded by how fast leaves
+     are proved, not by how fast responses arrive. With 1 prover(s) against a leaf
+     of ~89.46s, one machine keeps pace only with an arrival interval above that.
+  produced, then lifted (no overlap):                       1148.45s
+  streamed (this run):                                      938.68s
+  overlap saved:                                            209.77s (1.22x)
+streamed lift: PASS

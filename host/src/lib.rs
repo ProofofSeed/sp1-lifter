@@ -3,6 +3,8 @@
 //! Shared host-side helpers for the SNARK lifter: the development statement fixture,
 //! the program input framing, and SP1 execution/verification drivers.
 
+pub mod orchestrator;
+
 use sp1_core_executor::SP1CoreOpts;
 use sp1_sdk::{
     Elf, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey,
