@@ -178,7 +178,9 @@ ground; nothing from them is quoted below. These replace them. Every run was tak
 (fingerprint `d4825905…`).
 
 Three arms, because the GPU has two settings and the difference between them matters — see
-`gpu-corruption.md`. "GPU, safe" is the Metal backend with its Merkle tree left on the CPU, which is
+`gpu-corruption.md`. The CPU column is the same binary with every GPU switch forced off, which is
+the only comparison in which nothing but the path under test differs; it measures within 0.8% of the
+published SP1 prover, which was checked separately rather than assumed. "GPU, safe" is the Metal backend with its Merkle tree left on the CPU, which is
 the only setting that survives a long run; "GPU, full" is every phase accelerated, which is 2.5×
 faster again and corrupts a proof about once every twenty.
 

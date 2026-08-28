@@ -452,7 +452,9 @@ scale.
 instructions, so the two changes on this branch do not have to be disentangled by argument.
 
 Marginal cost falls from 103.4 s per response to about 47 s, where a run at n = 8 had predicted
-2.50× rather than 2.27×. That is the same shape as the configuration sweep that did not survive full
+2.50× rather than 2.27× — that n = 8 CPU point being the August one on zkboo 1.0.0, as is the
+full-scale baseline, so both ratios are against measurements taken before this branch rather than
+against a CPU arm re-run tonight. That is the same shape as the configuration sweep that did not survive full
 scale, in the mild direction rather than the catastrophic one: a short run still flatters, by a tenth
 instead of by everything.
 
