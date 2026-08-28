@@ -1,7 +1,11 @@
 # The cost of lifting the Ethereum-address statement
 
-Measured 2026-08-22 on the 16-core Apple Silicon machine (137 GB), SP1 sdk 6.4.0, zkboo 1.0.0.
-Everything below is measured on this machine unless it is labelled an extrapolation.
+Re-measured 2026-08-28 on the 16-core Apple Silicon machine (137 GB), SP1 sdk 6.4.0, **zkboo 2.0.0**.
+Everything below is measured on this machine unless it is labelled an extrapolation or a projection.
+
+The first version of this note was written against zkboo 1.0.0 and concluded that this statement was
+not liftable on any hardware available to the project. **That conclusion no longer follows**, and the
+section saying so is kept below rather than deleted.
 
 ## Why this statement
 
@@ -33,87 +37,116 @@ suite was re-run after building and still passes 5/5 at the same key.
 
 ### At the circuit
 
-> 🔴 **STALE INPUT, 2026-08-26 — the elephant shrank 3.8× and this note's arithmetic has not been redone.**
-> The device now measures **2,995,675 B** (public key), **2,955,830 B** (normal child) and **2,907,372 B**
-> (Ethereum address) per response, against the **11.28 MB** this note is built on, after zkboo 2.0.0's
-> prover advice, in-circuit assertions and affine comb. All three were proved *and verified* on hardware
-> (`ledger-app/docs/benchmarks.md`, `whitepaper/on-device-measurements.md`).
->
-> Guest instruction count scales with the ZKBoo trace the lifter replays, so the lift cost plausibly falls
-> by a similar factor — but **that has not been measured**, and nothing here should be scaled by hand.
-> The hash-statement response is likewise **51,297–51,691 B measured**, not ~58 KiB.
-> **On the re-measurement list: re-run the cycle-law probe against the current circuits.**
-
+Re-measured 2026-08-28 against zkboo 2.0.0. The previous figures were taken against an 11.28 MB
+response and are superseded throughout.
 
 | | hardened child | Ethereum address | ratio |
 |---|---:|---:|---:|
-| response size | ~58 KiB | **11.28 MB** | 190× |
-| full proof at 219 responses | 12.7 MB | **2.47 GB** | — |
-| circuit execution | — | 269 ms | — |
-| native prove, one response | ~5 ms | 1.16 s | — |
-| native verify, one response | ~2.1 ms | **511 ms** | 243× |
+| nonlinear AND-messages | 6,454 | **368,123** | 57× |
+| response size | 51,691 B | **2,909,068 B** | 56× |
+| full proof at 219 responses | 11.3 MB | **0.64 GB** | — |
+| circuit execution | — | 63.9 ms | — |
+| native prove, one response | ~1.2 ms | 302 ms | — |
+| native verify, one response | ~2 ms | 126 ms | — |
 
-> ⚠️ `zkboo-bip32/README.md` still lists **42.3 MB** per response for this statement. That table
-> predates the optimisation round and is stale by 3.75×. Anything quoting it — including this
-> project's own earlier estimate of ~9.3 GB of proof data at full scale — is wrong by the same
-> factor. The correct figures are 11.28 MB and 2.47 GB.
+The response is 3.88× smaller than the 11.28 MB this note was built on, and the device agrees:
+2,907,372 B measured on a Ledger Flex, one input share away, which is what agreement looks like for
+a quantity with two values.
 
-### In the zkVM
+### In the zkVM, refitted
 
-| responses | instructions | executor wall | peak RSS |
-|---:|---:|---:|---:|
-| 1 | 30 495 877 378 | 185.2 s | 15.1 GB |
-| 2 | 40 917 254 932 | 248.8 s | 15.7 GB |
-| 4 | 61 760 022 190 | 378.0 s | 16.5 GB |
+Four points rather than one, because the fixed term is two thirds of a single-response run and a
+single point cannot separate it from the marginal one.
 
-**`instructions = 2.007e10 + 1.042e10 × n`**
+| responses | instructions | executor wall |
+|---:|---:|---:|
+| 1 | 7 562 995 674 | 53.4 s |
+| 2 | 10 025 871 402 | 69.8 s |
+| 4 | 14 950 873 523 | 102.8 s |
+| 8 | 24 801 729 491 | 168.7 s |
 
-The marginal cost from n=1→2 and from n=2→4 agree to **0.0001%**, so the law is solid across the
-probed range.
+**`instructions = 5.1004e9 + 2.4627e9 × n`** — every point within **0.002%** of the fit.
 
-**The fixed term is 66% of a single-response run** — the in-guest circuit-fingerprint pass over a
-secp256k1 circuit, plus decoding a 13.4 MB frame. A cost estimate extrapolated from n=1 alone
-therefore **overstates full scale by 2.90×**. At 219 responses the same term is 0.87% of the total
-and can be ignored. (This is the second time on this project that a single cheap measurement has
-answered a different question than the one asked; see the prover-configuration sweep.)
+### The two terms did not scale together, which is why the note said not to divide
 
-## What a full lift would cost
+The superseded law was `2.007e10 + 1.042e10 × n`. Against it:
 
-At 219 responses — classical-128 in the forgery-work-ratio sense, with the usual caveat that
-stricter definitions rate it lower, and with BN254's ~100-bit pairing security the real ceiling of
-this track either way:
+| | before | after | ratio |
+|---|---:|---:|---:|
+| fixed term | 2.007e10 | 5.1004e9 | **3.93×** |
+| marginal term | 1.042e10 | 2.4627e9 | **4.23×** |
+| total at 219 | 2.302e12 | **5.4443e11** | **4.23×** |
 
-- **2.302e12 instructions**
-- at this machine's measured proving rate of **204 687 instructions/s**: **≈ 130 days**
-- **482×** the 6 h 28 m the hardened-child lift actually takes
+The instruction to re-fit rather than divide by the 3.8× the response size had moved by was
+therefore worth following: it would have been wrong by 8% on the fixed term and 11% on the marginal
+one, in opposite directions. The fixed term is still 67% of a single-response run, so a one-point
+estimate would still overstate full scale by **3.07×**.
 
-> ⚠️ That rate is the *hardened-child* statement's, assumed to carry over. It has not been measured
-> on an elephant workload, whose instruction mix is entirely different, and **no elephant response
-> has been proved — only executed**. Treat 130 days as an order of magnitude, not a figure.
+## What a full lift would cost, now
 
-Scaled onto other hardware, each factor an extrapolation stacked on the one before it:
+At 219 responses — classical-128 in the forgery-work-ratio sense, with the usual caveat that stricter
+definitions rate it lower, and with BN254's ~100-bit pairing security the real ceiling of this track
+either way:
 
-| | estimate |
+- **5.4443e11 instructions**, against 2.302e12 before
+- **0.64 GB of proof data through the guest**, against 2.47 GB
+- **114× the hardened-child statement per response**, against 482×
+
+| at this machine's proving rate | days |
 |---|---:|
-| this machine, measured rate | ~130 days |
-| valkyrie, 64 EPYC cores | ~35 days |
-| + one of its GPUs (sp1-metal's projected 10×) | ~13 days |
-| + four or five cards busy on one proof | ~3 days |
+| CPU, as measured in August (204 687 instr/s) | 30.8 |
+| **GPU with the Merkle tree on the CPU, measured 2026-08-28 (464 000 instr/s)** | **13.6** |
 
-None of these is a route to lifting this statement as a single proof.
+**130 days became 13.6.** Of the 9.6×, **4.23× is the circuit** — zkboo's advice, in-circuit
+assertions and affine comb — and **2.27× is the GPU**.
+
+⚠️ The rate is the hardened-child statement's, assumed to carry to a workload whose instruction mix
+is entirely different, and **no elephant response has ever been proved — only executed**. Treat 13.6
+days as an order of magnitude, not a figure.
+
+## The conclusion this note used to draw no longer follows
+
+It said: *"not liftable by this route at classical-128 on any hardware currently available to the
+project. The gap is about two orders of magnitude."* **Both halves of that are now wrong.**
+
+The gap is one order of magnitude rather than two, and it is not the whole story, because the second
+thing that changed is that the responses can be divided. The split-and-aggregate architecture is
+built, its cross-leaf Fiat-Shamir gate passes a nine-case refusal matrix with the control accepting,
+and `root(N)` is measured — see `split-and-streaming.md`. A leaf is an independent `prove` call, so
+the leaves distribute over machines and the root is near-fixed.
+
+Projected onto the address statement, at the rate above:
+
+| | projected |
+|---|---:|
+| one leaf (the marginal term; a leaf computes no fingerprint) | ~1.5 h |
+| the root's own fingerprint pass over a secp256k1 circuit (paid once) | ~3.1 h |
+| total work, 219 leaves and a root | ~326 h |
+| **wall clock with enough machines** | **~4.6 h** |
+
+⚠️ **Projected, not measured.** The split probe has only ever run the hardened-child statement; no
+elephant leaf or elephant root has been built, and the root's leaf-admission cost is extrapolated
+from a fit over 4 to 64 hardened-child leaves. What is measured is the instruction law above and the
+proving rate on a different statement.
+
+So the honest statement is no longer "not liftable". It is: **a single machine needs about two weeks,
+and the architecture that removes that has been built and gated but not run on this statement.**
+Building an elephant leaf and root, and measuring one of each, is the next thing worth doing here.
 
 ## Why the cost is shaped this way
 
-The elephant costs **481× per response against a 190× response size** — about 2.5× more per byte
-than the hash statements. The work is replaying scalar-multiplication gates, and no precompile
-relieves it: SP1's Keccak accelerator, which does most of the heavy lifting for the hash statements,
-does nothing for field arithmetic.
+The elephant costs **114× per response against a 56× response size** — about **2.0× more per byte**
+than the hash statements. The shape has survived the optimisation round: both figures fell by
+roughly four, and their ratio moved from 2.5× to 2.0×. The work is replaying scalar-multiplication
+gates, and no precompile relieves it: SP1's Keccak accelerator, which does most of the heavy lifting
+for the hash statements, does nothing for field arithmetic.
 
-The zkVM also needs roughly **6–12× the instructions the native verifier uses** for this statement,
-where on the hash statement it sits at rough parity. 256-bit field arithmetic compiles far less
-favourably to RISC-V than hashing does.
+⚠️ The old note also said the zkVM needs 6–12× the instructions the native verifier uses here,
+against rough parity on the hash statement. **That comparison has not been re-measured** and is not
+restated: native instruction counts are not separable from the probe's own, and both sides of the
+ratio moved.
 
-## The structural obstacle
+## The structural obstacle, and the gate that removes it
 
 219 responses look like 219 independent verification tasks that a cluster could divide between
 machines. **They are not, and this repository has already demonstrated that they are not.**
@@ -130,21 +163,23 @@ challenge check across all 219 responses while splitting the replay between prov
 its own right, and the same global-Fiat-Shamir gate the STARK track identified as the correctness
 condition for any lifter.
 
-## Conclusion, and what would change it
+✅ **That gate is built.** `split/`, `program-leaf/` and `program-root/` implement it: a leaf proof
+per response and a root that re-derives the challenge sequence over the commitments of every response
+present and requires it to match what each response declared. Nine refusal cases, each check
+validated by deleting it, and the control accepting — which is what says the gate reproduces zkboo's
+own derivation byte for byte. See `split-and-streaming.md`. This paragraph's "cannot" is about the
+naive division and remains true of it; it is no longer true of the problem.
 
-**The Ethereum-address statement is not liftable by this route at classical-128 on any hardware
-currently available to the project.** The gap is about two orders of magnitude; it is not something
-a better prover configuration closes, and the sweep that established that is recorded separately.
+## What the levers are now
 
-What the probe has bought is that this is measured rather than assumed, and that exactly two levers
-are visible:
+1. **Instructions per response** (2.4627e9). This is zkboo's circuit, where reductions of 3.75× and
+   then 4.23× have each been found once. It is still the larger lever and the one with precedent.
+2. **The proving rate** (464 000 instr/s). Two things sit here: the GPU's Merkle phase, worth a
+   further ~2.5× on this machine once its intermittent corruption is fixed, and SP1's unpacked CPU
+   prover, worth ~1.9× and costing no soundness.
+3. **Dividing the work**, which is new since this note was written and is the only one of the three
+   that changes the wall clock by more than a small factor.
 
-1. **Instructions per response** (1.042e10). This is zkboo's circuit, where a 3.75× reduction has
-   already been found once. It is the larger lever and the one with precedent.
-2. **The proving rate** (204 687 instr/s). SP1's CPU prover does its field arithmetic on scalar
-   values while the packed path sits unused; packing measures ~1.9× end to end, costs no soundness,
-   and is vkey-neutral — but 1.9× against a 482× gap is not the answer on its own.
-
-A third option is not a lever but a change of target: a statement that binds an account without an
+A fourth option is not a lever but a change of target: a statement that binds an account without an
 in-circuit scalar multiplication would sidestep the whole cost. Whether one exists is a question for
 the protocol, not for the lifter.
