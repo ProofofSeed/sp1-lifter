@@ -95,14 +95,18 @@ either way:
 | at this machine's proving rate | days |
 |---|---:|
 | CPU, as measured in August (204 687 instr/s) | 30.8 |
-| **GPU with the Merkle tree on the CPU, measured 2026-08-28 (464 000 instr/s)** | **13.6** |
+| GPU with the Merkle tree on the CPU, hardened-child rate (464 000 instr/s) | 13.6 |
+| **the same, at the elephant's own measured rate (569 221 instr/s)** | **11.07** |
 
-**130 days became 13.6.** Of the 9.6×, **4.23× is the circuit** — zkboo's advice, in-circuit
-assertions and affine comb — and **2.27× is the GPU**.
+**130 days became 11.07.** Of the 11.7×, **4.23× is the circuit** — zkboo's advice, in-circuit
+assertions and affine comb — **2.27× is the GPU**, and the remaining **1.23×** is that this statement
+proves faster per instruction than the one the rate was borrowed from.
 
-⚠️ The rate is the hardened-child statement's, assumed to carry to a workload whose instruction mix
-is entirely different, and **no elephant response has ever been proved — only executed**. Treat 13.6
-days as an order of magnitude, not a figure.
+✅ The caveat this table used to carry — *"the rate is the hardened-child statement's, assumed to
+carry … and no elephant response has ever been proved, only executed"* — **is discharged.** Elephant
+responses have now been proved, and the rate is measured on one. It went the favourable way, which is
+not the way to bet: the same borrowing was 26% pessimistic here and could as easily have been
+optimistic.
 
 ## The conclusion this note used to draw no longer follows
 
@@ -122,16 +126,44 @@ the leaves distribute over machines and the root is near-fixed.
 
 | | projected | **measured** | |
 |---|---:|---:|---:|
-| one elephant leaf | ~1.5 h | see below | |
+| **one elephant leaf** | ~1.5 h | **1 h 10 m 08 s** (4,207.74 s) | **1.26× under** |
+| leaf peak RSS | — | **73.38 GB** | |
 | **an elephant root over 2 leaves** | ~3.1 h | **4 h 19 m 50 s** (15,589.86 s) | **1.40× over** |
 | root peak RSS | — | **74.37 GB** (83.60 GB footprint) | |
 
-The root **passed**: gate green over 2 responses, fingerprint `4d6c3501…`. So the architecture runs
-on this statement, which is the thing that was in doubt.
+Both **passed**, gate green, root fingerprint `4d6c3501…`. So the architecture runs on the statement
+it was built for, which is the thing that was in doubt. The nine-case cross-leaf refusal matrix runs
+on the elephant statement too, at 24 leaves, with the control accepting.
 
-⚠️ **The two leaf timings taken alongside it are contaminated and are not quoted here.** A sibling
-session was proving on the same machine for part of both. A clean single-leaf re-time is what the
-leaf row above will carry.
+### The contaminated leaf timings, and why their agreement was worth nothing
+
+Two leaf timings taken alongside the root — 6,193.81 s and 5,469.39 s — were taken while another
+session was proving on the same machine. **Both are retracted.** The clean re-run on an idle machine
+is 4,207.74 s, so contamination cost **1.47×** and **1.30×**.
+
+The one worth dwelling on is the second. At 5,469.39 s it sat within 3% of the 5,310 s projection,
+and that looked like corroboration. It was two errors cancelling: a measurement 30% too slow against
+a projection 26% too high. **An agreement between a contaminated measurement and a projection
+corroborates neither**, and the tell was available at the time — the run delivered 8.98 of 12 cores
+against the clean run's 11.91.
+
+### The proving rate does not carry between statements
+
+The 13.6-day estimate applied a rate measured on the hardened-child statement to a workload whose
+instruction mix is entirely different, and said so. It does not carry:
+
+| | instructions | wall | rate |
+|---|---:|---:|---:|
+| hardened-child lift (assumed) | — | — | 464,000 instr/s |
+| **elephant leaf (measured)** | **2,395,132,641** | 4,207.74 s | **569,221 instr/s** |
+
+**1.23× faster per instruction**, on the same machine and the same safe-GPU configuration. The
+elephant proves *more* efficiently than the statement the estimate borrowed from.
+
+The leaf's instruction count is measured rather than assumed to be the law's marginal term
+(`elephant-split 1 execute`): at 2.3951e9 it is **0.973×** of 2.4627e9, the difference being that a
+leaf parses its own frame and encodes a journal where a marginal response in the monolithic program
+does neither.
 
 ### Why one root point is enough to project to 219, and how far that goes
 
@@ -158,17 +190,35 @@ The leaf-admission term is 3.5% of the root at full scale. **Admitting all 219 l
 
 ### What a full split lift costs, revised
 
-| | projected | revised |
+| | projected | **measured** |
 |---|---:|---:|
-| the root | ~3.1 h | **~4.5 h** (measured fixed term + measured marginal) |
-| wall clock with enough machines | ~4.6 h | **~6 h** |
+| one leaf | ~1.5 h | **1.17 h** |
+| the root at 219 leaves | ~3.1 h | **4.48 h** |
+| total work, 219 leaves and a root | ~326 h | **260.5 h (10.85 days)** |
+| **wall clock with enough machines** | ~4.6 h | **5.65 h** |
+| a single machine, monolithic | 13.6 days | **11.07 days** |
 
-⚠️ The leaf half of that is still the contaminated figure and will move when the clean re-time lands.
-The root half is now measured.
+Only the last row still rests on an inference — the monolithic program's instruction total divided by
+the leaf's measured rate. That is a far shorter step than the 13.6-day figure took, since the leaf
+guest and the monolithic guest do the same replay work; the other rows are arithmetic over two
+measurements.
+
+### 🔑 The root is now the wall clock, and more machines will not touch it
+
+**The root is 79% of the wall clock** — 4.48 h against a 1.17 h leaf — and it is 3.71 leaves' work
+for a job that admits leaves in 2.55 s each. Essentially all of it is the one-off structural
+traversal of the secp256k1 circuit, the fixed term of the instruction law.
+
+That inverts where the effort belongs. Adding machines drives the leaf half toward zero and leaves
+4.48 h standing. **The lever is the fingerprint pass, not the fleet.** Whether that traversal can be
+made cheaper — hoisted into a preprocessed constant pinned by the verifying key, computed
+incrementally, or replaced by a commitment the leaves already establish — is the open question this
+measurement raises, and it was not visible before the root was run.
 
 So the honest statement is no longer "not liftable", and it is no longer a projection either: **a
-single machine needs about two weeks; the architecture that divides it has been built, gated, and
-now run on this statement, and it brings the wall clock to about six hours given enough machines.**
+single machine needs about eleven days; the architecture that divides it is built, gated on nine
+refusal cases, and now measured on this statement, and it brings the wall clock to 5.65 hours — of
+which four and a half are one circuit traversal that no amount of hardware divides.**
 
 ## Why the cost is shaped this way
 

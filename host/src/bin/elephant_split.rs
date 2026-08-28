@@ -107,12 +107,38 @@ fn gate_matrix(expected_output: &Words, responses: &[zkboo::prover::proof::Respo
     }
     expect_refusal("G1 dropped response", &dropped, &digest, |e| matches!(e, AggregateError::ChallengeMismatch { .. }));
 
+    // G2: a substituted response — leaf 1 carrying leaf 0's commitments at its own
+    // position. Structurally impeccable, cryptographically dead.
+    let mut substituted = leaves.clone();
+    substituted[1].commitments = leaves[0].commitments.clone();
+    substituted[1].party = leaves[0].party;
+    expect_refusal("G2 substituted response", &substituted, &digest, |e| matches!(e, AggregateError::ChallengeMismatch { .. }));
+
+    // G3b: a mislabelled leaf — content right for its slot, `position` field wrong. The
+    // only case the position check is load-bearing for, since `position` never enters the
+    // challenge hash and nothing else constrains it.
+    let mut mislabelled = leaves.clone();
+    mislabelled[1].position = 99;
+    expect_refusal("G3b mislabelled position", &mislabelled, &digest, |e| matches!(e, AggregateError::PositionMismatch { .. }));
+
+    // G3: a duplicated response, which would let one response's work be claimed as n
+    // responses' soundness.
+    let mut duplicated = leaves.clone();
+    duplicated[1] = leaves[0].clone();
+    expect_refusal("G3 duplicated response", &duplicated, &digest, |e| matches!(e, AggregateError::PositionMismatch { .. }));
+
     let mut reordered = leaves.clone();
     reordered.swap(0, 1);
     for (i, leaf) in reordered.iter_mut().enumerate() {
         leaf.position = i as u32;
     }
     expect_refusal("G4 reordered responses", &reordered, &digest, |e| matches!(e, AggregateError::ChallengeMismatch { .. }));
+
+    // G5: a leaf proved against a different statement, aggregated into this one. Distinct
+    // from G8 below: there the *root's* statement is wrong, here one leaf's is.
+    let mut foreign_leaf = leaves.clone();
+    foreign_leaf[1].statement_digest[0] ^= 1;
+    expect_refusal("G5 foreign statement", &foreign_leaf, &digest, |e| matches!(e, AggregateError::StatementMismatch(_)));
 
     let mut tampered = leaves.clone();
     tampered[0].commitments[0].digest[0] ^= 1;
@@ -130,7 +156,7 @@ fn main() {
     let mut args = std::env::args().skip(1);
     let n: usize = args.next().map(|a| a.parse().expect("n must be a positive integer")).unwrap_or(2);
     let mode = args.next().unwrap_or_else(|| "both".to_string());
-    assert!(matches!(mode.as_str(), "gate" | "leaves" | "root" | "both"), "bad mode `{mode}`");
+    assert!(matches!(mode.as_str(), "gate" | "leaves" | "root" | "both" | "execute"), "bad mode `{mode}`");
     if std::env::var_os("RUST_LOG").is_none() {
         unsafe { std::env::set_var("RUST_LOG", "error") };
     }
@@ -160,6 +186,34 @@ fn main() {
     let t = Instant::now();
     let responses = par_prove::<_, H, PS, PV, S, WTP>(&circuit, n, SEED_ENTROPY, BINDING);
     println!("  proved {n} elephant responses natively in {:.2?}", t.elapsed());
+    // `execute` turns the leaf's proving rate from an inference into a measurement. Without
+    // it, instructions-per-second has to be computed by assuming the leaf guest costs the
+    // marginal term of the monolithic instruction law — plausible, since a leaf replays one
+    // response and computes no fingerprint, but the leaf also parses its own frame and
+    // encodes a journal, and nothing had checked how much that is worth.
+    if mode == "execute" {
+        println!("── executing one elephant leaf ──");
+        let input = ElephantLeafInput {
+            version: ELEPHANT_SPLIT_FRAME_VERSION,
+            expected_output: expected_output.clone(),
+            binding: BINDING.to_vec(),
+            position: 0,
+            response: responses[0].clone(),
+        };
+        let mut stdin = SP1Stdin::new();
+        stdin.write_vec(postcard::to_allocvec(&input).expect("serialize leaf frame"));
+        let t = Instant::now();
+        let (_, report) = client.execute(LEAF_ELEPHANT_ELF, stdin).run().expect("elephant leaf execute");
+        assert_eq!(report.exit_code, 0, "leaf guest execution failed");
+        let instructions = report.total_instruction_count();
+        println!("  leaf instructions: {instructions}");
+        println!("  executor wall: {:.2?}", t.elapsed());
+        println!(
+            "  monolithic law's marginal term: 2.4627e9 ⇒ leaf is {:.3}x of it",
+            instructions as f64 / 2.4627e9
+        );
+        return;
+    }
     let leaf_pk = client.setup(LEAF_ELEPHANT_ELF).expect("elephant leaf setup");
     let leaf_vk = leaf_pk.verifying_key().clone();
     let cache = std::path::PathBuf::from(format!("fixtures/elephant-leaves/n{n}"));
