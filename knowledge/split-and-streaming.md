@@ -185,62 +185,59 @@ run. It overlaps the device time with proving but does nothing about proving tim
 on the hardened child it saves at most ~1.9 h out of ~8.4 h. Comparable effort to B, a
 fraction of the benefit, and it carries a fork of the prover stack. **Not recommended.**
 
-## 🚨 Every timing below is PROVISIONAL — the machine was not quiet
+## Measured (2026-08-28, quiet machine, zkboo 2.0.0, compressed proofs)
 
-Stefano flagged (2026-08-24) that other work was running on this machine while these runs
-were taken, so **none of the wall times in this section may be cited**. They are kept as the
-record of what was run and what was seen, not as measurements. The campaign that was to firm
-them up — `root(64)`, per-phase peak RSS, and the recursion-layer negatives — was stopped
-partway and will be relaunched on a quiet machine.
+The earlier numbers here were taken while other work ran on this machine and were discarded on that
+ground; nothing from them is quoted below. These replace them. Every run was taken alone, at the
+12-thread cap, under `/usr/bin/time -l`, on the released zkboo 2.0.0 and the current program
+(fingerprint `d4825905…`).
 
-What is *not* affected, because it does not depend on machine load: the cross-leaf gate
-matrix and its check-removal validation, the wire sizes, the leaf-journal host/guest
-equality check, and the reading of SP1's deferred-proof accounting.
+Three arms, because the GPU has two settings and the difference between them matters — see
+`gpu-corruption.md`. "GPU, safe" is the Metal backend with its Merkle tree left on the CPU, which is
+the only setting that survives a long run; "GPU, full" is every phase accelerated, which is 2.5×
+faster again and corrupts a proof about once every twenty.
 
-## Measured (2026-08-24, this machine, 12-thread cap, compressed proofs) — PROVISIONAL
+| | CPU | GPU, safe | GPU, full |
+|---|---:|---:|---:|
+| leaf (one response) | 109.72 s | **57.00 s** | 23.26 s |
+| root over 4 leaves | 205.61 s | 112.18 s | 47.87 s |
+| root over 64 leaves | 527.20 s | **264.95 s** | *(not run)* |
 
-| | n=4 | n=8 |
+The leaf is extraordinarily stable: over 64 consecutive proofs, 56.27 s to 57.93 s, a spread of under
+2%, mean 57.00 s.
+
+### The root is near-fixed, and now it is measured where it matters
+
+    CPU:       root(N) ≈ 184.2 s + 5.36 s × N
+    GPU, safe: root(N) ≈ 102.0 s + 2.55 s × N
+
+**The marginal cost of admitting one more leaf proof is 2.55 s against a leaf of 57.00 s — 4.5%.**
+
+The previous, discarded fit was `204.8 + 5.43 × N`, taken at n = 4 and n = 8 on a loaded machine.
+Its slope was **right to 1.3%**. That is worth recording precisely because the caution attached to it
+was the correct one anyway: it was a 27× extrapolation and this repository had already been burned
+once by a small-n measurement that did not survive full scale, so it could not have been believed in
+advance. The present fit spans 4 to 64 and is a 3.4× extrapolation to the classical-128 count.
+
+| at N = 219 | CPU | GPU, safe |
 |---|---:|---:|
-| monolithic, one program | 606.08 s | *(not run)* |
-| leaf, each | ~123 s | ~123 s |
-| leaves, summed | 491.81 s | 985.31 s |
-| **root** | **226.53 s** | **248.25 s** |
-| split, one machine | 718.34 s | 1 233.56 s |
-| split, critical path (slowest leaf + root) | 350.73 s | 373.55 s |
+| root | 1 358 s (22.6 min) | **660 s (11.0 min)** |
+| critical path = one leaf + root | 1 468 s (24.5 min) | **717 s (12.0 min)** |
+| leaves summed | 24 029 s (6.67 h) | 12 483 s (3.47 h) |
 
-Two results, both against expectation.
+Against a monolithic lift, the split costs about **1.03× the total work** and returns the wall clock
+above given enough machines — on this machine's own CPU baseline of 23 320 s for the monolithic run,
+a **15.9× reduction** in wall clock.
 
-**The leaf is far cheaper than the fitted lift law predicts.** That law — 103.4 s per response
-plus ~315 s fixed — would put a one-response run at ~418 s; leaves measure ~123 s, flat across
-both runs. The fixed term belongs to the *lift program*, not to SP1, and a large part of it is
-the in-guest circuit-fingerprint pass the leaf deliberately does not perform. At n=4 the four
-leaves summed (491.81 s) are already cheaper than the monolithic run they replace (606.08 s).
+### Peak memory
 
-**The root is near-fixed, not linear.** From the two points:
-
-    root(N) ≈ 204.8 s + 5.43 s × N
-
-The marginal cost of admitting one more leaf proof is **5.43 s — about 4.4% of the leaf itself**.
-Extrapolated to the classical-128 count:
-
-| | CPU, this machine | Metal at 5× |
+| | CPU | GPU, safe |
 |---|---:|---:|
-| root(219) | 1 394 s (23.2 min) | ~4.6 min |
-| critical path = one leaf + root | 1 517 s (25.3 min) | ~5.1 min |
-| against the monolithic 23 320 s | **15.4×** | — |
-| leaves summed at 219 | 26 937 s (7.48 h) | — |
+| leaf | 82.2 GB | 58.9 GB |
+| root(4) | 86.2 GB | 68.8 GB |
+| root(64) | 96.6 GB | 80.1 GB |
 
-So the split costs **1.16× more total work** than the monolithic lift and returns **15.4× less
-wall time** given enough machines. On one machine it is a modest loss; distributed or streamed it
-is a large win, and the root is small enough that it does not have to be made incremental.
-
-⚠️ **Provisional, and doubly so.** The slope is measured over 4→8 and applied at 219, a 27×
-extrapolation — *and* both points were taken on a machine that was not quiet. This repository has
-already been burned once by exactly this move (the `TRACE_CHUNK_SLOTS` gain that was real at n=8
-and absent at n=219), and SP1's deferred-proof handling may well batch differently at a few
-hundred children than at eight. **Validate `root(N)` at n≈64 before designing to 23 minutes.** The
-qualitative finding — that the marginal cost per leaf is a small fraction of a leaf — is robust to
-a good deal of slope error; the 23-minute figure is not.
+Peak memory grows slowly with the number of leaves admitted and is comfortable at both ends.
 
 ## What this makes possible, and what it costs to build
 
@@ -250,25 +247,23 @@ constraint is per call, and a call carrying one response satisfies it trivially.
 (patching the prove path to expose hooks) is therefore not merely lower-value — it is unnecessary.
 
 End-to-end latency changes character. Monolithic makes device streaming and proving a **sum**,
-because the lift cannot start until the last response has landed; the split makes them a **max**:
+because the lift cannot start until the last response has landed; the split makes them a **max**.
 
-| | streaming | proving | end to end |
-|---|---:|---:|---:|
-| monolithic, CPU | 1.64 h | 6.47 h | 8.11 h |
-| monolithic, Metal 5× | 1.64 h | 1.30 h | 2.94 h |
-| split, Metal 5×, one card | 1.64 h | overlapped | **~1.73 h** |
+The balance condition is one number against one number: **a response arrives every ~29–30 s** of
+measured device work (51,297–51,691 B streamed at 3,234–3,500 B/s, plus a byte-silent challenge
+phase), and a leaf must be proved in less than that for one machine to keep pace in real time.
 
-At **51,297–51,691 B** per response, a response lands every **~29–30 s** — that is measured device
-work end to end, not a division: streaming it takes ~16 s at the measured ~3,309 B/s, and the
-byte-silent challenge phase adds ~13 s more before the next one appears. (The ~27 s once quoted here
-came from dividing by a retracted rate and was close to the right answer for the wrong reason.)
-Against a
-~24.6 s Metal leaf: one card keeps pace in real time, with **~17–18% headroom** (29–30 s of arrival
-against 24.6 s of leaf), better than the ~10% computed here previously. ✅ The device rate this rests
-on is **no longer stale** — it is measured across 39 verified rows and is flat in statement, witness
-size, response count and proof size, so it is a sound thing to design against.
+| leaf on | leaf time | keeps pace with one machine? |
+|---|---:|---|
+| CPU | 109.72 s | no — needs four |
+| GPU, safe | 57.00 s | no — needs two |
+| GPU, full | 23.26 s | yes, with 21–27% headroom — but see `gpu-corruption.md` |
 
-⚠️ The Metal leaf time itself is unmeasured and remains the weak input to this comparison.
+**The configuration that keeps pace on one card is the one that corrupts a proof about once every
+twenty**, so as things stand the honest statement is *two* machines, not one. Both halves of that
+were estimates when this document was last written and both are now measured; the device rate is the
+one that stopped being the weak input, and the leaf time is the one that turned out to have a
+correctness caveat attached rather than a clock caveat.
 
 Remaining work, in order:
 
@@ -278,7 +273,7 @@ Remaining work, in order:
    complete rather than as one blob. Plumbing; the harness's framed pipe is the model.
 3. **Pin the leaf verifying key as a compile-time constant in the root**, retiring the
    prover-chosen `leaf_vk` input.
-4. **Validate `root(N)` at n≈64** before quoting the 23-minute figure anywhere.
+4. ~~Validate `root(N)` at n≈64 before quoting the 23-minute figure anywhere.~~ **Done, 2026-08-28**: the fit spans 4 to 64 on a quiet machine and the discarded slope survived.
 
 Not needed, on the measurements above: the chained/tree root (the marginal cost is too small to
 be worth overlapping), the guest-side streaming frame (a leaf holds one response by construction),

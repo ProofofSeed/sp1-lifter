@@ -57,6 +57,26 @@ Not taken on trust, in this order:
 
 The Groth16 proof bytes themselves differ between arms, which is expected: gnark's proving is randomised.
 
+## 🚨 The fast configuration is not usable, and that is the headline
+
+Everything above is measured with every phase accelerated, and that configuration **corrupts a proof
+about once every twenty**: an intermittent Merkle root mismatch that fails SP1's own shard
+verification and then parks the run forever. Full account in `gpu-corruption.md`.
+
+No invalid proof is accepted — the failure is a proof being refused, not one getting through — so the
+risk is availability rather than soundness. But an unattended run of any length does not finish.
+
+Leaving the Merkle tree on the CPU (`SP1_METAL_MERKLE=0`) has run 115 consecutive proofs without a
+failure, and **that is the configuration every long run here uses**. It costs most of the advantage:
+
+| | CPU | GPU, Merkle off | GPU, all on |
+|---|---:|---:|---:|
+| leaf (one response) | 109.72 s | 57.00 s | 23.26 s |
+| speedup over CPU | 1.00× | **1.92×** | 4.72× |
+
+So the number to plan against on this machine is **1.9×**, not 4.7×, until the defect is fixed
+upstream. The 4.7× stands as what the backend is worth once it is.
+
 ## Why this matters here beyond the clock
 
 The split-and-aggregate architecture makes device streaming and proving a *max* rather than a *sum*, and its balance condition is whether one leaf keeps pace with one response arriving.

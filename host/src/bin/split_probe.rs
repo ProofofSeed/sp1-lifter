@@ -22,9 +22,11 @@
 //! needs no proving.
 //!
 //! Leaf proofs are expensive and reusable, so `leaves` proves and caches them under
-//! `fixtures/leaves/` and `root` measures a root over the first `n` cached leaves. That
+//! `fixtures/leaves/n<N>/` and `root` measures a root over the `n` cached leaves. That
 //! separation is what makes a root cost law over a wide range of `n` affordable: the
 //! leaves are proved once, and every root point after that is minutes rather than hours.
+//! The cache is per response count because a leaf is not portable between counts — see
+//! the comment at the cache path.
 //! The `forge-*` modes re-run the root over cached leaves with the leaf/proof
 //! correspondence broken, and must FAIL — the negatives that exercise SP1's recursion
 //! layer rather than the in-guest gate:
@@ -239,7 +241,14 @@ fn main() {
     let leaf_pk = client.setup(LEAF_ELF).expect("leaf program setup");
     let leaf_vk = leaf_pk.verifying_key().clone();
     let leaf_vk_digest = leaf_vk.hash_u32();
-    let cache = std::path::Path::new("fixtures/leaves");
+    // Keyed by response count, and that is not tidiness. A leaf is response `i` of an
+    // `n`-response proof, and the responses themselves depend on the global challenge,
+    // which depends on how many there are — so a leaf cached at one `n` is not a leaf at
+    // another. Sharing one directory between counts would leave the stale proof verifying
+    // perfectly well under the leaf key and being refused by the cross-leaf gate for a
+    // challenge mismatch, which is precisely the message a real soundness failure gives.
+    let cache = std::path::PathBuf::from(format!("fixtures/leaves/n{n}"));
+    let cache = cache.as_path();
 
     // ── leaf proofs: proved once, cached, reused by every root measurement ──
     let mut leaf_walls: Vec<Duration> = Vec::new();
