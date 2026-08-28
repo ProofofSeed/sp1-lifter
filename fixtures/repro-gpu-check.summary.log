@@ -1,0 +1,25 @@
+── split-and-aggregate probe (n=64, mode=leaves) ──
+  prover config: backend=cpu shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  zkboo: 10 crates from crates.io: zkboo=2.0.0/2386749a zkboo-bip32=2.0.0/1f58056b zkboo-circuit-hash=2.0.0/87dd1319 zkboo-ecc=2.0.0/69d68082 zkboo-hmac=2.0.0/2d34d712 zkboo-keccak=2.0.0/c15d61fc zkboo-modular=2.0.0/e4f8f041 zkboo-profiling=2.0.0/671c6d28 zkboo-ripemd160=2.0.0/6efbdd90 zkboo-sha2=2.0.0/22fe8faf
+  proved 64 ZKBoo responses natively in 26.72ms
+  wire: lift frame 3925113 B for 64 responses ⇒ 59.9 KiB/response; leaf frame ≤ 61565 B (statement overhead ~238 B)
+── cross-leaf gate matrix (n=64, no proving) ──
+  control (all 64 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 1: challenge 2 != 0) ✓
+  G2 substituted response: refused (leaf 1: challenge 2 != 1) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 0: challenge 2 != 1) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 2: challenge 0 != 2) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+
+── 64 leaf proofs ──
+  leaf 0: 87.20s, 354 bytes of public values → fixtures/leaves/n64/leaf-0.compressed.bin
+  leaf 1: 87.05s, 350 bytes of public values → fixtures/leaves/n64/leaf-1.compressed.bin
+  leaf 2: 86.38s, 352 bytes of public values → fixtures/leaves/n64/leaf-2.compressed.bin
+  leaf 3: 85.82s, 352 bytes of public values → fixtures/leaves/n64/leaf-3.compressed.bin
+  leaf 4: 85.40s, 356 bytes of public values → fixtures/leaves/n64/leaf-4.compressed.bin
+  leaf 5: 87.67s, 352 bytes of public values → fixtures/leaves/n64/leaf-5.compressed.bin

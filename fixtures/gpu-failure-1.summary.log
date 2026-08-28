@@ -1,0 +1,28 @@
+── split-and-aggregate probe (n=64, mode=leaves) ──
+  prover config: backend=cpu shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  zkboo: 10 crates from crates.io: zkboo=2.0.0/2386749a zkboo-bip32=2.0.0/1f58056b zkboo-circuit-hash=2.0.0/87dd1319 zkboo-ecc=2.0.0/69d68082 zkboo-hmac=2.0.0/2d34d712 zkboo-keccak=2.0.0/c15d61fc zkboo-modular=2.0.0/e4f8f041 zkboo-profiling=2.0.0/671c6d28 zkboo-ripemd160=2.0.0/6efbdd90 zkboo-sha2=2.0.0/22fe8faf
+  proved 64 ZKBoo responses natively in 27.20ms
+  wire: lift frame 3925113 B for 64 responses ⇒ 59.9 KiB/response; leaf frame ≤ 61565 B (statement overhead ~238 B)
+── cross-leaf gate matrix (n=64, no proving) ──
+  control (all 64 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 1: challenge 2 != 0) ✓
+  G2 substituted response: refused (leaf 1: challenge 2 != 1) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 0: challenge 2 != 1) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 2: challenge 0 != 2) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+
+── 64 leaf proofs ──
+  leaf 0: 23.27s, 354 bytes of public values → fixtures/leaves/n64/leaf-0.compressed.bin
+  leaf 1: 23.29s, 350 bytes of public values → fixtures/leaves/n64/leaf-1.compressed.bin
+  leaf 2: 22.57s, 352 bytes of public values → fixtures/leaves/n64/leaf-2.compressed.bin
+  leaf 3: 23.41s, 352 bytes of public values → fixtures/leaves/n64/leaf-3.compressed.bin
+  leaf 4: 23.21s, 356 bytes of public values → fixtures/leaves/n64/leaf-4.compressed.bin
+  leaf 5: 22.98s, 352 bytes of public values → fixtures/leaves/n64/leaf-5.compressed.bin
+  leaf 6: 22.74s, 356 bytes of public values → fixtures/leaves/n64/leaf-6.compressed.bin
+  leaf 7: 22.64s, 352 bytes of public values → fixtures/leaves/n64/leaf-7.compressed.bin
+[2m2026-08-28T00:55:46.966358Z[0m [31mERROR[0m task failed with retryable error: shard verification failed: invalid shard proof: invalid pcs opening proof: dense pcs verification failed: PCS error: Query failed to verify: root mismatch

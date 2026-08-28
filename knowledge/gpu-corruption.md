@@ -92,4 +92,4 @@ For whoever picks this up in `sp1-metal`:
   left overnight produces nothing and says nothing. Even without a fix, failing loudly would turn a
   silent all-night loss into a five-minute one.
 
-Logs: `fixtures/gpu-failure-1.log`, `fixtures/gpu-failure-2.log`, `fixtures/repro-gpu-fresh.log`.
+Logs: `fixtures/gpu-failure-1.summary.log` and `gpu-failure-2.summary.log` (the two default-configuration failures), `repro-gpu-fresh.summary.log` (the private-buffer run that failed at leaf 40), `repro-gpu-nomerkle.summary.log` and `split-n64-leaves-gpu.summary.log` (the 51 and 64 clean proofs with the Merkle tree on the CPU).
