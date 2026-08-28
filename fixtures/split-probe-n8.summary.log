@@ -1,3 +1,7 @@
+🚨 VOID — every wall-clock figure below was taken while other work ran on this machine and
+   must not be cited. Kept as the record of what was run. The measurements that replace them are
+   in knowledge/split-and-streaming.md, taken 2026-08-28 on a quiet machine.
+
 ── split-and-aggregate probe (n=8, mode=split) ──
   prover config: backend=cpu shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
   proved 8 ZKBoo responses natively in 5.09ms
