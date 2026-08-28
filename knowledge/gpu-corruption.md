@@ -53,8 +53,13 @@ The error is a **Merkle root mismatch**: a query opened a path that did not hash
 `SP1_METAL_MERKLE=0` leaves the trace commitment's Merkle tree on the CPU and accelerates everything else.
 
 **115 consecutive leaf proofs, no failure** — a run of 51 (stopped by its own wall-clock cap) and a
-complete run of 64. Against a rate of roughly one failure per 20–25 proofs, three or four failures
-were expected in that many; the probability of seeing none by chance is about 1%.
+complete run of 64.
+
+The rate to compare against comes from the arm that failed: three failures over the 84 proofs those
+three runs completed, so about one in 28. Over 115 proofs that predicts 4.1 failures, and the chance
+of seeing none is **1.6%**. Neither number is precise — three events is a thin basis for a rate, and
+the interval around it is wide — so this is evidence at about the two-percent level rather than a
+demonstration.
 
 That is evidence and not proof. What it does not do is identify the fault inside the Merkle phase,
 and the attribution rests on the phase being the one the error message names and the one place the

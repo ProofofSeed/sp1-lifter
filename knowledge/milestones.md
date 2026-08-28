@@ -69,6 +69,53 @@ Scope: a single `lift` driver that proves once and emits both the proof and the 
 
 The acceptance's final clause — that the configuration be justified by measurement rather than assumption — **failed on its own terms, and the failure is the milestone's most useful output.** The configuration was chosen from an n=8 sweep showing 9.5%; at n=219 it returned −0.84%, and a second knob tested directly at full scale returned 0.54%. Both are noise. A short run has around a dozen shards against a full run's ~280, so the scheduling knobs were measured on a workload that does not resemble the one they were chosen for. **Small runs screen candidates; they do not size them** — and no prover-configuration claim should be believed here until it has been measured at a shard count within reach of the real one.
 
+## S5 — The released ZKBoo, GPU proving, and the measurements that were owed
+
+Ratified 2026-08-27. `knowledge/upgrade-and-metal-plan.md` is the plan as written; this is its
+acceptance.
+
+Three things changed underneath the lifter at once, and each carried a measurement the repository
+had promised and not taken. ZKBoo released 2.0.0, a breaking release that invalidates every proof
+1.x made and shrinks the elliptic-curve statements almost fourfold. A Metal backend for SP1
+Hypercube appeared, which is the first GPU proving available on this machine. And the split
+probe's timings had been discarded for having been taken on a loaded machine, leaving `root(N)`
+unmeasured at the count that decides whether the split is worth building.
+
+**Acceptance, all of it:**
+
+1. Every ZKBoo crate resolves from crates.io at the required version, with the build refusing
+   anything else, and both arms of that refusal demonstrated red.
+2. On zkboo 2.0.0: the reject matrix 8/8 with a refusal validated by check-removal; the cross-leaf
+   gate matrix 9/9 with its control accepting; the circuit fingerprint shown to have moved; and a
+   lift verifying under `forge` at recorded gas.
+3. The GPU path verified rather than assumed — every comparable phase run both ways and compared
+   element for element, and the verifying key and public values byte-identical across arms — and its
+   speedup quoted against the *published* prover, not only against its own CPU arm.
+4. `root(N)` measured at two counts on a quiet machine, one of them large enough that reaching the
+   classical-128 count is an extrapolation of a few times rather than a few tens.
+5. A full-scale `lift 219 groth16` passing the relying-party gate and `forge`, at recorded gas,
+   under the new verifying key.
+6. The elephant instruction law refitted against the current circuit, from a sweep rather than from
+   a single point.
+
+**DONE (2026-08-28), with one finding that changes what the middle of it is worth.**
+
+The upgrade cost no source change at all: the assertion word reaches the expected output through
+`exec`, and every version tag whose contract was not breached stayed where it was. The fingerprint
+moved to `d4825905…`, a full-scale execution costs 4,775,013,465 instructions against 4,773,338,656
+before — a thirtieth of a percent — and on-chain verification is unchanged at 270,441 gas.
+
+**The GPU is 4.7× faster than this machine's CPU prover, and cannot be left running unattended.**
+It produces a proof that fails its own verification roughly once every twenty, then parks the run
+for ever; nothing is at risk but the run finishing, and nothing is printed unless `RUST_LOG` is on.
+The fault was narrowed to the one accelerated phase with no comparison mode, and leaving that phase
+on the CPU has run 115 consecutive proofs clean at 1.92×. `knowledge/gpu-corruption.md` records the
+narrowing and what a fix would need; every long run here now uses the safe setting.
+
+`root(N)` is `184.2 s + 5.36 s × N` on the CPU and `102.0 s + 2.55 s × N` on the safe GPU, fitted
+over 4 to 64. The discarded fit's slope was right to 1.3%, which is recorded and is not a reason to
+have believed it: it was a 27× extrapolation from a machine under load.
+
 ## Later, separately probed
 
 - ~~The secp256k1 elephant statements: probe guest cycles on a single response before committing to anything.~~ **DONE 2026-08-22 — see `elephant-cost.md`.** 🔴 **Its inputs are stale as of 2026-08-26: the response is now 2.907–2.996 MB measured on device (3.8× smaller than the 11.28 MB below), so the instruction law and the ≈130-day figure need re-deriving — not re-scaling by hand.** The figures in this line were stale: the response is **11.28 MB**, not ~42 MB, and a full proof carries **2.47 GB**, not ~9 GB. Measured law `instructions = 2.007e10 + 1.042e10 × n` (three points, marginals agreeing to 0.0001%), giving **2.302e12 instructions and ≈130 days at 219** — 482× the hash statement. Not liftable as a single proof on any hardware available here, and dividing it between machines is not free: the challenge is global over the responses present, so a subset verifies as nothing.

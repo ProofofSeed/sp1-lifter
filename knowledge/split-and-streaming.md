@@ -225,9 +225,9 @@ advance. The present fit spans 4 to 64 and is a 3.4× extrapolation to the class
 | critical path = one leaf + root | 1 468 s (24.5 min) | **717 s (12.0 min)** |
 | leaves summed | 24 029 s (6.67 h) | 12 483 s (3.47 h) |
 
-Against a monolithic lift, the split costs about **1.03× the total work** and returns the wall clock
-above given enough machines — on this machine's own CPU baseline of 23 320 s for the monolithic run,
-a **15.9× reduction** in wall clock.
+Against a monolithic lift, on this machine's CPU baseline of 23 320 s: the leaves alone sum to
+**1.03×** that, and the root brings the split's total work to **1.09×**. What it returns for that 9%
+is the wall clock above, given enough machines — a **15.9× reduction**.
 
 ### Peak memory
 

@@ -57,6 +57,11 @@ Not taken on trust, in this order:
 
 The Groth16 proof bytes themselves differ between arms, which is expected: gnark's proving is randomised.
 
+⚠️ **None of that was sufficient, and the next section is why.** Every check above passed, and the
+backend still produced a wrong proof once the run was long enough. What the checks establish is that
+the compared phases compute the right thing on this workload; what they cannot reach is the one
+accelerated phase that has no comparison mode.
+
 ## 🚨 The fast configuration is not usable, and that is the headline
 
 Everything above is measured with every phase accelerated, and that configuration **corrupts a proof
