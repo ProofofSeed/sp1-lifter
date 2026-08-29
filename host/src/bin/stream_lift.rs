@@ -110,6 +110,12 @@ fn main() {
 
     let leaf_pk = client.setup(LEAF_ELF).expect("leaf program setup");
     let leaf_vk = leaf_pk.verifying_key().clone();
+    assert_eq!(
+        leaf_vk.hash_u32(),
+        snark_lifter_host::PINNED_LEAF_VK,
+        "the pinned leaf key is stale against the built leaf ELF — run `vkeys` and update \
+         `pinned-keys`"
+    );
     // The root's proving key is built AFTER the leaves are proved, deliberately. Setting it
     // up first cost 55% on every leaf — 88.6 s against 57.0 s for the identical proof in
     // `split-probe` — which is a big enough regression to be worth the awkward ordering.

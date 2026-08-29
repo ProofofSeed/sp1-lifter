@@ -133,22 +133,40 @@ the leaves distribute over machines and the root is near-fixed.
 `fixtures/elephant-leaf-retime.summary.log`. Root: `fixtures/elephant-root-n2.summary.log`, and the
 re-run `fixtures/elephant-root-n2-rerun.summary.log`.
 
-🔴 **Provenance caveat on the first root run.** Its log records `backend=cpu` and nothing more,
-because the config line did not report the GPU configuration until after that run finished — every
-run before 2026-08-28 23:31 is in the same position, GPU and CPU alike, and the arm rests on the
-filename and on what the operator remembers. That is not a record. Two things were done about it
-rather than one: the config line now prints the Metal build and every `SP1_METAL_*` switch, and **the
-root was re-run under the fixed banner** so the headline figure has its configuration attached. Host
-instruction *rates* were tried as forensics first and do not discriminate — every run on this
-machine, CPU and GPU alike, retires ~195e9 host instructions per second, because that is the
-machine's throughput and not the workload's.
+### ✅ The root was run twice, and the second run settles both its repeatability and its provenance
+
+The first root's log records `backend=cpu` and nothing more: the config line did not report the GPU
+configuration until 2026-08-28 23:31, so **every run before that is in the same position**, GPU and
+CPU alike, with the arm resting on a filename and on what the operator remembers. That is not a
+record. The line was fixed, and the root was then re-run under it.
+
+| | first run | re-run (banner-confirmed safe GPU) | |
+|---|---:|---:|---:|
+| wall | 15,589.86 s | **15,493.61 s** | **0.62% apart** |
+| peak RSS | 74.37 GB | 74.70 GB | 0.4% |
+| host instructions retired | 3.049863e15 | **3.047954e15** | **0.063% apart** |
+| gate | green | green | same fingerprint `4d6c3501…` |
+
+**The instruction counts settle the first run's arm retroactively.** They agree to 0.063%, and a CPU
+arm retires about 2.2× more host instructions for the same guest work (the 219-response lift: 4.49e15
+on CPU against 2.01e15 on the safe GPU). A CPU root would therefore have retired roughly 6.7e15, not
+3.05e15. The first run was on the safe GPU.
+
+🪤 Host instruction *rate* was tried as the forensic first and does **not** discriminate: every run on
+this machine retires ~195e9 host instructions per second, CPU and GPU alike, because that is the
+machine's throughput and not the workload's. The discriminating quantity is total instructions for
+*the same work*, which is why it needed a second run of the same thing rather than a comparison
+across runs.
+
+⚠️ A 7-second `cargo build` ran during the re-run. Against 4 h 18 m on a 16-core machine with 12
+threads in use it is not material, but it is disclosed rather than omitted.
 
 | | projected | **measured** | |
 |---|---:|---:|---:|
 | **one elephant leaf** | ~1.5 h | **1 h 10 m 08 s** (4,207.74 s) | **1.26× under** |
 | leaf peak RSS | — | **73.38 GB** | |
-| **an elephant root over 2 leaves** | ~3.1 h | **4 h 19 m 50 s** (15,589.86 s) | **1.40× over** |
-| root peak RSS | — | **74.37 GB** (83.60 GB footprint) | |
+| **an elephant root over 2 leaves** | ~3.1 h | **4 h 19 m 02 s** (15,541.7 s, mean of two runs) | **1.39× over** |
+| root peak RSS | — | **74.4 – 74.7 GB** | |
 
 Both **passed**, gate green, root fingerprint `4d6c3501…`. So the architecture runs on the statement
 it was built for, which is the thing that was in doubt. The nine-case cross-leaf refusal matrix runs
@@ -212,11 +230,12 @@ is public-values serialisation.
 leaf proofs have the same shape. That equal shape implies equal per-leaf recursion cost is an
 inference about how the recursion layer works — the same source-reading category this repository is
 careful to label elsewhere. Checking it properly needs an elephant root at two different leaf counts,
-which does not exist: the marginal term is ~2.55 s against a ~15,585 s fixed term, so separating them
+which does not exist: the marginal term is ~2.55 s against a ~15,537 s fixed term, so separating them
 needs a lever arm of tens of leaves, at over an hour each. Taking the inference:
 
-- elephant root fixed term ≈ **15,585 s** (4 h 20 m) — the secp256k1 fingerprint pass, paid once
-- **root(219) ≈ 15,585 + 219 × 2.55 ≈ 16,143 s ≈ 4 h 29 m**
+- elephant root fixed term ≈ **15,537 s** (4 h 19 m, mean of two runs) — the secp256k1 fingerprint
+  pass, paid once
+- **root(219) ≈ 15,537 + 219 × 2.55 ≈ 16,095 s ≈ 4 h 28 m**
 
 The leaf-admission term is 3.5% of the root at full scale. **Admitting all 219 leaves costs less than
 4% of what the root pays before it admits any of them.**
@@ -226,9 +245,9 @@ The leaf-admission term is 3.5% of the root at full scale. **Admitting all 219 l
 | | projected | **measured** |
 |---|---:|---:|
 | one leaf | ~1.5 h | **1.17 h** |
-| the root at 219 leaves | ~3.1 h | **4.48 h** |
-| total work, 219 leaves and a root | ~326 h | **260.5 h (10.85 days)** |
-| **wall clock with enough machines** | ~4.6 h | **5.65 h** |
+| the root at 219 leaves | ~3.1 h | **4.47 h** |
+| total work, 219 leaves and a root | ~326 h | **260.4 h (10.85 days)** |
+| **wall clock with enough machines** | ~4.6 h | **5.64 h** |
 | a single machine, monolithic | 13.6 days | **11.07 days** |
 
 Only the last row still rests on an inference — the monolithic program's instruction total divided by
@@ -238,7 +257,7 @@ measurements.
 
 ### 🔑 The root is now the wall clock, and more machines will not touch it
 
-**The root is 79% of the wall clock** — 4.48 h against a 1.17 h leaf — and it is 3.71 leaves' *wall
+**The root is 79% of the wall clock** — 4.47 h against a 1.17 h leaf — and it is 3.71 leaves' *wall
 clock* for a job that admits leaves in 2.55 s each.
 
 **That it is the fingerprint traversal is measured, not inferred** (`elephant-split 2 execute-root`):
@@ -259,14 +278,14 @@ more than they are between statements, so the root is not "3.71 leaves of work";
 guest work proved at 57% of the rate. Anyone projecting a root from a leaf's rate would be 1.75× out.
 
 That inverts where the effort belongs. Adding machines drives the leaf half toward zero and leaves
-4.48 h standing. **The lever is the fingerprint pass, not the fleet.** Whether that traversal can be
+4.47 h standing. **The lever is the fingerprint pass, not the fleet.** Whether that traversal can be
 made cheaper — hoisted into a preprocessed constant pinned by the verifying key, computed
 incrementally, or replaced by a commitment the leaves already establish — is the open question this
 measurement raises, and it was not visible before the root was run.
 
 So the honest statement is no longer "not liftable", and it is no longer a projection either: **a
 single machine needs about eleven days; the architecture that divides it is built, gated on nine
-refusal cases, and now measured on this statement, and it brings the wall clock to 5.65 hours — of
+refusal cases, and now measured on this statement, and it brings the wall clock to 5.64 hours — of
 which four and a half are one circuit traversal that no amount of hardware divides.**
 
 ## Why the cost is shaped this way

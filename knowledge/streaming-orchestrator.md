@@ -41,22 +41,35 @@ an arrival interval to model the cadence.
 | produced-then-lifted (no overlap) | 356.57 s | 980.45 s |
 | **overlap saved** | **1.00×** | **1.27×** |
 
-⚠️ **The "no interval" column has no kept log**, and that is a provenance failure of the kind this
-project has already recorded once. The run existed — the column is a real n=4, pool=1 control taken
-after the setup fix, and 238.56 / 4 = 59.64 s is where the per-leaf figure below comes from — but its
-log was not saved, so the numbers cannot be traced to a file. The only kept no-interval log,
-`fixtures/stream-lift-n4-pool1.summary.log`, is the **pre-fix** run (91.82 s per leaf, root 181.85 s,
-end to end 549.28 s) and must not be read as this column. **Re-run and keep the log before quoting
-this column anywhere.**
+✅ **The "no interval" column has been re-run with its log kept** —
+`fixtures/stream-lift-n4-control.summary.log`, 2026-08-29, banner-confirmed safe GPU:
+
+| | re-run (logged) | the unlogged original |
+|---|---:|---:|
+| leaf proving, summed | **226.39 s** (56.60 s mean) | 238.56 s (59.64 s) |
+| root | **110.52 s** | 117.99 s |
+| end to end | **337.03 s** | 356.57 s |
+| overlap | **1.00×** | 1.00× |
+| peak RSS | **71.79 GB** | not recorded |
+
+The original column was real but its log was never saved, so it could not be traced to a file — the
+same provenance failure this project has recorded before. The re-run is 5% faster across the board
+and confirms the shape, including the 1.00× that says a machine producing responses instantly has
+nothing to overlap. **Quote the logged column.**
+
+✅ **It also resolves the root discrepancy below.** At n=4 the orchestrator's root takes 110.52 s
+against the `102.0 + 2.55·N` line's 112.2 s — **1.5%**. So the line does describe a root the
+orchestrator drives, and the n=8 cadence run's 184.85 s against a predicted 122.4 s is an anomaly of
+that run, not a systematic property of the orchestrator's root.
 
 ⚠️ **The cadence column's per-leaf cost is 69.45 s**, not the 57.00 s an isolated leaf costs and not
 the 59.6 s of the control — 22% and 17% above them, on a run whose own output says proving is the
 bottleneck. Nothing here explains that gap; it is recorded rather than resolved.
 
-⚠️ **The root in the cadence run took 184.85 s over 8 leaves**, against the `102.0 + 2.55·N` line's
-122.4 s — **1.51×**. It is not setup: `root_wall` starts after `client.setup` returns. It is not the
-leaf count. The discrepancy is unexplained, and it means the root line measured by `split-probe`
-should not be assumed to describe a root the orchestrator drives.
+⚠️ **The root in the cadence run took 184.85 s over 8 leaves**, against the line's 122.4 s — 1.51×.
+It is not setup (`root_wall` starts after `client.setup` returns) and it is not the leaf count. Since
+the n=4 control matches the line to 1.5%, this is an anomaly of that single run and remains
+unexplained; it is not evidence that the line is wrong.
 
 The 1.00× is the control and it is the right answer: with production free there is nothing to
 overlap, and a pipeline that claimed otherwise would be measuring itself.

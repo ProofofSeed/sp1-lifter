@@ -1,0 +1,41 @@
+── streamed lift (n=4, pool=1, arrival interval none (as fast as this machine produces them)) ──
+  prover config: backend=cpu/metal-built[SP1_METAL_MERKLE=0] shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  root journal passed the relying-party gate (4 responses)
+
+── timeline (n=4, pool=1) ──
+  challenge phase (global, before any response can exist): 0.01s
+  last response finished by the producer:                   0.02s
+  leaf proving, summed:                                    226.39s
+  root:                                                    110.52s
+  end to end:                                              337.03s
+
+  provers idle, waiting for a response to exist:            0.01s
+  finished responses queued, waiting for a prover:          340.53s
+  ⇒ the proving side is the bottleneck
+
+── what the pipeline is worth ──
+  ⚠️ proving is the bottleneck, so the overlap below is bounded by how fast leaves
+     are proved, not by how fast responses arrive. With 1 prover(s) against a leaf
+     of ~56.60s, one machine keeps pace only with an arrival interval above that.
+  produced, then lifted (no overlap):                       336.92s
+  streamed (this run):                                      337.03s
+  overlap saved:                                            0.00s (1.00x)
+streamed lift: PASS
+      345.72 real      3438.97 user       150.63 sys
+         71788773376  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            37406407  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   2  signals received
+                   0  voluntary context switches
+             2730918  involuntary context switches
+      62200133888755  instructions retired
+      13869759992782  cycles elapsed
+         71567316656  peak memory footprint

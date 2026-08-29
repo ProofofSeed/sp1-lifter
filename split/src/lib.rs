@@ -196,11 +196,14 @@ pub struct RootInput {
     pub binding: Vec<u8>,
     /// The verifying-key digest every leaf proof must have been produced under.
     ///
-    /// ⚠️ Taken as input, and therefore **prover-chosen**: on its own this binds nothing,
-    /// because an attacker supplies both the key and proofs under it. It is committed
-    /// into [`RootJournal::leaf_vk`] so a relying party can pin it, exactly as the SP1
-    /// verifying key of the root itself must be pinned. A production root would instead
-    /// compile the leaf key in as a constant, moving the pin inside the root's own key.
+    /// ✅ **Both roots compile this key in** (`snark_lifter_pinned_keys`), since 2026-08-28,
+    /// and refuse a claimed value that disagrees before admitting any proof — so the pin lives
+    /// inside the root's own verifying key, and pinning that key gets this for free. The field
+    /// is kept so a journal stays self-describing.
+    ///
+    /// ⚠️ It is still an *input*, so treat it as prover-chosen in any root that has not
+    /// compiled it in: alone it binds nothing, since an attacker supplies both the key and the
+    /// proofs under it.
     pub leaf_vk: [u32; 8],
     /// The leaf journals, as the exact public-value bytes their proofs commit, in
     /// response order.

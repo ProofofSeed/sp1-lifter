@@ -34,7 +34,7 @@
 
 /// The verifying key of `program-leaf`, the hardened-child leaf.
 pub const LEAF_VK: [u32; 8] = [
-    0x3ea46733, 0x7a946e27, 0x05a2d1e1, 0x12189989, 0x7c2df757, 0x7d7830d6, 0x37796d2e, 0x362dd8e6,
+    0x55123cc9, 0x7c91e427, 0x63539ee8, 0x2f975740, 0x076e89c9, 0x0aac5262, 0x1b87f9ea, 0x0c92a711,
 ];
 
 /// The verifying key of `program-leaf-elephant`, the Ethereum-address leaf.

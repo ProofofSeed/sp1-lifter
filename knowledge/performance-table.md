@@ -18,12 +18,14 @@ Three arms appear throughout:
 | workload | CPU | GPU safe | GPU all |
 |---|---|---|---|
 | lift, 1 response, compressed | 276.4 s / 89.7 GB | — | **58.3 s / 43.6 GB** |
-| lift, 1 response, groth16 | 423.6 s / — | — | **208.7 s / 41.5 GB** |
+| lift, 1 response, groth16 | 423.6 s / — ⁽ᶜ⁾ | — | **208.7 s / 41.5 GB** |
 | lift, 8 responses, compressed | 1 141.6 s / 112.4 GB ⁽ᵃ⁾ | **457.2 s / 79.5 GB** | — |
 | **lift, 219 responses, groth16** | **23 320.2 s / 112.2 GB** ⁽ᵃ⁾ | **10 296.1 s / 77.5 GB** | — |
 | split: one leaf (1 response) | 109.7 s / 82.2 GB | **57.0 s / 58.9 GB** | 23.3 s / 33.9 GB |
 | split: root over 4 leaves | 205.6 s / 86.2 GB | 112.2 s / 68.8 GB | 47.9 s / 41.4 GB |
 | split: root over 64 leaves | 527.2 s / 96.6 GB | **265.0 s / 80.1 GB** | — |
+
+⁽ᶜ⁾ This cell is the **published SP1 6.4.0** prover, not the switches-off binary the CPU column otherwise means (`fixtures/lift-1-cpu.summary.log`, which carries no configuration banner — it begins at gnark's output). The two arms agree within 0.8% where both were measured, which is why it was placed here, but the column header claims an arm this figure was not taken on.
 
 ⁽ᵃ⁾ Measured 2026-08-21 on **zkboo 1.0.0**, not re-run since. The upgrade moved the guest by 0.035%
 of its instructions, so they are fair baselines, but they are not from this round.

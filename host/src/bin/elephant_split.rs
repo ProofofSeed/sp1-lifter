@@ -222,6 +222,16 @@ fn main() {
     }
     let leaf_pk = client.setup(LEAF_ELEPHANT_ELF).expect("elephant leaf setup");
     let leaf_vk = leaf_pk.verifying_key().clone();
+    // Pin freshness, checked on every run rather than by a tool someone must remember to run.
+    // The root compiles the leaf key in, so a pin that has gone stale against the leaf ELF makes
+    // the root refuse — deep inside proving, minutes later, with an error about a claimed key.
+    // Saying it here costs nothing and names the actual problem.
+    assert_eq!(
+        leaf_vk.hash_u32(),
+        snark_lifter_host::PINNED_LEAF_ELEPHANT_VK,
+        "the pinned elephant leaf key is stale against the built leaf ELF — run `vkeys` and \
+         update `pinned-keys`"
+    );
     let cache = std::path::PathBuf::from(format!("fixtures/elephant-leaves/n{n}"));
 
     if mode == "leaves" || mode == "both" {
@@ -328,6 +338,13 @@ fn main() {
         .expect("expected output must carry a set assertion word");
     check_elephant_journal(&journal.lift, &expectation).expect("root journal must pass the relying-party gate");
     assert_eq!(journal.lift.version, ELEPHANT_JOURNAL_VERSION);
+    // The OUTER version too: it was committed by the root and checked by nobody, and postcard
+    // is not self-describing, so on a layout change an unchecked version misparses silently.
+    assert_eq!(
+        journal.version,
+        snark_lifter_split::ROOT_JOURNAL_VERSION,
+        "elephant root journal layout version"
+    );
     assert_eq!(journal.leaf_vk, leaf_vk.hash_u32(), "root attests a different leaf key");
     println!(
         "  root: {root_wall:.2?} (gate green, {} responses, fingerprint {}…)",

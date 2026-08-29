@@ -476,10 +476,22 @@ pub fn root_input_for(
 pub fn decode_root_journal(
     public_values: &[u8],
 ) -> Result<snark_lifter_split::RootJournal, String> {
-    let (journal, rest) = postcard::take_from_bytes(public_values)
-        .map_err(|e| format!("root journal decode failed: {e}"))?;
+    let (journal, rest): (snark_lifter_split::RootJournal, _) =
+        postcard::take_from_bytes(public_values)
+            .map_err(|e| format!("root journal decode failed: {e}"))?;
     if !rest.is_empty() {
         return Err(format!("root journal decode failed: {} trailing bytes", rest.len()));
+    }
+    // The outer version was committed by every root and checked by nobody. Postcard is not
+    // self-describing, so on the first layout change an unchecked version is a silent misparse
+    // rather than an error: the fields would decode into the wrong shape and the gate would run
+    // on nonsense. Only version 1 exists today, which is exactly when this is free to add.
+    if journal.version != snark_lifter_split::ROOT_JOURNAL_VERSION {
+        return Err(format!(
+            "root journal version is {}, not {}",
+            journal.version,
+            snark_lifter_split::ROOT_JOURNAL_VERSION
+        ));
     }
     return Ok(journal);
 }

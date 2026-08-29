@@ -278,6 +278,12 @@ fn main() {
 
     let leaf_pk = client.setup(LEAF_ELF).expect("leaf program setup");
     let leaf_vk = leaf_pk.verifying_key().clone();
+    assert_eq!(
+        leaf_vk.hash_u32(),
+        snark_lifter_host::PINNED_LEAF_VK,
+        "the pinned leaf key is stale against the built leaf ELF — run `vkeys` and update \
+         `pinned-keys`"
+    );
     let leaf_vk_digest = leaf_vk.hash_u32();
     // Keyed by response count, and that is not tidiness. A leaf is response `i` of an
     // `n`-response proof, and the responses themselves depend on the global challenge,

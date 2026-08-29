@@ -45,13 +45,22 @@ Its verdict document names the missing measurement precisely — "execute to com
 | published SP1 6.4.0 | 423.55 s | — |
 | the fork, GPU on | 208.71 s | 41.5 GB |
 
-2.03×, and the compression of the ratio is the wrap: gnark is Go on the CPU and gains nothing, and at one response it is roughly a quarter of the run. At full scale it is a fixed ~171 s against hours.
+2.03×, and the compression of the ratio is the shrink-and-wrap stage, which gains nothing from the
+GPU. That is measurable rather than asserted — subtracting each arm's compressed run at one response
+from its groth16 run leaves **150.4 s on the GPU and 147.2 s on the CPU, 2% apart**, so the stage
+costs the same whichever arm produced the proof it wraps. It is 72% of the GPU run and 35% of the CPU
+one, which is the whole of why the 3.6× on compressed proving becomes 2.03× here. gnark proper is
+~26 s of it. At full scale the stage is a fixed ~171 s against hours, so the ratio recovers.
+
+🔴 This paragraph used to say the wrap was "roughly a quarter of the run" at one response. That
+matches nothing: the stage is 72%/35% depending on arm, and gnark alone is 12%/6%.
 
 ## Correctness
 
 Not taken on trust, in this order:
 
-- **Seven phases run both ways and compared element for element on every call** — `ZEROCHECK`, `GKR_ROUND`, `ENCODE`, `FIRST_LAYER`, `BATCH`, `JAGGED_VALUES`, `JAGGED_ASSIST` all set to `check` for a full `lift 1 compressed`. No disagreement, and the proof verified. That mode makes a disagreement fatal — `panic!` at `sum_as_poly.rs:486` — so it is a check that can fail, and it costs 16% (198.15 s against 170.62 s).
+- **Seven phases run both ways and compared element for element on every call** — `ZEROCHECK`, `GKR_ROUND`, `ENCODE`, `FIRST_LAYER`, `BATCH`, `JAGGED_VALUES`, `JAGGED_ASSIST` all set to `check` for a full `lift 1 compressed`. No disagreement, and the proof verified. That mode makes a disagreement fatal — `panic!` at `sum_as_poly.rs:486` — so it is a check that can fail, and it costs 16% — 198.15 s
+  (`fixtures/metal-parity-check.summary.log`) against 170.62 s (`fixtures/metal-warmup.summary.log`).
 - **The verifying key and the public values are byte-identical across arms.** The patches touch host proving only; the guest ELF, and therefore the key, is untouched. Confirmed by producing the same fixture on each arm and comparing.
 - **`forge` 5/5 at 270,441 gas** on the GPU-produced fixture, at the same gas as the CPU-produced one, as a constant-size proof should be.
 

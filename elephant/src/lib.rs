@@ -126,10 +126,12 @@ pub struct ElephantRootJournal {
     pub lift: ElephantJournal,
     /// The verifying key every admitted leaf proof carried.
     ///
-    /// ⚠️ Prover-chosen: the root takes it as input and commits it, so a relying party must
-    /// check it as well as everything [`check_elephant_journal`] covers. Compiling it in as a
-    /// constant would move the pin inside the root's own verifying key; see
-    /// `knowledge/split-and-streaming.md`.
+    /// ✅ **Compiled into the root** since 2026-08-28: it refuses any claimed key disagreeing
+    /// with `snark_lifter_pinned_keys::LEAF_ELEPHANT_VK` before admitting a proof, so the
+    /// root's own verifying key says which leaf program it admits and this field is a
+    /// self-description rather than a load-bearing input. (This doc previously said it was
+    /// prover-chosen and had to be checked by a relying party; that stopped being true when
+    /// the pin landed.) See `knowledge/split-and-streaming.md`.
     pub leaf_vk: [u32; 8],
 }
 
