@@ -106,7 +106,7 @@ moved to `d4825905…`, a full-scale execution costs 4,775,013,465 instructions 
 before — a thirtieth of a percent — and on-chain verification is unchanged at 270,441 gas.
 
 **The GPU is 4.7× faster than this machine's CPU prover, and cannot be left running unattended.**
-It produces a proof that fails its own verification roughly once every twenty, then parks the run
+It produces a proof that fails its own verification once every twenty-eight, then parks the run
 for ever; nothing is at risk but the run finishing, and nothing is printed unless `RUST_LOG` is on.
 The fault was narrowed to the one accelerated phase with no comparison mode, and leaving that phase
 on the CPU has run 115 consecutive proofs clean at 1.92×. `knowledge/gpu-corruption.md` records the

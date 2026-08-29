@@ -12,7 +12,7 @@ The ZKBoo crates come from crates.io at the exact version the build script deman
 Proving runs on the GPU. Build with `--features metal` and everything below goes through the Metal backend for SP1 Hypercube (`knowledge/gpu-proving.md`).
 To measure against the CPU, force the GPU path off with the switches in `fixtures/cpu-arm-switches.txt` rather than by rebuilding, so that both arms are one binary.
 
-⚠️ **Set `SP1_METAL_MERKLE=0` for any run you are not watching.** With every phase accelerated the backend is 4.7× faster than this machine's CPU prover on a one-response lift — and it also produces a proof that fails its own verification about once in twenty and then parks the run for ever. Leaving the Merkle tree on the CPU has run 115 consecutive proofs clean, at 1.9× on a single leaf and 2.3× on a full-scale lift. See `knowledge/gpu-corruption.md`.
+⚠️ **Set `SP1_METAL_MERKLE=0` for any run you are not watching.** With every phase accelerated the backend is 4.7× faster than this machine's CPU prover on a one-response lift — and it also produces a proof that fails its own verification about once in twenty-eight and then parks the run for ever. Leaving the Merkle tree on the CPU has run 115 consecutive proofs clean, at 1.9× on a single leaf and 2.3× on a full-scale lift. See `knowledge/gpu-corruption.md`.
 
 ```sh
 cargo build --release -p snark-lifter-host --features metal   # once; the binaries below are in target/release

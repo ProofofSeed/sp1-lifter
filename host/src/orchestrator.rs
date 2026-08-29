@@ -199,7 +199,6 @@ pub fn stream_lift(
     assert!(pool >= 1, "need at least one prover");
     let started = Instant::now();
     let (tx, rx) = sync_channel::<Arrival>(pool);
-    let rx = Arc::new(Mutex::new(rx));
     let records: Arc<Mutex<Vec<LeafRecord>>> = Arc::new(Mutex::new(Vec::with_capacity(num_responses)));
     let proofs: Arc<Mutex<Vec<(usize, SP1ProofWithPublicValues)>>> =
         Arc::new(Mutex::new(Vec::with_capacity(num_responses)));
@@ -209,6 +208,20 @@ pub fn stream_lift(
     let dispatched = Arc::new(AtomicUsize::new(0));
 
     let challenge_wall = thread::scope(|scope| {
+        // The receiver is owned INSIDE the scope, and the last handle outside the worker set is
+        // dropped below once the workers hold their clones.
+        //
+        // 🪤 It used to live outside the scope, and that deadlocked the run whenever every
+        // worker died. A worker panics on a failed prove or a failed self-verification; the
+        // producer blocks in `tx.send` as soon as the bounded channel fills, which is the steady
+        // state here because proving takes a minute and producing takes milliseconds. `send`
+        // unblocks only on space or on the receiver being dropped — and an `Arc` held in the
+        // caller's frame kept it alive past the death of every worker. The producer then blocked
+        // for ever, its `join` never returned, and the worker's panic was never propagated: the
+        // process sat silent at zero CPU. With GPU proving documented to fail its own
+        // verification about once in twenty, that turns an overnight run's recoverable failure
+        // into an indefinite hang with no message.
+        let rx = Arc::new(Mutex::new(rx));
         let producer = scope.spawn(|| {
             produce(
                 circuit,
@@ -260,6 +273,16 @@ pub fn stream_lift(
                     stdin.write_vec(
                         postcard::to_allocvec(&leaf_input).expect("serialize leaf frame"),
                     );
+                    // Fault injection, for demonstrating that a dead worker pool ends the run
+                    // instead of hanging it. Set STREAM_LIFT_FAIL_LEAF=<position> to panic a
+                    // worker before it proves. Without a way to kill a worker on demand, the
+                    // deadlock fix above is a claim rather than a test — and this repository has
+                    // learned twice that a refusal path nobody can reach is not evidence.
+                    if let Ok(fail_at) = std::env::var("STREAM_LIFT_FAIL_LEAF") {
+                        if fail_at.parse::<usize>() == Ok(arrival.position) {
+                            panic!("leaf {}: injected fault (STREAM_LIFT_FAIL_LEAF)", arrival.position);
+                        }
+                    }
                     let t = Instant::now();
                     let proof = client
                         .prove(leaf_pk, stdin)
@@ -280,6 +303,9 @@ pub fn stream_lift(
                 }
             });
         }
+        // Now only the workers hold the receiver: when the last one exits or dies, the channel
+        // closes, `send` fails, and the producer returns instead of blocking for ever.
+        drop(rx);
         producer.join().expect("producer thread panicked")
     });
 

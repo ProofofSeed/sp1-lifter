@@ -23,10 +23,13 @@ use std::time::Instant;
 
 use sp1_sdk::{HashableKey, ProvingKey, SP1Proof, SP1Stdin, blocking::{ProveRequest, Prover}};
 use snark_lifter_elephant::{
-    ELEPHANT_JOURNAL_VERSION, ElephantExpectation, ElephantRootJournal, EthereumAddressCircuit,
+    ELEPHANT_JOURNAL_VERSION, ElephantRootJournal, EthereumAddressCircuit,
     H, PS, PV, S, check_elephant_journal,
 };
-use snark_lifter_host::{LEAF_ELEPHANT_ELF, ROOT_ELEPHANT_ELF, WP, WTP, prover_backend, prover_client};
+use snark_lifter_host::{
+    LEAF_ELEPHANT_ELF, ROOT_ELEPHANT_ELF, WP, WTP, elephant_expectation_for, prover_backend,
+    prover_client,
+};
 use snark_lifter_split::{
     AggregateError, ELEPHANT_SPLIT_FRAME_VERSION, ElephantLeafInput, ElephantRootInput,
     LEAF_JOURNAL_VERSION, LeafCommitment, LeafJournal, aggregate, statement_digest_generic,
@@ -156,7 +159,10 @@ fn main() {
     let mut args = std::env::args().skip(1);
     let n: usize = args.next().map(|a| a.parse().expect("n must be a positive integer")).unwrap_or(2);
     let mode = args.next().unwrap_or_else(|| "both".to_string());
-    assert!(matches!(mode.as_str(), "gate" | "leaves" | "root" | "both" | "execute"), "bad mode `{mode}`");
+    assert!(
+        matches!(mode.as_str(), "gate" | "leaves" | "root" | "both" | "execute" | "execute-root"),
+        "bad mode `{mode}`"
+    );
     if std::env::var_os("RUST_LOG").is_none() {
         unsafe { std::env::set_var("RUST_LOG", "error") };
     }
@@ -257,7 +263,9 @@ fn main() {
         }
     }
 
-    println!("── elephant root over {n} leaves ──");
+    if mode != "execute-root" {
+        println!("── elephant root over {n} leaves ──");
+    }
     let mut root_stdin = SP1Stdin::new();
     let mut leaf_public_values = Vec::with_capacity(n);
     for position in 0..n {
@@ -281,6 +289,30 @@ fn main() {
         leaf_public_values,
     };
     root_stdin.write_vec(postcard::to_allocvec(&root_input).expect("serialize root frame"));
+
+    // Executing the root turns its cost *composition* into a measurement. The wall clock says
+    // how long the root takes; only this says how much of it is the one-off secp256k1 fingerprint
+    // traversal, and "essentially all of it" was an inference from the monolithic law's fixed
+    // term until this existed.
+    if mode == "execute-root" {
+        println!("── executing the elephant root over {n} leaves ──");
+        let t = Instant::now();
+        let (_, report) =
+            client.execute(ROOT_ELEPHANT_ELF, root_stdin).run().expect("elephant root execute");
+        assert_eq!(report.exit_code, 0, "root guest execution failed");
+        let instructions = report.total_instruction_count();
+        println!("  root instructions: {instructions}");
+        println!("  executor wall: {:.2?}", t.elapsed());
+        println!(
+            "  monolithic law's fixed term 5.1004e9 ⇒ root is {:.3}x of it",
+            instructions as f64 / 5.1004e9
+        );
+        println!(
+            "  one leaf is 2,395,132,641 ⇒ root is {:.2} leaves of guest work",
+            instructions as f64 / 2_395_132_641.0
+        );
+        return;
+    }
     let root_pk = client.setup(ROOT_ELEPHANT_ELF).expect("elephant root setup");
     let t = Instant::now();
     let root_proof = client.prove(&root_pk, root_stdin).compressed().run().expect("elephant root proving");
@@ -289,13 +321,11 @@ fn main() {
     let (journal, rest): (ElephantRootJournal, _) =
         postcard::take_from_bytes(root_proof.public_values.as_slice()).expect("decode root journal");
     assert!(rest.is_empty(), "root journal decode left {} trailing bytes", rest.len());
-    let expectation = ElephantExpectation {
-        fingerprint: journal.lift.fingerprint,
-        expected_output: expected_output.clone(),
-        binding: BINDING.to_vec(),
-        min_responses: n as u32,
-        proof_format_version: zkboo::PROOF_FORMAT_VERSION,
-    };
+    // Built by the constructor, NOT field by field: an expectation whose fingerprint is copied
+    // out of the journal under test cannot fail its own fingerprint check, and one whose format
+    // version is read from the linked zkboo tracks the consumer instead of constraining it.
+    let expectation = elephant_expectation_for(&expected_output, BINDING, n as u32)
+        .expect("expected output must carry a set assertion word");
     check_elephant_journal(&journal.lift, &expectation).expect("root journal must pass the relying-party gate");
     assert_eq!(journal.lift.version, ELEPHANT_JOURNAL_VERSION);
     assert_eq!(journal.leaf_vk, leaf_vk.hash_u32(), "root attests a different leaf key");

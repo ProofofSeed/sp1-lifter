@@ -2,7 +2,12 @@
 
 The production lifter verifies every response of a ZKBoo proof inside one zkVM program, so
 its cost is one indivisible run: 6 h 28 m for the hardened-child statement at 219
-responses, and an extrapolated ~130 days for the Ethereum-address statement. Two questions
+responses, and an extrapolated ~130 days for the Ethereum-address statement.
+
+📅 **Both figures are the ones that motivated this work, and both have since moved** — the
+hardened-child lift is now **2 h 51 m 36 s** on ZKBoo 2.0.0 with GPU proving, and the address
+statement is **11.07 days** monolithic, or 5.65 h split (`elephant-cost.md`). They are left here
+because they are what the design was answering; nothing below should be read as current cost. Two questions
 follow from that, and they turn out to have one answer.
 
 - **Can the responses be proved in parallel, and aggregated at the end?** That is the only
@@ -63,7 +68,8 @@ cannot move the pinned verifying key.
 The circuit fingerprint is computed **once, in the root**, never per leaf. Computing it in
 the leaf would pay a whole-circuit structural traversal 219 times; on the secp256k1
 statement that pass is worth about two responses of work (the measured fixed term of
-2.007e10 instructions, 66% of an n=1 run), so per-leaf fingerprinting would cost more than
+5.1004e9 instructions, 67% of an n=1 run — the figure was 2.007e10 under the superseded law), so
+per-leaf fingerprinting would cost more than
 the entire monolithic run. The circuit is compiled into the leaf program and pinned by its
 verifying key, so every leaf is on the same circuit by construction.
 
@@ -119,7 +125,7 @@ challenge sequence at the end. Nothing in the mathematics wants the proof in one
 
 `program/src/main.rs` does a single `sp1_zkvm::io::read_vec()` and postcard-decodes the
 whole `LiftInput`, so all 219 responses are resident at once — a ~13 MB frame for the
-hardened child, and 2.47 GB for the address statement. Changing the frame to a header plus
+hardened child, and 2.47 GB for the address statement (**0.756 GB** under ZKBoo 2.0.0). Changing the frame to a header plus
 N response records and reading them one at a time makes guest memory O(1) in the response
 count, with no protocol change and a frame-version bump.
 
@@ -162,7 +168,7 @@ instead of
 The device streams at **~3,309 B/s** (measured mean; ~1.9 KB/s retracted) and a 219-response
 hardened-child proof is **11.32 MB** (51,691 B/response measured, was ~12.7 MB), so a
 response lands roughly every 30 s over about 1.9 h. Today those 1.9 h are strictly serial
-with the 6 h 28 m lift. Under B they overlap almost entirely, and the leaves keep pace with
+with the lift as it then cost, 6 h 28 m. Under B they overlap almost entirely, and the leaves keep pace with
 the device as long as enough machines are running to absorb one leaf every 30 s.
 
 **C. Patch SP1 to expose hooks on the proving path.** True input streaming into a monolithic
@@ -182,7 +188,7 @@ Three arms, because the GPU has two settings and the difference between them mat
 the only comparison in which nothing but the path under test differs; it measures within 0.8% of the
 published SP1 prover, which was checked separately rather than assumed. "GPU, safe" is the Metal backend with its Merkle tree left on the CPU, which is
 the only setting that survives a long run; "GPU, full" is every phase accelerated, which is 2.5×
-faster again and corrupts a proof about once every twenty.
+faster again and corrupts a proof about once every twenty-eight.
 
 | | CPU | GPU, safe | GPU, full |
 |---|---:|---:|---:|
@@ -312,30 +318,40 @@ establishing until now.
 Each is validated by removing its tamper: with the withheld proof restored, `forge-count` proves and
 the test fails with "the root PROVED with the leaf claims and the leaf proofs out of correspondence".
 
-### Re-run under the pinned leaf key, and the pin does not move them
+### Re-run under the pinned leaf key — and the pin DOES move one of them
 
-Pinning the leaf verifying key (item 3 above) was expected to change what `forge-vk` does. It does
-not, and the expectation was wrong for a reason worth writing down.
+Pinning the leaf verifying key was expected to change what `forge-vk` does. **It does, and an earlier
+version of this section said it did not.** That claim was wrong, and the way it was wrong is the
+point.
 
-All three were re-run on 2026-08-28 against the pinned roots. **All three still refuse at
-`artifact not found`**, at 18.7 s, 105.8 s and 108.8 s, with the nine-case gate matrix green and the
-control accepting in each. Log: `fixtures/forge-negatives-pinned.summary.log`.
+All three were re-run on 2026-08-28 against the pinned roots and all three refuse, but **not in the
+same place**:
 
-The reasoning that expected otherwise was that `forge-vk` now has a new in-guest assertion to hit —
-the root rejects a claimed leaf key that disagrees with the constant. But **the guest never runs.**
-The host resolves each deferred proof by `(vk_digest, pv_digest)` before execution begins, and a
-forged key digest matches no artifact, so the run dies a layer above any guest code. Pinning moved
-what the guest would assert; it did not move where the refusal happens, because nothing reaches the
-guest.
+| | refused by | prove wall |
+|---|---|---:|
+| `forge-vk` | **the root guest's pinned-key assertion** | 19.0 s |
+| `forge-count` | SP1's host-side deferred-proof lookup | 105.3 s |
+| `forge-order` | SP1's host-side deferred-proof lookup | 105.4 s |
 
-That makes the pin's assertion the same kind of object as the in-circuit binding itself: correct as
-far as a source reading goes, and unexercised. It is defence in depth against a caller who drives the
-recursion layer directly — which is the only caller that could ever reach it, and is precisely the
-caller the stock SDK will not let these tests impersonate.
+`forge-vk`'s guest runs, reaches `input.leaf_vk != LEAF_VK`, and panics — visible in the run's stderr
+as `claimed leaf key is not the pinned one` at `program-root/src/main.rs:44`. The prove-time error
+still reads `artifact not found`, but that is downstream wreckage of the failed run, not the refuser.
 
-**This is the second time an expectation about these negatives has been wrong in the same direction**,
-and both times the error was to reason about which check *would* catch a tamper without asking
-whether control flow reaches that check at all.
+**The first reading classified on that error string and got it backwards.** The tell was in the
+timings and was tabulated without being questioned: 19 s against 105 s, a 5.7× gap between cases
+supposedly refused by the same mechanism. Nothing else in the run was 5.7× different.
+
+The probe no longer guesses. Each forge mode now also **executes** the same frame and asks the guest
+directly, which is decisive and costs seconds: `forge-vk` must be refused by the guest, and
+`forge-count`/`forge-order` must be *accepted* by it — their tamper changes only which proofs are
+supplied alongside unchanged claims, so the guest cannot see it by construction. Both directions are
+asserted, so this can fail either way.
+
+**What is unchanged is the conclusion that matters.** The in-circuit deferred-proof binding — the one
+that constrains an adversarial prover, who would not run the host layer at all — is still not reached
+by any of the three, and still rests on a reading of the 6.4.0 sources. `forge-vk` now exercises the
+*pin* check, which is this repository's own code and worth having, but a pin assertion is not the
+recursion layer's digest chain.
 
 ### Why the first form of this test proved even less
 

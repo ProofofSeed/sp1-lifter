@@ -25,7 +25,8 @@ Only `RUST_LOG=error` shows the cause at all — `sp1-metal`'s own notes warn ab
 
 ## Rate
 
-Three occurrences over roughly a hundred single-response leaf proofs, each proof about 23 s:
+Three occurrences over the **84** single-response leaf proofs the three runs completed, each proof
+about 23 s:
 
 | run | configuration | failed at | phase |
 |---|---|---:|---|
@@ -33,7 +34,9 @@ Three occurrences over roughly a hundred single-response leaf proofs, each proof
 | 2 | defaults | leaf ~36 | `lift/deferred verify` (recursion) |
 | 3 | `SP1_METAL_UPLOAD_FRESH=1` | leaf 40 | `lift/deferred verify` (recursion) |
 
-Roughly one failure per 20–25 proofs, or about one per 8 minutes of proving.
+**One failure per 28 proofs**, or about one per 11 minutes of proving. (This note previously said
+"one per 20–25 proofs, about one per 8 minutes" a few lines above where it computes 3/84 correctly;
+the denominator is 84, not "roughly a hundred", and the two statements have been reconciled.)
 It is **not deterministic in the input**: leaf 8 failed in run 1 and succeeded in runs 2 and 3.
 It appears in both core proving and the recursion layer, which share a commitment scheme.
 

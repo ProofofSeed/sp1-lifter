@@ -28,19 +28,28 @@
 //! The cache is per response count because a leaf is not portable between counts — see
 //! the comment at the cache path.
 //! The `forge-*` modes re-run the root over cached leaves with the leaf/proof
-//! correspondence broken, and must FAIL — the negatives that exercise SP1's recursion
-//! layer rather than the in-guest gate:
+//! correspondence broken, and must FAIL:
 //!
 //! - `forge-vk`    — the root claims a corrupted leaf verifying key.
 //! - `forge-count` — the root claims `n` leaves but supplies `n-1` proofs.
 //! - `forge-order` — the proofs are supplied in an order the claims do not match.
 //!
-//! ⚠️ A failure is not automatically the failure being tested. `forge-vk` was observed to
-//! fail at SP1 *artifact lookup* ("artifact not found") — a real refusal, but an
-//! infrastructure one: a corrupted key digest names no recursion artifact, so the
-//! cryptographic binding is never reached. These modes therefore refuse to count an
-//! artifact-lookup failure as a pass. `forge-count` and `forge-order` keep a genuine
-//! verifying key precisely so they reach the deferred-proof digest check.
+//! ⚠️ **A failure is not automatically the failure being tested, and the prove-time error
+//! cannot tell you which failure it was.** All three surface as "artifact not found", so each
+//! mode also *executes* the same frame and asks the guest directly. That distinguishes them:
+//!
+//! - `forge-vk` is refused **by the root guest itself**, at the pinned-key assertion, before
+//!   any deferred proof is looked up. Its prove-time error still says "artifact not found" —
+//!   downstream wreckage of the failed run, not the refuser.
+//! - `forge-count` and `forge-order` are **invisible to the guest** by construction: they
+//!   change only which proofs are supplied alongside unchanged claims, and SP1 resolves a
+//!   deferred proof by digest at the host before a recursion circuit exists. They are refused
+//!   by that host bookkeeping.
+//!
+//! So **the in-circuit deferred-proof binding is not reachable through the stock SDK** and is
+//! not demonstrated here; the evidence for it is a reading of the 6.4.0 sources. An adversarial
+//! prover would not run the host layer at all, which is precisely why the in-circuit check
+//! exists — and why a deployment must not read these passes as evidence about it.
 
 use std::time::{Duration, Instant};
 
@@ -391,33 +400,51 @@ fn main() {
             Err(e) => {
                 let msg = format!("{e:#}");
                 println!("  root refused in {root_wall:.2?}: {msg}");
-                // Where it refused matters more than that it refused, so say which.
+                // Where it refused matters more than that it refused, and the host's error
+                // string cannot answer that: it says "artifact not found" for all three,
+                // including the one whose guest ran and refused on its own. So ask the guest
+                // directly, by executing the same frame — execution runs guest code and
+                // reports its panic, and costs seconds rather than the prove's minutes.
                 //
-                // ⚠️ All three of these refuse at the host layer, and that was measured
-                // rather than assumed: the first two were built specifically to keep a
-                // genuine leaf key so that artifact lookup would succeed and the in-circuit
-                // check would be what refused them, and it is not what refused them. The
-                // reason is structural. SP1 resolves a deferred proof by looking it up by
-                // digest, so any tampering that puts the claims and the proofs out of
-                // correspondence makes some lookup fail before a circuit is ever built.
-                //
-                // **The in-circuit binding is therefore not reachable through this SDK**,
-                // by construction rather than by an oversight in these tests, and it is not
-                // demonstrated here. The evidence for it remains a reading of the 6.4.0
-                // sources, recorded in `knowledge/split-and-streaming.md`. An adversarial
-                // prover would not run the host layer at all, which is exactly why the
-                // in-circuit one exists — and why a production deployment must not treat
-                // these three passes as evidence about it.
-                let host_layer = msg.contains("artifact not found");
-                println!(
-                    "{mode}: PASS — refused by SP1's {} (the root did not prove){}",
-                    if host_layer { "host-side deferred-proof bookkeeping" } else { "recursion layer" },
-                    if host_layer {
-                        ". This does NOT exercise the in-circuit deferred-proof digest; see the comment above"
-                    } else {
-                        ""
-                    },
+                // 🪤 Classifying on the prove error alone got this wrong once. `forge-vk`
+                // was recorded as refusing at host bookkeeping when its stderr showed the
+                // root panicking at the pinned-key assertion first; the "artifact not found"
+                // is downstream wreckage of the failed run, not the refuser. The tell was in
+                // the timings all along — 18.7 s against 105.8 s and 108.8 s — and it was
+                // tabulated without being asked about.
+                let mut probe_stdin = SP1Stdin::new();
+                probe_stdin.write_vec(
+                    postcard::to_allocvec(&root_input).expect("serialize root frame"),
                 );
+                let guest = client.execute(ROOT_ELF, probe_stdin).run();
+                let guest_refused = match &guest {
+                    Err(e) => Some(format!("{e:#}")),
+                    Ok((_, report)) if report.exit_code != 0 => {
+                        Some(format!("guest exited {}", report.exit_code))
+                    }
+                    Ok(_) => None,
+                };
+                match (mode.as_str(), &guest_refused) {
+                    ("forge-vk", Some(why)) => println!(
+                        "{mode}: PASS — refused BY THE ROOT GUEST's pinned-key assertion ({why}). \
+                         The prove-time error names the host layer, but the guest refuses first."
+                    ),
+                    ("forge-vk", None) => panic!(
+                        "{mode}: the root guest ACCEPTED a leaf key that is not the pinned one — \
+                         the in-guest pin check did not fire"
+                    ),
+                    (_, Some(why)) => panic!(
+                        "{mode}: the guest refused ({why}), but this tamper is invisible to the \
+                         guest by construction — it touches only which proofs are supplied. \
+                         Something else is wrong."
+                    ),
+                    (_, None) => println!(
+                        "{mode}: PASS — the guest accepts this frame (the tamper is invisible to \
+                         it, as expected) and SP1's host-side deferred-proof bookkeeping is what \
+                         refuses. This does NOT exercise the in-circuit deferred-proof digest; \
+                         see the comment above."
+                    ),
+                }
                 return;
             }
         }

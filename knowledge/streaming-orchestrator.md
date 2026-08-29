@@ -41,6 +41,23 @@ an arrival interval to model the cadence.
 | produced-then-lifted (no overlap) | 356.57 s | 980.45 s |
 | **overlap saved** | **1.00×** | **1.27×** |
 
+⚠️ **The "no interval" column has no kept log**, and that is a provenance failure of the kind this
+project has already recorded once. The run existed — the column is a real n=4, pool=1 control taken
+after the setup fix, and 238.56 / 4 = 59.64 s is where the per-leaf figure below comes from — but its
+log was not saved, so the numbers cannot be traced to a file. The only kept no-interval log,
+`fixtures/stream-lift-n4-pool1.summary.log`, is the **pre-fix** run (91.82 s per leaf, root 181.85 s,
+end to end 549.28 s) and must not be read as this column. **Re-run and keep the log before quoting
+this column anywhere.**
+
+⚠️ **The cadence column's per-leaf cost is 69.45 s**, not the 57.00 s an isolated leaf costs and not
+the 59.6 s of the control — 22% and 17% above them, on a run whose own output says proving is the
+bottleneck. Nothing here explains that gap; it is recorded rather than resolved.
+
+⚠️ **The root in the cadence run took 184.85 s over 8 leaves**, against the `102.0 + 2.55·N` line's
+122.4 s — **1.51×**. It is not setup: `root_wall` starts after `client.setup` returns. It is not the
+leaf count. The discrepancy is unexplained, and it means the root line measured by `split-probe`
+should not be assumed to describe a root the orchestrator drives.
+
 The 1.00× is the control and it is the right answer: with production free there is nothing to
 overlap, and a pipeline that claimed otherwise would be measuring itself.
 
@@ -74,7 +91,7 @@ At two leaves that is one in three. At the four this probe defaulted to, each su
 **3.7%** chance of passing by luck — small enough to have never happened in any run here, and far too
 large for a matrix that is the split's whole soundness argument.
 
-The matrix now runs at **24 leaves whatever the proving count** — chance pass below 3e-12 — and says
+The matrix now runs at **24 leaves whatever the proving count** — chance pass of 3.5e-12 (3⁻²⁴) — and says
 so when it overrides. It costs no proving, so the floor is free.
 
 This is the same property that makes ZKBoo itself sound only at `N_ε` repetitions, appearing one

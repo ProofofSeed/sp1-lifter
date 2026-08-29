@@ -54,14 +54,22 @@ confirms what the August sweep found: SP1's peak is a fixed prover allocation, n
 job. That is why the memory ceiling, not the clock, was what put a larger shard size out of reach.
 
 **The split's root is near-fixed, and the GPU does not change that.** `184.2 + 5.36·N` on the CPU,
-`102.0 + 2.55·N` on the safe GPU, fitted over 4 → 64. Admitting one more leaf costs 4.5% of a leaf on
-either arm.
+`102.0 + 2.55·N` on the safe GPU, **interpolated between two points, 4 and 64**. Admitting one more
+leaf costs 4.5% of a leaf on the GPU and 4.9% on the CPU.
+
+⚠️ Two points per arm is a line through two measurements, not a fit: it has no residual and says
+nothing about linearity *between* them. The supporting evidence is that a third, discarded point (the
+loaded-machine n=8 campaign) had a slope within 1.3% — which is corroboration, not a degree of
+freedom. Anywhere this note or another says "fitted over 4 to 64", read "the line joining N=4 and
+N=64".
 
 ## Streaming orchestrator (safe GPU)
 
 8 responses at a modelled 30 s device cadence, one prover: leaves 555.6 s (69.5 s each), root 184.9 s,
 **end to end 770.7 s against 980.5 s** for producing everything and then lifting it — 1.27×, at
-69.9 GB. Proving is the bottleneck at that cadence, so a deployment needs two to three machines.
+69.9 GB (⚠️ **unsourced** — `stream-lift-n8-cadence30.summary.log` records no maximum resident set
+size at all, so this figure cannot be traced to a log and must be re-measured before it is quoted).
+Proving is the bottleneck at that cadence, so a deployment needs two to three machines.
 
 ## Native verification, no zkVM (all CPU)
 

@@ -65,7 +65,7 @@ accelerated phase that has no comparison mode.
 ## 🚨 The fast configuration is not usable, and that is the headline
 
 Everything above is measured with every phase accelerated, and that configuration **corrupts a proof
-about once every twenty**: an intermittent Merkle root mismatch that fails SP1's own shard
+about once every twenty-eight**: an intermittent Merkle root mismatch that fails SP1's own shard
 verification and then parks the run forever. Full account in `gpu-corruption.md`.
 
 No invalid proof is accepted — the failure is a proof being refused, not one getting through — so the

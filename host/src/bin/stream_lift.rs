@@ -29,10 +29,10 @@ use sp1_sdk::{HashableKey, ProvingKey, SP1Proof, SP1Stdin, blocking::{ProveReque
 use snark_lifter_host::{
     HARDENED_OFFSET, LEAF_ELF, ROOT_ELF, bip32_vector_1, decode_root_journal,
     orchestrator::{StreamReport, hardened_child_statement, stream_lift},
-    prover_backend, prover_client,
+    expectation_for_statement, prover_backend, prover_client,
 };
 use snark_lifter_split::RootInput;
-use snark_lifter_statement::{JournalExpectation, REQUIRED_PROOF_FORMAT_VERSION, check_journal};
+use snark_lifter_statement::check_journal;
 
 const SEED_ENTROPY: &[u8] = b"snark-lifter streaming orchestrator entropy";
 const BINDING: &[u8] = b"snark-lifter streaming orchestrator tx binding";
@@ -152,15 +152,16 @@ fn main() {
     // The gate, not the pipeline, is what says this attests anything.
     client.verify(&root_proof, root_pk.verifying_key(), None).expect("root verification");
     let journal = decode_root_journal(root_proof.public_values.as_slice()).expect("decode root journal");
-    let expectation = JournalExpectation {
-        fingerprint: journal.lift.fingerprint,
-        chain_code: statement.chain_code.clone(),
-        index: statement.index,
-        expected_output: statement.expected_output.clone(),
-        binding: statement.binding.clone(),
-        min_responses: n as u32,
-        proof_format_version: REQUIRED_PROOF_FORMAT_VERSION,
-    };
+    let expectation = expectation_for_statement(
+        // Recomputed host-side over the public-only circuit, NOT copied from the journal under
+        // test: a fingerprint taken from that journal makes the fingerprint clause unreachable,
+        // and circuit drift is the one thing it exists to catch.
+        &statement.chain_code,
+        statement.index,
+        &statement.expected_output,
+        &statement.binding,
+        n as u32,
+    );
     check_journal(&journal.lift, &expectation).expect("root journal must pass the relying-party gate");
     assert_eq!(journal.leaf_vk, leaf_vk.hash_u32(), "root attests a different leaf key");
     assert_eq!(journal.lift.num_responses, n as u32);

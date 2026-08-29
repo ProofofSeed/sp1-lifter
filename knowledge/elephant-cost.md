@@ -13,7 +13,8 @@ The proof-of-seed suite divides in two, and the division is not a matter of degr
 
 The **hash-only** statements — master key, hardened child, BIP-39 seed — are HMAC-SHA512 chains.
 They cost tens of kilobytes per response, and the lifter proves a full classical-128 lift of one in
-6 h 28 m.
+**2 h 51 m 36 s** on the current stack. (The 6 h 28 m this note used to quote is the CPU /
+zkboo-1.0.0 figure, superseded on both axes — see `performance-table.md`.)
 
 The **secp256k1** statements — public key `d·G`, normal child, and the Ethereum address — put an
 in-circuit scalar multiplication in front of that, and cost megabytes per response. Only these bind
@@ -78,9 +79,16 @@ The superseded law was `2.007e10 + 1.042e10 × n`. Against it:
 | total at 219 | 2.302e12 | **5.4443e11** | **4.23×** |
 
 The instruction to re-fit rather than divide by the 3.8× the response size had moved by was
-therefore worth following: it would have been wrong by 8% on the fixed term and 11% on the marginal
-one, in opposite directions. The fixed term is still 67% of a single-response run, so a one-point
-estimate would still overstate full scale by **3.07×**.
+therefore worth following. Dividing the old law by 3.8 would have overestimated the fixed term by
+**3.6%** and the marginal one by **11.3%** — a factor of three apart, and both in the **same**
+direction, since the true reductions (3.93× and 4.23×) both exceed 3.8. The fixed term is still 67%
+of a single-response run, so a one-point estimate would still overstate full scale by **3.04×** at
+n = 219 (3.07× asymptotically).
+
+🔴 An earlier version of this paragraph said "wrong by 8% on the fixed term and 11% on the marginal
+one, **in opposite directions**". Both halves were wrong: no divisor produces 8%, and no divisor puts
+the two errors on opposite sides. The conclusion — refit, never divide — is unaffected, which is
+exactly why the wrong arithmetic survived a reading: it pointed at the right answer.
 
 ## What a full lift would cost, now
 
@@ -121,8 +129,19 @@ the leaves distribute over machines and the root is near-fixed.
 
 ### The elephant leaf and root have now been built and run
 
-**Measured 2026-08-28**, safe-GPU configuration (`SP1_METAL_MERKLE=0`), 12 Rayon threads:
-`fixtures/elephant-leaves-n2.summary.log` and `fixtures/elephant-root-n2.summary.log`.
+**Measured 2026-08-28**, safe-GPU configuration (`SP1_METAL_MERKLE=0`), 12 Rayon threads. Leaf:
+`fixtures/elephant-leaf-retime.summary.log`. Root: `fixtures/elephant-root-n2.summary.log`, and the
+re-run `fixtures/elephant-root-n2-rerun.summary.log`.
+
+🔴 **Provenance caveat on the first root run.** Its log records `backend=cpu` and nothing more,
+because the config line did not report the GPU configuration until after that run finished — every
+run before 2026-08-28 23:31 is in the same position, GPU and CPU alike, and the arm rests on the
+filename and on what the operator remembers. That is not a record. Two things were done about it
+rather than one: the config line now prints the Metal build and every `SP1_METAL_*` switch, and **the
+root was re-run under the fixed banner** so the headline figure has its configuration attached. Host
+instruction *rates* were tried as forensics first and do not discriminate — every run on this
+machine, CPU and GPU alike, retires ~195e9 host instructions per second, because that is the
+machine's throughput and not the workload's.
 
 | | projected | **measured** | |
 |---|---:|---:|---:|
@@ -157,8 +176,15 @@ instruction mix is entirely different, and said so. It does not carry:
 | hardened-child lift (assumed) | — | — | 464,000 instr/s |
 | **elephant leaf (measured)** | **2,395,132,641** | 4,207.74 s | **569,221 instr/s** |
 
-**1.23× faster per instruction**, on the same machine and the same safe-GPU configuration. The
-elephant proves *more* efficiently than the statement the estimate borrowed from.
+**1.23× faster per instruction**, on the same machine and the same safe-GPU configuration.
+
+⚠️ **The two sides are not the same pipeline**, and the gap is not all attributable to the statement.
+The leaf figure is core→compress; the 464,000 figure is a monolithic core→compress→shrink→wrap run
+whose wrap is a fixed ~171 s this repository measured separately. Excluding the wrap the borrowed
+rate is ~471,600 instr/s and the ratio is **1.21×**. What remains also mixes in program *shape* — a
+few shards against roughly 280, with per-call overheads amortised differently — which no measurement
+here separates from the statement's instruction mix. The honest claim is that a rate borrowed across
+both statement and pipeline was ~21% pessimistic, not that this statement is 1.23× more efficient.
 
 The leaf's instruction count is measured rather than assumed to be the law's marginal term
 (`elephant-split 1 execute`): at 2.3951e9 it is **0.973×** of 2.4627e9, the difference being that a
@@ -169,7 +195,8 @@ does neither.
 
 `root(2)` alone cannot separate a fixed term from a per-leaf one. It does not have to, because the
 per-leaf term was already measured on the hardened-child statement — `root(N) = 102.0 + 2.55·N` on
-the safe GPU, fitted over 4 to 64 leaves — and **that term is statement-independent.**
+the safe GPU, from the line joining N=4 and N=64 (two points, not a fit — see
+`performance-table.md`) — and that term is taken to be **statement-independent.**
 
 That is not an assumption; it is visible in the artefacts. A leaf's compressed proof is:
 
@@ -178,9 +205,15 @@ That is not an assumption; it is visible in the artefacts. A leaf's compressed p
 | Ethereum address (elephant) | 1,272,772 B |
 | hardened child | 1,272,919 – 1,272,923 B |
 
-**0.012% apart**, and the difference is public-values serialisation. The recursion layer's work to
-admit one leaf is a function of the leaf proof's shape, and the shape does not depend on which
-statement produced it. So:
+**0.012% apart** (the hardened-child leaves in the n=64 cache run to 1,272,925 B), and the difference
+is public-values serialisation.
+
+⚠️ **This is weaker evidence than the sentence it replaced claimed.** What is *observed* is that the
+leaf proofs have the same shape. That equal shape implies equal per-leaf recursion cost is an
+inference about how the recursion layer works — the same source-reading category this repository is
+careful to label elsewhere. Checking it properly needs an elephant root at two different leaf counts,
+which does not exist: the marginal term is ~2.55 s against a ~15,585 s fixed term, so separating them
+needs a lever arm of tens of leaves, at over an hour each. Taking the inference:
 
 - elephant root fixed term ≈ **15,585 s** (4 h 20 m) — the secp256k1 fingerprint pass, paid once
 - **root(219) ≈ 15,585 + 219 × 2.55 ≈ 16,143 s ≈ 4 h 29 m**
@@ -205,9 +238,25 @@ measurements.
 
 ### 🔑 The root is now the wall clock, and more machines will not touch it
 
-**The root is 79% of the wall clock** — 4.48 h against a 1.17 h leaf — and it is 3.71 leaves' work
-for a job that admits leaves in 2.55 s each. Essentially all of it is the one-off structural
-traversal of the secp256k1 circuit, the fixed term of the instruction law.
+**The root is 79% of the wall clock** — 4.48 h against a 1.17 h leaf — and it is 3.71 leaves' *wall
+clock* for a job that admits leaves in 2.55 s each.
+
+**That it is the fingerprint traversal is measured, not inferred** (`elephant-split 2 execute-root`):
+
+| | instructions | |
+|---|---:|---:|
+| the root guest, over 2 leaves | **5,101,775,808** | |
+| the monolithic law's fixed term | 5.1004e9 | **1.0003×** |
+
+The root's guest work is the fixed term of the instruction law to within **0.03%**. Admitting the
+leaves costs so little that two of them do not move the third significant figure. This was an
+inference from the monolithic law until the root was executed; it is now a measurement, and it landed
+almost exactly on the prediction.
+
+🪤 It also exposes something the wall clock alone hid: the root proves at **327,250 instr/s** against
+the leaf's 569,221 — **0.575×**. Guest instructions are not fungible between the two workloads any
+more than they are between statements, so the root is not "3.71 leaves of work"; it is 2.13 leaves of
+guest work proved at 57% of the rate. Anyone projecting a root from a leaf's rate would be 1.75× out.
 
 That inverts where the effort belongs. Adding machines drives the leaf half toward zero and leaves
 4.48 h standing. **The lever is the fingerprint pass, not the fleet.** Whether that traversal can be

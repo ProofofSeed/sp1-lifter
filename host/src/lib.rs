@@ -137,6 +137,86 @@ pub fn expectation_for(
     };
 }
 
+/// The reference consumer expectation for the hardened-child statement, from its parts.
+///
+/// The same rule as [`expectation_for`]: the fingerprint is **recomputed** over the public-only
+/// circuit, never copied from the journal under test, because a copied fingerprint makes the
+/// gate's fingerprint clause unreachable.
+pub fn expectation_for_statement(
+    chain_code: &[u8],
+    index: u32,
+    expected_output: &zkboo::word::Words,
+    binding: &[u8],
+    min_responses: u32,
+) -> snark_lifter_statement::JournalExpectation {
+    let public_circuit = HardenedChildCircuit::public_only(chain_code.to_vec(), index);
+    return snark_lifter_statement::JournalExpectation {
+        fingerprint: zkboo_circuit_hash::hash_circuit::<_, H>(&public_circuit),
+        chain_code: chain_code.to_vec(),
+        index,
+        expected_output: expected_output.clone(),
+        binding: binding.to_vec(),
+        min_responses,
+        proof_format_version: snark_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION,
+    };
+}
+
+/// The ZKBoo proof format the elephant statement requires.
+///
+/// Pinned here rather than read from the linked `zkboo`, for the reason
+/// `snark_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION` gives: an expectation taken from
+/// whatever a consumer happens to link tracks that consumer instead of constraining it, so a
+/// consumer that downgraded would silently begin *requiring* the older format. The elephant
+/// driver used to pass `zkboo::PROOF_FORMAT_VERSION` straight through, which is exactly the
+/// check-that-cannot-fail the other crate documents itself as existing to prevent.
+pub const REQUIRED_ELEPHANT_PROOF_FORMAT_VERSION: u32 = 3;
+
+/// The reference consumer expectation for the elephant statement, with the fingerprint
+/// **recomputed** over the public-only circuit rather than copied from the journal under test.
+///
+/// 🚨 Build expectations with this, never field by field from the journal being checked. A
+/// fingerprint copied out of that journal makes the gate's `FingerprintMismatch` arm
+/// unreachable, so it reports green against precisely the circuit drift it exists to catch.
+///
+/// 🚨 It also enforces a requirement nothing else in this repository states: **the last output
+/// word is ZKBoo 2.0.0's assertion word, and it must be 1.** Prover advice (`Backend::hint`) is
+/// unconstrained except by the in-circuit assertions accumulated into that word, so a proof of
+/// `(any address the prover likes, assertion = 0)` is honestly obtainable by anyone with no seed
+/// knowledge at all. A relying party that checks only the twenty address bytes, or that builds an
+/// expectation ending in 0, is forgeable for any address. Every expectation this repository has
+/// built happens to satisfy it, because they all come from executing a genuine witness — and
+/// "happens to" is not "is required to".
+///
+/// This lives in the host crate on purpose. The obvious home is `snark-lifter-elephant`, but the
+/// elephant guests link that crate, and a change to it moves their verifying keys — invalidating
+/// the pinned leaf key and every cached leaf proof, at over an hour each to rebuild.
+pub fn elephant_expectation_for(
+    expected_output: &zkboo::word::Words,
+    binding: &[u8],
+    min_responses: u32,
+) -> Result<snark_lifter_elephant::ElephantExpectation, String> {
+    let assertion = expected_output
+        .as_vec::<u8>()
+        .last()
+        .copied()
+        .ok_or_else(|| "expected output carries no u8 words, so it has no assertion word".to_string())?;
+    if assertion != 1 {
+        return Err(format!(
+            "expected output's trailing assertion word is {assertion}, not 1: the circuit's \
+             in-circuit assertions are not required to hold and the statement proves nothing"
+        ));
+    }
+    return Ok(snark_lifter_elephant::ElephantExpectation {
+        fingerprint: zkboo_circuit_hash::hash_circuit::<_, H>(
+            &snark_lifter_elephant::EthereumAddressCircuit::public_only(),
+        ),
+        expected_output: expected_output.clone(),
+        binding: binding.to_vec(),
+        min_responses,
+        proof_format_version: REQUIRED_ELEPHANT_PROOF_FORMAT_VERSION,
+    });
+}
+
 /// Decodes the program's committed public values into a [`LiftJournal`].
 ///
 /// The decode is exact-length: trailing bytes after the journal are refused, so the
@@ -192,7 +272,7 @@ pub fn prover_client() -> (EnvProver, String) {
     let summary = format!(
         "backend={} shard_size={} element_threshold={} height_threshold={} \
          trace_chunk_slots={} memory_limit={} rayon_threads={}",
-        prover_backend(),
+        prover_backend_report(),
         opts.shard_size,
         opts.sharding_threshold.element_threshold,
         opts.sharding_threshold.height_threshold,
@@ -222,7 +302,20 @@ pub fn prover_client() -> (EnvProver, String) {
 /// taken without it is not comparable to one taken with it. Both now appear here, so a
 /// summary line pins the configuration a number was actually measured under.
 pub fn prover_backend() -> String {
-    let selected = std::env::var("SP1_PROVER").unwrap_or_else(|_| "cpu".to_string());
+    return std::env::var("SP1_PROVER").unwrap_or_else(|_| "cpu".to_string());
+}
+
+/// The same, decorated with the GPU configuration, **for the summary line only**.
+///
+/// 🚨 Keep this separate from `prover_backend`. Every driver guards with
+/// `assert_ne!(prover_backend(), "mock", ...)`, and folding the decoration into that function
+/// made the guard compare `"mock/metal-not-built"` against `"mock"` — so it could no longer
+/// fire, in all four drivers at once, including the one that writes on-chain fixtures. The
+/// bug was introduced by the very change that added this reporting, and it is exactly the
+/// failure the guard exists to prevent: a fabricated proof printing the same success line as
+/// a real one. A reporting string must never be the thing a check compares.
+pub fn prover_backend_report() -> String {
+    let selected = prover_backend();
     if !cfg!(feature = "metal") {
         return format!("{selected}/metal-not-built");
     }
