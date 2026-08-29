@@ -270,9 +270,27 @@ pub enum JournalCheckError {
 /// the two steps, and the on-chain verifier takes the verifying key as an explicit
 /// argument for the same reason.
 ///
-/// Given that precondition, this is the reference consumer-side gate: everything a
+/// 🚨 **Second mandatory precondition, on the expectation rather than the journal: the
+/// expected output's trailing assertion word must be 1, and the consumer must not take an
+/// `expected_output` from the claimant.** ZKBoo 2.0.0 lets a prover supply advice
+/// (`Backend::hint`) that is unconstrained except by the in-circuit assertions accumulated
+/// into the final output word. So a proof of *(any output the prover likes, assertion = 0)*
+/// is honestly obtainable by anyone with no witness knowledge at all — a valid proof of a
+/// statement that asserts nothing. A gate comparing only the meaningful bytes (the twenty
+/// address bytes, say) while letting the assertion word be 0, or taking the whole expected
+/// output from the party being authorised, is forgeable outright.
+///
+/// This function cannot enforce it: it is a property of the expectation handed in, not of the
+/// journal. Build expectations with a constructor that checks it — `snark_lifter_host`'s
+/// `expectation_for`, `expectation_for_statement` and `elephant_expectation_for`. Every
+/// expectation in this repository satisfies the requirement because they all derive from
+/// executing a genuine witness; that is an accident of construction, and until this paragraph
+/// it was recorded nowhere.
+///
+/// Given those preconditions, this is the reference consumer-side gate: everything a
 /// relying party must additionally check before treating a proof over this journal as
-/// an authorisation. The on-chain verifier contract must enforce exactly these checks.
+/// an authorisation. The on-chain verifier contract must enforce exactly these checks —
+/// **including the assertion-word requirement above, which no code here can check for it.**
 pub fn check_journal(
     journal: &LiftJournal,
     expectation: &JournalExpectation,

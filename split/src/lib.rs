@@ -62,15 +62,69 @@ const ZKBOO_BINDING_DOMAIN: &[u8] = b"ZKBOO-BINDING-v1";
 /// the one the root was asked to attest. Without it, leaves proved against different
 /// statements could be aggregated into a single journal naming just one of them.
 pub fn statement_digest(chain_code: &[u8], index: u32, expected_output: &Words, binding: &[u8]) -> S {
+    let mut params = alloc::vec::Vec::with_capacity(chain_code.len() + 4);
+    params.extend_from_slice(chain_code);
+    params.extend_from_slice(&index.to_le_bytes());
+    return statement_digest_generic(&params, expected_output, binding);
+}
+
+/// The statement digest over an opaque encoding of a circuit's public parameters.
+///
+/// Every statement in the suite has a different set of them — the hardened child has a chain
+/// code and an index, the Ethereum address has none at all — but the cross-leaf gate does not
+/// care what they are, only that every leaf agrees on them. Encoding them as one length-framed
+/// blob is what lets one gate serve every statement.
+///
+/// ⚠️ The encoding is the caller's, and two statements whose parameters encode identically would
+/// share a digest. Each statement's leaf and root programs are separate ELFs with separate
+/// verifying keys, so a leaf cannot be presented to another statement's root regardless; this
+/// framing is what makes the digest unambiguous *within* one of them.
+pub fn statement_digest_generic(public_params: &[u8], expected_output: &Words, binding: &[u8]) -> S {
     let mut hasher = H::new();
     hasher.update(STATEMENT_DOMAIN);
-    hasher.update(&(chain_code.len() as u64).to_le_bytes());
-    hasher.update(chain_code);
-    hasher.update(&index.to_le_bytes());
+    hasher.update(&(public_params.len() as u64).to_le_bytes());
+    hasher.update(public_params);
     expected_output.update_hasher(&mut hasher);
     hasher.update(&(binding.len() as u64).to_le_bytes());
     hasher.update(binding);
     return hasher.finalize();
+}
+
+/// Version tag of the elephant leaf/root frames.
+pub const ELEPHANT_SPLIT_FRAME_VERSION: u32 = 1;
+
+/// The frame passed to the **elephant** leaf program: one response of an Ethereum-address proof.
+///
+/// The statement has no public circuit parameters — the witness is a private key and the output is
+/// the address — so where the hardened-child frame carries a chain code and an index, this carries
+/// nothing, and its statement digest is taken over an empty parameter blob.
+#[derive(Serialize, Deserialize)]
+pub struct ElephantLeafInput {
+    /// Frame version; must equal [`ELEPHANT_SPLIT_FRAME_VERSION`].
+    pub version: u32,
+    /// Expected circuit output: the 20-byte address, and the assertion word.
+    pub expected_output: Words,
+    /// Challenge binding (empty for unbound).
+    pub binding: Vec<u8>,
+    /// This response's position in the proof, counted from zero.
+    pub position: u32,
+    /// The single response this leaf replays.
+    pub response: zkboo::prover::proof::Response<S, S>,
+}
+
+/// The frame passed to the **elephant** root program.
+#[derive(Serialize, Deserialize)]
+pub struct ElephantRootInput {
+    /// Frame version; must equal [`ELEPHANT_SPLIT_FRAME_VERSION`].
+    pub version: u32,
+    /// Expected circuit output.
+    pub expected_output: Words,
+    /// Challenge binding.
+    pub binding: Vec<u8>,
+    /// The verifying key every leaf proof must carry.
+    pub leaf_vk: [u32; 8],
+    /// Each leaf's committed public values, in response order.
+    pub leaf_public_values: Vec<Vec<u8>>,
 }
 
 /// The frame passed to the leaf program: the statement, and ONE response of the proof.
@@ -142,11 +196,14 @@ pub struct RootInput {
     pub binding: Vec<u8>,
     /// The verifying-key digest every leaf proof must have been produced under.
     ///
-    /// ⚠️ Taken as input, and therefore **prover-chosen**: on its own this binds nothing,
-    /// because an attacker supplies both the key and proofs under it. It is committed
-    /// into [`RootJournal::leaf_vk`] so a relying party can pin it, exactly as the SP1
-    /// verifying key of the root itself must be pinned. A production root would instead
-    /// compile the leaf key in as a constant, moving the pin inside the root's own key.
+    /// ✅ **Both roots compile this key in** (`snark_lifter_pinned_keys`), since 2026-08-28,
+    /// and refuse a claimed value that disagrees before admitting any proof — so the pin lives
+    /// inside the root's own verifying key, and pinning that key gets this for free. The field
+    /// is kept so a journal stays self-describing.
+    ///
+    /// ⚠️ It is still an *input*, so treat it as prover-chosen in any root that has not
+    /// compiled it in: alone it binds nothing, since an attacker supplies both the key and the
+    /// proofs under it.
     pub leaf_vk: [u32; 8],
     /// The leaf journals, as the exact public-value bytes their proofs commit, in
     /// response order.

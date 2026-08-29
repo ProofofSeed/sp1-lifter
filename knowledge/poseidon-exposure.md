@@ -65,7 +65,20 @@ This is the number the question turns on, and it is why algebraic hashes exist. 
 
 **353× per permutation, 83× per absorbed byte.**
 
-The probe that produced this is `fixtures/air-width-probe.rs.txt`, its output `fixtures/air-width-probe.log`; it reads the constants out of `p3-keccak-air` and `sp1-hypercube` rather than quoting them, so it cannot go stale silently against a version bump.
+Output: `fixtures/probe-air-width.log`. The probe reads the constants out of the crates rather than
+quoting them, so it cannot go stale silently against a version bump — against `p3-keccak-air`
+`=0.4.3-succinct` and `sp1-hypercube` `=6.4.0`:
+
+```rust
+use sp1_hypercube::operations::poseidon2::permutation::NUM_POSEIDON2_DEGREE3_COLS;
+
+let kc = p3_keccak_air::NUM_KECCAK_COLS;   // 2633
+let kr = p3_keccak_air::NUM_ROUNDS;        //   24
+let pc = NUM_POSEIDON2_DEGREE3_COLS;       //  179, and one row per permutation
+```
+
+Keccak absorbs 136 bytes per permutation against Poseidon2-KoalaBear-16's 32 (eight field elements),
+which is where the 353× per permutation becomes 83× per absorbed byte.
 
 Recursion is *made of* hashing — every Merkle path, every challenger absorb — so replacing Poseidon2 with Keccak, SHA-3 or Blake3 multiplies the recursion layer by something approaching that. It would not be a slower lifter; it would be a different feasibility class.
 

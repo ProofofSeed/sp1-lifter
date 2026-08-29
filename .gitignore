@@ -9,6 +9,17 @@ methods/guest/target
 !/fixtures/s2-*.log
 !/fixtures/s3-*.log
 !/fixtures/*.summary.log
-verifier/fixtures
+# The switch list the CPU arm of every GPU comparison was taken under: it is cited by
+# knowledge/gpu-proving.md and is the difference between a reproducible pair and a claim.
+!/fixtures/cpu-arm-switches.txt
+# The on-chain fixtures are the acceptance evidence for the wrapped proof — the artefact
+# the 270,441-gas result was measured on — and at ~1.2 KB each there is no reason for them
+# to live only on one machine. They are safe to track only because the Foundry suite now
+# refuses a fixture it should not accept (journal version, fingerprint, verifying key,
+# single-byte version, proof format, and the 219-response count), each guard validated by
+# staging a corrupted fixture; before those existed, a stale tracked fixture would have
+# been worse than none.
+verifier/fixtures/*
+!verifier/fixtures/*.onchain.json
 verifier/out
 verifier/cache

@@ -417,7 +417,7 @@ Compressed proving of a one-response lift, three arms, two runs each, on an idle
 obvious arms run through the fork, so a slowed CPU path would be indistinguishable from a fast GPU.
 The fork's CPU path lands within 0.8% of the published prover.
 
-**And it produces a wrong proof about once in twenty, then parks the run for ever.** An intermittent
+**And it produces a wrong proof about once in twenty-eight, then parks the run for ever.** An intermittent
 Merkle root mismatch, caught by SP1's own shard verification — so nothing invalid is accepted and the
 risk is availability, not soundness — but retried silently and never returned from. Leaving the
 Merkle tree on the CPU has run 115 consecutive proofs clean, at 1.92× instead of 4.72×. The number to

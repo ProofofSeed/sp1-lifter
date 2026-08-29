@@ -10,8 +10,11 @@ members = [
     "elephant",
     "program-elephant",
     "split",
+    "pinned-keys",
     "program-leaf",
     "program-root",
+    "program-leaf-elephant",
+    "program-root-elephant",
     "host",
 ]
 

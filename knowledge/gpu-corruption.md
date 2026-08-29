@@ -25,7 +25,8 @@ Only `RUST_LOG=error` shows the cause at all — `sp1-metal`'s own notes warn ab
 
 ## Rate
 
-Three occurrences over roughly a hundred single-response leaf proofs, each proof about 23 s:
+Three occurrences over the **84** single-response leaf proofs the three runs completed, each proof
+about 23 s:
 
 | run | configuration | failed at | phase |
 |---|---|---:|---|
@@ -33,7 +34,9 @@ Three occurrences over roughly a hundred single-response leaf proofs, each proof
 | 2 | defaults | leaf ~36 | `lift/deferred verify` (recursion) |
 | 3 | `SP1_METAL_UPLOAD_FRESH=1` | leaf 40 | `lift/deferred verify` (recursion) |
 
-Roughly one failure per 20–25 proofs, or about one per 8 minutes of proving.
+**One failure per 28 proofs**, or about one per 11 minutes of proving. (This note previously said
+"one per 20–25 proofs, about one per 8 minutes" a few lines above where it computes 3/84 correctly;
+the denominator is 84, not "roughly a hundred", and the two statements have been reconciled.)
 It is **not deterministic in the input**: leaf 8 failed in run 1 and succeeded in runs 2 and 3.
 It appears in both core proving and the recursion layer, which share a commitment scheme.
 
@@ -92,4 +95,4 @@ For whoever picks this up in `sp1-metal`:
   left overnight produces nothing and says nothing. Even without a fix, failing loudly would turn a
   silent all-night loss into a five-minute one.
 
-Logs: `fixtures/gpu-failure-1.log`, `fixtures/gpu-failure-2.log`, `fixtures/repro-gpu-fresh.log`.
+Logs: `fixtures/gpu-failure-1.summary.log` and `gpu-failure-2.summary.log` (the two default-configuration failures), `repro-gpu-fresh.summary.log` (the private-buffer run that failed at leaf 40), `repro-gpu-nomerkle.summary.log` and `split-n64-leaves-gpu.summary.log` (the 51 and 64 clean proofs with the Merkle tree on the CPU).

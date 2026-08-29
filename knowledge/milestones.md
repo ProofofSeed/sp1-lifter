@@ -106,7 +106,7 @@ moved to `d4825905…`, a full-scale execution costs 4,775,013,465 instructions 
 before — a thirtieth of a percent — and on-chain verification is unchanged at 270,441 gas.
 
 **The GPU is 4.7× faster than this machine's CPU prover, and cannot be left running unattended.**
-It produces a proof that fails its own verification roughly once every twenty, then parks the run
+It produces a proof that fails its own verification once every twenty-eight, then parks the run
 for ever; nothing is at risk but the run finishing, and nothing is printed unless `RUST_LOG` is on.
 The fault was narrowed to the one accelerated phase with no comparison mode, and leaving that phase
 on the CPU has run 115 consecutive proofs clean at 1.92×. `knowledge/gpu-corruption.md` records the
@@ -142,6 +142,29 @@ Expect roughly 1.5 h per leaf and ~3 h for the root's fingerprint pass, so about
 for a leaf plus a small-N root — and the fixed term is the thing to watch, since on this statement
 it is two thirds of a single-response run and it is paid once by the root rather than once per leaf.
 
+**✅ ACCEPTED, 2026-08-29.** Every clause of the acceptance met, on the safe-GPU configuration:
+
+| acceptance clause | result |
+|---|---|
+| cross-leaf gate matrix on the elephant, control accepting | **PASS** — nine refusal cases at 24 leaves, control accepted |
+| one elephant leaf proved and verified, wall clock and peak RSS | **4,207.74 s (1 h 10 m 08 s), 73.38 GB** |
+| one elephant root over a small N proved and verified | **15,589.86 s (4 h 19 m 50 s), 74.37 GB**, gate green over 2 |
+| root journal passes the relying-party gate | **PASS** — `check_elephant_journal`, fingerprint `4d6c3501…` |
+
+Logs: `fixtures/elephant-gate.summary.log`, `elephant-leaf-retime.summary.log`,
+`elephant-root-n2.summary.log`, `elephant-execute-gate.summary.log`.
+
+**The projections it replaced were wrong in both directions** — the leaf 1.26× under, the root 1.40×
+over — which is the argument for having run it rather than scaling the hardened child. The fixed term
+was indeed the thing to watch, and it is worse than expected: **the root is 79% of the wall clock**,
+so the next lever on this statement is the fingerprint pass, not more machines. See
+`knowledge/elephant-cost.md`.
+
+⚠️ **Two leaf timings taken during the campaign are retracted** — a sibling session was proving on
+the same machine — and one of them agreed with the projection to 3% while doing so. The gate matrix
+was also extended from five refusal cases to the full nine while accepting this milestone; five met
+the acceptance as worded, but "the gate matrix passes" reads stronger than five cases earn.
+
 ## 🔵 TODO — reinvestigate removing Poseidon
 
 **Ruled 2026-08-28 (Stefano): keep Poseidon for now.** Recorded here so the question is not lost.
@@ -156,7 +179,7 @@ Swapping it is not a configuration change. The `IopCtx` abstraction is the right
 instantiation is a one-line alias, but the recursion layer verifies the hash *in circuit*, with
 Poseidon2 in the recursion VM's instruction set as chips of its own. And a bit-oriented replacement is
 out on measured grounds: **63,192 trace cells per Keccak-f permutation against 179 for Poseidon2 —
-353× per permutation, 83× per absorbed byte** (`fixtures/air-width-probe.log`).
+353× per permutation, 83× per absorbed byte** (`fixtures/probe-air-width.log`).
 
 **What to do when this is picked up again, in order:**
 

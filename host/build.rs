@@ -79,4 +79,6 @@ fn main() {
     sp1_build::build_program_with_args("../program-elephant", Default::default());
     sp1_build::build_program_with_args("../program-leaf", Default::default());
     sp1_build::build_program_with_args("../program-root", Default::default());
+    sp1_build::build_program_with_args("../program-leaf-elephant", Default::default());
+    sp1_build::build_program_with_args("../program-root-elephant", Default::default());
 }

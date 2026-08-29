@@ -1,0 +1,185 @@
+=== campaign started 2026-08-24T07:50:01Z ===
+
+### 4 leaves (2026-08-24T07:50:01Z)
+── split-and-aggregate probe (n=4, mode=leaves) ──
+  prover config: backend=cpu shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  proved 4 ZKBoo responses natively in 4.88ms
+  wire: lift frame 245388 B for 4 responses ⇒ 59.9 KiB/response; leaf frame ≤ 61494 B (statement overhead ~185 B)
+── cross-leaf gate matrix (n=4, no proving) ──
+  control (all 4 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 0: challenge 1 != 2) ✓
+  G2 substituted response: refused (leaf 0: challenge 1 != 2) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 0: challenge 1 != 0) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 0: challenge 1 != 0) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+
+── 4 leaf proofs ──
+  leaf 0: 123.64s, 351 bytes of public values → fixtures/leaves/leaf-0.compressed.bin
+  leaf 1: 123.97s, 347 bytes of public values → fixtures/leaves/leaf-1.compressed.bin
+  leaf 2: 123.87s, 349 bytes of public values → fixtures/leaves/leaf-2.compressed.bin
+  leaf 3: 124.35s, 349 bytes of public values → fixtures/leaves/leaf-3.compressed.bin
+
+  4 leaves cached, 495.83s total, 123.96s mean
+split-and-aggregate probe: PASS
+      504.86 real      5144.01 user       314.17 sys
+         80080240640  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            53775181  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  12  voluntary context switches
+            14187719  involuntary context switches
+      89502433655144  instructions retired
+      21059704075505  cycles elapsed
+         79174200216  peak memory footprint
+### exit=0 (2026-08-24T07:58:26Z)
+
+### 4 forge (2026-08-24T07:58:26Z)
+── split-and-aggregate probe (n=4, mode=forge) ──
+  prover config: backend=cpu shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  proved 4 ZKBoo responses natively in 4.93ms
+  wire: lift frame 245388 B for 4 responses ⇒ 59.9 KiB/response; leaf frame ≤ 61494 B (statement overhead ~185 B)
+── cross-leaf gate matrix (n=4, no proving) ──
+  control (all 4 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 0: challenge 1 != 2) ✓
+  G2 substituted response: refused (leaf 0: challenge 1 != 2) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 0: challenge 1 != 0) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 0: challenge 1 != 0) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+
+── root over 4 leaves (FORGED leaf key — must fail) ──
+  root refused in 214.89s: An unexpected error occurred: artifact not found: artifact not found
+forged-leaf-key case: PASS (refused by SP1's recursion layer)
+      223.74 real      2402.58 user       105.41 sys
+         84994981888  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            24235633  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+             4186757  involuntary context switches
+      42442443840200  instructions retired
+       9675523456712  cycles elapsed
+         84716829144  peak memory footprint
+### exit=0 (2026-08-24T08:02:10Z)
+
+### 4 root (2026-08-24T08:02:10Z)
+── split-and-aggregate probe (n=4, mode=root) ──
+  prover config: backend=cpu shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  proved 4 ZKBoo responses natively in 4.94ms
+  wire: lift frame 245388 B for 4 responses ⇒ 59.9 KiB/response; leaf frame ≤ 61494 B (statement overhead ~185 B)
+── cross-leaf gate matrix (n=4, no proving) ──
+  control (all 4 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 0: challenge 1 != 2) ✓
+  G2 substituted response: refused (leaf 0: challenge 1 != 2) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 0: challenge 1 != 0) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 0: challenge 1 != 0) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+
+── root over 4 leaves ──
+  root: 227.77s (gate green, 4 responses, 224 bytes of public values)
+
+── result (n=4) ──
+  root                              227.77s
+split-and-aggregate probe: PASS
+      236.72 real      2505.55 user       124.86 sys
+         84934901760  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            26148564  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+             5362001  involuntary context switches
+      44195587761478  instructions retired
+      10144283325325  cycles elapsed
+         84657240464  peak memory footprint
+### exit=0 (2026-08-24T08:06:07Z)
+
+### 64 leaves (2026-08-24T08:06:07Z)
+── split-and-aggregate probe (n=64, mode=leaves) ──
+  prover config: backend=cpu shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  proved 64 ZKBoo responses natively in 26.63ms
+  wire: lift frame 3925027 B for 64 responses ⇒ 59.9 KiB/response; leaf frame ≤ 61587 B (statement overhead ~261 B)
+── cross-leaf gate matrix (n=64, no proving) ──
+  control (all 64 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 1: challenge 2 != 0) ✓
+  G2 substituted response: refused (leaf 0: challenge 0 != 2) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 0: challenge 2 != 1) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 0: challenge 0 != 2) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+
+── 64 leaf proofs ──
+  leaf 0: 125.43s, 351 bytes of public values → fixtures/leaves/leaf-0.compressed.bin
+  leaf 1: 124.17s, 347 bytes of public values → fixtures/leaves/leaf-1.compressed.bin
+  leaf 2: 126.70s, 349 bytes of public values → fixtures/leaves/leaf-2.compressed.bin
+  leaf 3: 122.95s, 349 bytes of public values → fixtures/leaves/leaf-3.compressed.bin
+  leaf 4: 124.67s, 353 bytes of public values → fixtures/leaves/leaf-4.compressed.bin
+  leaf 5: 126.78s, 349 bytes of public values → fixtures/leaves/leaf-5.compressed.bin
+  leaf 6: 124.82s, 353 bytes of public values → fixtures/leaves/leaf-6.compressed.bin
+  leaf 7: 129.69s, 349 bytes of public values → fixtures/leaves/leaf-7.compressed.bin
+  leaf 8: 125.34s, 353 bytes of public values → fixtures/leaves/leaf-8.compressed.bin
+  leaf 9: 124.64s, 351 bytes of public values → fixtures/leaves/leaf-9.compressed.bin
+  leaf 10: 125.06s, 348 bytes of public values → fixtures/leaves/leaf-10.compressed.bin
+  leaf 11: 125.00s, 351 bytes of public values → fixtures/leaves/leaf-11.compressed.bin
+  leaf 12: 122.71s, 347 bytes of public values → fixtures/leaves/leaf-12.compressed.bin
+  leaf 13: 123.70s, 349 bytes of public values → fixtures/leaves/leaf-13.compressed.bin
+  leaf 14: 122.96s, 349 bytes of public values → fixtures/leaves/leaf-14.compressed.bin
+  leaf 15: 122.73s, 351 bytes of public values → fixtures/leaves/leaf-15.compressed.bin
+  leaf 16: 123.10s, 349 bytes of public values → fixtures/leaves/leaf-16.compressed.bin
+  leaf 17: 123.21s, 349 bytes of public values → fixtures/leaves/leaf-17.compressed.bin
+  leaf 18: 122.16s, 351 bytes of public values → fixtures/leaves/leaf-18.compressed.bin
+  leaf 19: 121.22s, 351 bytes of public values → fixtures/leaves/leaf-19.compressed.bin
+  leaf 20: 124.74s, 349 bytes of public values → fixtures/leaves/leaf-20.compressed.bin
+  leaf 21: 122.14s, 347 bytes of public values → fixtures/leaves/leaf-21.compressed.bin
+  leaf 22: 122.84s, 349 bytes of public values → fixtures/leaves/leaf-22.compressed.bin
+  leaf 23: 124.34s, 351 bytes of public values → fixtures/leaves/leaf-23.compressed.bin
+  leaf 24: 123.50s, 353 bytes of public values → fixtures/leaves/leaf-24.compressed.bin
+  leaf 25: 123.55s, 351 bytes of public values → fixtures/leaves/leaf-25.compressed.bin
+  leaf 26: 124.91s, 349 bytes of public values → fixtures/leaves/leaf-26.compressed.bin
+  leaf 27: 126.39s, 349 bytes of public values → fixtures/leaves/leaf-27.compressed.bin
+  leaf 28: 126.61s, 349 bytes of public values → fixtures/leaves/leaf-28.compressed.bin
+  leaf 29: 127.66s, 351 bytes of public values → fixtures/leaves/leaf-29.compressed.bin
+  leaf 30: 130.71s, 347 bytes of public values → fixtures/leaves/leaf-30.compressed.bin
+  leaf 31: 127.46s, 351 bytes of public values → fixtures/leaves/leaf-31.compressed.bin
+  leaf 32: 134.78s, 350 bytes of public values → fixtures/leaves/leaf-32.compressed.bin

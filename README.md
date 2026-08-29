@@ -12,7 +12,7 @@ The ZKBoo crates come from crates.io at the exact version the build script deman
 Proving runs on the GPU. Build with `--features metal` and everything below goes through the Metal backend for SP1 Hypercube (`knowledge/gpu-proving.md`).
 To measure against the CPU, force the GPU path off with the switches in `fixtures/cpu-arm-switches.txt` rather than by rebuilding, so that both arms are one binary.
 
-⚠️ **Set `SP1_METAL_MERKLE=0` for any run you are not watching.** With every phase accelerated the backend is 4.7× faster than this machine's CPU prover on a one-response lift — and it also produces a proof that fails its own verification about once in twenty and then parks the run for ever. Leaving the Merkle tree on the CPU has run 115 consecutive proofs clean, at 1.9× on a single leaf and 2.3× on a full-scale lift. See `knowledge/gpu-corruption.md`.
+⚠️ **Set `SP1_METAL_MERKLE=0` for any run you are not watching.** With every phase accelerated the backend is 4.7× faster than this machine's CPU prover on a one-response lift — and it also produces a proof that fails its own verification about once in twenty-eight and then parks the run for ever. Leaving the Merkle tree on the CPU has run 115 consecutive proofs clean, at 1.9× on a single leaf and 2.3× on a full-scale lift. See `knowledge/gpu-corruption.md`.
 
 ```sh
 cargo build --release -p snark-lifter-host --features metal   # once; the binaries below are in target/release
@@ -23,6 +23,9 @@ cargo build --release -p snark-lifter-host --features metal   # once; the binari
 ./target/release/lift 8 compressed          # throughput probe, no wrap
 ./target/release/split-probe 4 both         # split-and-aggregate probe
 ./target/release/elephant-probe             # the secp256k1 statement's cost
+./target/release/elephant-split 2 both      # the split, on the secp256k1 statement
+./target/release/stream-lift 8              # leaves proved as responses arrive
+./target/release/vkeys                      # print every key, check the pinned ones
 (cd verifier && forge test)                 # on-chain verify + gas + rejects
 ```
 
@@ -42,4 +45,7 @@ Proving cost is tunable from the environment without a rebuild — `SHARD_SIZE`,
 - `host/` — proof generation, execution/proving drivers, and the acceptance harnesses.
 - `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0).
 - `split/`, `program-leaf/`, `program-root/` — the split-and-aggregate probe: one proof per response plus a root carrying the cross-leaf global Fiat-Shamir gate, which is what makes the lift distributable and streamable. See `knowledge/split-and-streaming.md`.
+- `program-leaf-elephant/`, `program-root-elephant/` — the same split over the secp256k1 Ethereum-address statement, which has no public parameters and a different journal shape, so it needs its own pair of guests. Driven by `elephant-split`.
+- `pinned-keys/` — the leaf verifying keys, compiled into the roots so that a root's own key says which leaf program it will admit. 🚨 **Run `vkeys` after editing any crate a guest links — a comment-only change has been measured moving a guest key** (`knowledge/guest-keys-move-on-comments.md`). **It has no dependencies on purpose:** a crate the leaf programs link would move their keys whenever it changed, and the pin would never converge. `vkeys` re-derives every key from the built ELFs and fails if a pinned constant has drifted.
+- `host/src/orchestrator.rs` — the streaming orchestrator: a leaf proof is dispatched as each response arrives rather than after the last one, so leaf proving overlaps response generation. Driven by `stream-lift`; see `knowledge/streaming-orchestrator.md`.
 - `knowledge/` — design record, milestone plan, and measured numbers, including `gpu-proving.md` for what the Metal backend does to this workload and `gpu-corruption.md` for the defect that bounds it.
