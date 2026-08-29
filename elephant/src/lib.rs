@@ -166,6 +166,11 @@ pub enum ElephantCheckError {
     TooFewResponses,
     /// The attested ZKBoo proof format differs from the required one.
     ProofFormatMismatch,
+    /// The expected output carries no u8 words, so it has no assertion word.
+    AssertionWordMissing,
+    /// The expected output's trailing assertion word is not 1: the circuit's in-circuit
+    /// assertions did not hold, so the proof — while valid — attests nothing.
+    AssertionWordNotSet,
 }
 
 /// Checks an [`ElephantJournal`] against an [`ElephantExpectation`].
@@ -197,6 +202,14 @@ pub fn check_elephant_journal(
     }
     if journal.proof_format_version != expectation.proof_format_version {
         return Err(ElephantCheckError::ProofFormatMismatch);
+    }
+    // Unconditional; see `snark_lifter_statement::check_journal`. A proof whose in-circuit
+    // assertions did not hold is valid, attests nothing, and anyone can produce one for any
+    // address without knowing a seed.
+    match journal.expected_output.as_vec::<u8>().last() {
+        None => return Err(ElephantCheckError::AssertionWordMissing),
+        Some(&w) if w != 1 => return Err(ElephantCheckError::AssertionWordNotSet),
+        Some(_) => {}
     }
     return Ok(());
 }
