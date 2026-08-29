@@ -257,6 +257,11 @@ pub enum JournalCheckError {
     TooFewResponses,
     /// The attested ZKBoo proof format differs from the required one.
     ProofFormatMismatch,
+    /// The expected output carries no u8 words, so it has no assertion word.
+    AssertionWordMissing,
+    /// The expected output's trailing assertion word is not 1: the circuit's in-circuit
+    /// assertions did not hold, so the proof — while perfectly valid — attests nothing.
+    AssertionWordNotSet,
 }
 
 /// Checks a [`LiftJournal`] against a [`JournalExpectation`].
@@ -270,22 +275,23 @@ pub enum JournalCheckError {
 /// the two steps, and the on-chain verifier takes the verifying key as an explicit
 /// argument for the same reason.
 ///
-/// 🚨 **Second mandatory precondition, on the expectation rather than the journal: the
-/// expected output's trailing assertion word must be 1, and the consumer must not take an
-/// `expected_output` from the claimant.** ZKBoo 2.0.0 lets a prover supply advice
-/// (`Backend::hint`) that is unconstrained except by the in-circuit assertions accumulated
-/// into the final output word. So a proof of *(any output the prover likes, assertion = 0)*
-/// is honestly obtainable by anyone with no witness knowledge at all — a valid proof of a
-/// statement that asserts nothing. A gate comparing only the meaningful bytes (the twenty
-/// address bytes, say) while letting the assertion word be 0, or taking the whole expected
-/// output from the party being authorised, is forgeable outright.
+/// 🚨 **The assertion word is checked here, unconditionally.** ZKBoo 2.0.0 lets a prover supply
+/// advice (`Backend::hint`) that is unconstrained on its own; what pins it down is the
+/// in-circuit assertions, accumulated by conjunction into the trailing word of the circuit's
+/// output. A prover running the honest protocol on a witness that does *not* satisfy the
+/// circuit obtains a perfectly valid proof whose assertion word is **0** — a genuine proof of
+/// *"I ran this circuit and its assertions did not hold"*, which anyone can produce for any
+/// claimed output with no witness knowledge whatsoever.
 ///
-/// This function cannot enforce it: it is a property of the expectation handed in, not of the
-/// journal. Build expectations with a constructor that checks it — `snark_lifter_host`'s
-/// `expectation_for`, `expectation_for_statement` and `elephant_expectation_for`. Every
-/// expectation in this repository satisfies the requirement because they all derive from
-/// executing a genuine witness; that is an accident of construction, and until this paragraph
-/// it was recorded nowhere.
+/// That word being 1 is part of the statement, not a caller's preference: it is fixed, public,
+/// and the same for every circuit in the suite. So this function requires it **of the journal**
+/// and does not rely on the consumer having built a correct expectation — an expectation that
+/// agreed with the journal in every other field would otherwise sail through. A gate comparing
+/// only the meaningful bytes, the twenty address bytes say, while letting the assertion word be
+/// 0, is forgeable outright.
+///
+/// 🪤 It is the last **u8** word, not the last byte of the blob: outputs mixing word widths keep
+/// the assertion word in the u8 section.
 ///
 /// Given those preconditions, this is the reference consumer-side gate: everything a
 /// relying party must additionally check before treating a proof over this journal as
@@ -319,5 +325,64 @@ pub fn check_journal(
     if journal.proof_format_version != expectation.proof_format_version {
         return Err(JournalCheckError::ProofFormatMismatch);
     }
+    // Unconditional, and deliberately not driven by the expectation: a proof whose in-circuit
+    // assertions did not hold is valid, attests nothing, and anyone can produce one.
+    match journal.expected_output.as_vec::<u8>().last() {
+        None => return Err(JournalCheckError::AssertionWordMissing),
+        Some(&w) if w != 1 => return Err(JournalCheckError::AssertionWordNotSet),
+        Some(_) => {}
+    }
     return Ok(());
+}
+
+#[cfg(test)]
+mod assertion_word_tests {
+    use super::*;
+    use alloc::vec;
+
+    /// A journal and an expectation agreeing on every field, with the trailing u8 output word
+    /// set to `assertion`.
+    fn pair(assertion: u8) -> (LiftJournal, JournalExpectation) {
+        let mut output = zkboo::word::Words::new();
+        output.as_vec_mut::<u8>().extend_from_slice(&[0xde, 0xad, assertion]);
+        let journal = LiftJournal {
+            version: LIFT_JOURNAL_VERSION,
+            valid: true,
+            fingerprint: [7u8; 32],
+            chain_code: vec![1u8; 32],
+            index: 0,
+            expected_output: output.clone(),
+            binding: vec![],
+            num_responses: 219,
+            proof_format_version: REQUIRED_PROOF_FORMAT_VERSION,
+        };
+        let expectation = JournalExpectation {
+            fingerprint: [7u8; 32],
+            chain_code: vec![1u8; 32],
+            index: 0,
+            expected_output: output,
+            binding: vec![],
+            min_responses: 219,
+            proof_format_version: REQUIRED_PROOF_FORMAT_VERSION,
+        };
+        return (journal, expectation);
+    }
+
+    #[test]
+    fn a_set_assertion_word_is_accepted() {
+        let (journal, expectation) = pair(1);
+        assert!(check_journal(&journal, &expectation).is_ok());
+    }
+
+    /// The forgery this exists for. The expectation **agrees with the journal in every field**,
+    /// so every other clause passes; only the unconditional assertion-word check stands between
+    /// a relying party and a valid proof that asserts nothing.
+    #[test]
+    fn a_clear_assertion_word_is_refused_even_when_the_expectation_agrees() {
+        let (journal, expectation) = pair(0);
+        assert_eq!(
+            check_journal(&journal, &expectation),
+            Err(JournalCheckError::AssertionWordNotSet)
+        );
+    }
 }

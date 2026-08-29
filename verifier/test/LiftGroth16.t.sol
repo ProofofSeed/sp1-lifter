@@ -21,9 +21,18 @@ import {Verifier} from "../src/vendor/Groth16Verifier.sol";
 /// identified by `vkey`, ran successfully and committed these public values". A relying
 /// contract must additionally decode the public values (the postcard-encoded lift
 /// journal) and enforce the reference consumer gate — fingerprint, statement, binding,
-/// and the soundness-critical minimum response count — exactly as `check_journal` in
-/// the statement crate specifies. Omitting the count check alone re-opens acceptance of
-/// proofs at prover-chosen soundness (the ZKBoo verifier accepts even the empty proof).
+/// the soundness-critical minimum response count, and the trailing assertion word —
+/// exactly as `check_journal` in the statement crate specifies. Two of those re-open a
+/// total break on their own:
+///
+/// - omitting the **count** check accepts proofs at prover-chosen soundness, since the
+///   ZKBoo verifier accepts even the empty proof;
+/// - omitting the **assertion word** accepts a proof that asserts nothing. ZKBoo 2.0.0
+///   leaves prover advice unconstrained except by the circuit's in-circuit assertions,
+///   which are accumulated into the last word of the output. Run the honest prover on a
+///   witness that does not satisfy the circuit and you get a perfectly valid proof whose
+///   assertion word is 0 — obtainable by anyone, for any address, with no seed. A gate
+///   that reads the twenty address bytes and ignores that word authorises everybody.
 contract LiftGroth16Test is Test {
     /// `LIFT_JOURNAL_VERSION` from the statement crate. The journal is postcard-encoded
     /// and `version` is its first field, so for any value below 128 the first byte of
@@ -135,6 +144,93 @@ contract LiftGroth16Test is Test {
                 "acceptance fixture does not attest 219 responses"
             );
         }
+        // Without this a valid proof that asserts nothing passes every other clause.
+        require(_assertionWord(publicValues) == 1, "journal's assertion word is not set: the proof attests nothing");
+    }
+
+
+    /// Reads a postcard LEB128 varint at `off`, returning its value and the next offset.
+    ///
+    /// The journal's fields are varint-encoded, so a relying contract cannot reach the
+    /// assertion word by a fixed index: the index field alone is one byte for an
+    /// unhardened child and five for a hardened one. Walking the prefix is the only
+    /// correct way in, which is why this exists rather than a constant offset.
+    function _varint(bytes memory b, uint256 off) internal pure returns (uint256 value, uint256 next) {
+        uint256 shift = 0;
+        while (true) {
+            require(off < b.length, "journal truncated inside a varint");
+            uint8 x = uint8(b[off]);
+            off += 1;
+            value |= uint256(x & 0x7f) << shift;
+            if (x & 0x80 == 0) break;
+            shift += 7;
+            require(shift <= 63, "journal varint too long");
+        }
+        return (value, off);
+    }
+
+    /// The trailing assertion word of the journal's `expected_output`.
+    ///
+    /// Walks the postcard prefix: version, valid, the 32-byte fingerprint, the chain code,
+    /// the index, then the `u8` word vector whose last element is the accumulated
+    /// conjunction of every in-circuit assertion.
+    ///
+    /// 🪤 It is the last **u8** word, not the last byte of the journal, and not the last
+    /// byte of `expected_output` either: `Words` stores wider word types after the u8
+    /// vector, and this statement's output carries u64 words after it.
+    function _assertionWord(bytes memory pv) internal pure returns (uint8) {
+        uint256 off;
+        (, off) = _varint(pv, 0);          // version
+        off += 1;                          // valid
+        off += 32;                         // fingerprint
+        uint256 len;
+        (len, off) = _varint(pv, off);     // chain_code length
+        off += len;
+        (, off) = _varint(pv, off);        // index
+        (len, off) = _varint(pv, off);     // u8 word count
+        require(len > 0, "expected output has no u8 words, so no assertion word");
+        require(off + len <= pv.length, "journal truncated inside expected_output");
+        return uint8(pv[off + len - 1]);
+    }
+
+    /// The offset `_assertionWord` reads, exposed so a test can flip exactly that byte and
+    /// show the guard depends on it rather than on something incidental.
+    function _assertionWordOffset(bytes memory pv) internal pure returns (uint256) {
+        uint256 off;
+        (, off) = _varint(pv, 0);
+        off += 33;
+        uint256 len;
+        (len, off) = _varint(pv, off);
+        off += len;
+        (, off) = _varint(pv, off);
+        (len, off) = _varint(pv, off);
+        return off + len - 1;
+    }
+
+    /// The parser points at the byte we think it does: flipping exactly that byte in a copy
+    /// of the real fixture is what changes the answer, and nothing else in the journal does.
+    function test_assertion_word_is_located_in_the_real_fixture() public view {
+        assertEq(_assertionWord(publicValues), 1, "the acceptance fixture must assert");
+        bytes memory vacuous = publicValues;
+        uint256 off = _assertionWordOffset(vacuous);
+        vacuous[off] = bytes1(uint8(0));
+        assertEq(_assertionWord(vacuous), 0, "flipping the located byte must clear the assertion");
+    }
+
+    /// The guard itself, on a journal that is valid in every other respect. This is the
+    /// forgery it exists for: the prover ran the honest protocol on a witness that does not
+    /// satisfy the circuit, so the proof verifies, the fingerprint matches, the response
+    /// count is 219, and the statement asserts nothing.
+    function test_gate_rejects_a_vacuous_journal() public {
+        bytes memory vacuous = publicValues;
+        vacuous[_assertionWordOffset(vacuous)] = bytes1(uint8(0));
+        vm.expectRevert(bytes("journal's assertion word is not set: the proof attests nothing"));
+        this.requireAssertionWord(vacuous);
+    }
+
+    /// External so `vm.expectRevert` can catch the require above.
+    function requireAssertionWord(bytes memory pv) public pure {
+        require(_assertionWord(pv) == 1, "journal's assertion word is not set: the proof attests nothing");
     }
 
     function test_lift_verifies_and_measures_gas() public view {
