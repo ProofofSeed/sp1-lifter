@@ -1,0 +1,144 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+pragma solidity ^0.8.20;
+
+import {Test} from "forge-std/Test.sol";
+import {console2} from "forge-std/console2.sol";
+import {LiftJournalGate as G} from "../src/LiftJournalGate.sol";
+
+/// The on-chain relying-party gate, against the real acceptance fixture.
+///
+/// Every negative below is produced by mutating that fixture, so each one is a journal
+/// that differs from an accepted one in exactly the field under test. The proof is not
+/// re-verified here — a mutated journal would fail the pairing check, which would prove
+/// nothing about the gate. What is under test is what the gate does with public values
+/// once `verifyProof` has accepted them, which is the only thing standing between a
+/// relying contract and a valid proof of the wrong statement.
+contract LiftJournalGateTest is Test {
+    bytes internal pv;
+    G.Expectation internal expectation;
+
+    function setUp() public {
+        string memory fixture = vm.envOr("LIFT_FIXTURE", string("fixtures/lift-219.onchain.json"));
+        if (!vm.exists(fixture)) {
+            vm.skip(true, "no fixture: this suite gated NOTHING; generate with lift 219 groth16");
+        }
+        pv = vm.parseJsonBytes(vm.readFile(fixture), ".publicValues");
+        G.Journal memory j = G.decode(pv);
+        // The expectation is built from the fixture's own statement fields, which is what a
+        // relying contract would have pinned at deployment. It is NOT built from the
+        // assertion word or the response count — those are requirements, not observations,
+        // and taking them from the journal is exactly the mistake this gate exists to stop.
+        expectation = G.Expectation({
+            version: j.version,
+            fingerprint: j.fingerprint,
+            chainCodeHash: keccak256(j.chainCode),
+            index: j.index,
+            outputU8Hash: keccak256(j.outputU8),
+            bindingHash: keccak256(j.binding),
+            minResponses: 219,
+            proofFormatVersion: 3
+        });
+    }
+
+    function test_decodes_the_real_journal() public view {
+        G.Journal memory j = G.decode(pv);
+        assertEq(j.version, 2, "journal version");
+        assertTrue(j.valid, "valid");
+        assertEq(j.chainCode.length, 32, "chain code length");
+        assertEq(j.index, 0x80000000, "hardened index");
+        assertEq(j.numResponses, 219, "response count");
+        assertEq(j.proofFormatVersion, 3, "proof format");
+        assertEq(j.assertionWord, 1, "assertion word must be set");
+        // 32 key bytes plus the assertion word.
+        assertEq(j.outputU8.length, 33, "u8 output words");
+    }
+
+    function test_accepts_the_real_journal() public view {
+        G.Journal memory j = G.check(pv, expectation);
+        assertEq(j.numResponses, 219);
+    }
+
+    /// The forgery. Everything else about this journal is impeccable: right fingerprint,
+    /// right statement, 219 responses, right format. Only the assertion word is clear, and
+    /// the expectation is regenerated to agree with the mutation in every other field — so
+    /// no clause but this one can reject it.
+    function test_rejects_a_vacuous_journal() public {
+        bytes memory bad = _withAssertionWord(0);
+        G.Journal memory j = G.decode(bad);
+        G.Expectation memory e = expectation;
+        e.outputU8Hash = keccak256(j.outputU8);
+        vm.expectRevert(abi.encodeWithSelector(G.AssertionWordNotSet.selector, uint8(0)));
+        this.gate(bad, e);
+    }
+
+    function test_rejects_too_few_responses() public {
+        G.Expectation memory e = expectation;
+        e.minResponses = 438;
+        vm.expectRevert(abi.encodeWithSelector(G.TooFewResponses.selector, uint32(219), uint32(438)));
+        this.gate(pv, e);
+    }
+
+    function test_rejects_a_different_circuit() public {
+        G.Expectation memory e = expectation;
+        e.fingerprint = bytes32(uint256(e.fingerprint) ^ 1);
+        vm.expectRevert();
+        this.gate(pv, e);
+    }
+
+    function test_rejects_a_different_statement() public {
+        G.Expectation memory e = expectation;
+        e.index = 0;
+        vm.expectRevert(G.StatementMismatch.selector);
+        this.gate(pv, e);
+    }
+
+    function test_rejects_a_different_binding() public {
+        G.Expectation memory e = expectation;
+        e.bindingHash = keccak256("some other transaction");
+        vm.expectRevert(G.BindingMismatch.selector);
+        this.gate(pv, e);
+    }
+
+    function test_rejects_trailing_bytes() public {
+        bytes memory bad = bytes.concat(pv, hex"00");
+        vm.expectRevert(G.JournalTrailingBytes.selector);
+        this.gate(bad, expectation);
+    }
+
+    function test_rejects_truncation() public {
+        bytes memory bad = new bytes(pv.length - 1);
+        for (uint256 i = 0; i < bad.length; i++) bad[i] = pv[i];
+        vm.expectRevert();
+        this.gate(bad, expectation);
+    }
+
+    function test_gas() public view {
+        uint256 before = gasleft();
+        G.check(pv, expectation);
+        console2.log("journal gate gas:", before - gasleft());
+    }
+
+    /// External so `vm.expectRevert` catches reverts from the library call.
+    function gate(bytes memory values, G.Expectation memory e) public pure {
+        G.check(values, e);
+    }
+
+    /// A copy of the fixture with the trailing u8 output word replaced.
+    function _withAssertionWord(uint8 w) internal view returns (bytes memory out) {
+        out = pv;
+        uint256 off = _assertionOffset(out);
+        out[off] = bytes1(w);
+        return out;
+    }
+
+    function _assertionOffset(bytes memory b) internal pure returns (uint256) {
+        uint256 off = 1 + 1 + 32;            // version varint (one byte here), valid, fingerprint
+        uint256 len = uint8(b[off]);         // chain code length (32, single-byte varint)
+        off += 1 + len;
+        while (uint8(b[off]) & 0x80 != 0) off++;   // index varint
+        off++;
+        len = uint8(b[off]);                 // u8 word count (33, single-byte varint)
+        off += 1;
+        return off + len - 1;
+    }
+}

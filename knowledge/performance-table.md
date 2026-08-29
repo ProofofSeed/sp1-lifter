@@ -13,6 +13,18 @@ Three arms appear throughout:
 - **GPU all** — every phase accelerated. Faster, and produces a proof that fails its own
   verification about once every twenty-eight, then parks the run for ever.
 
+## On-chain
+
+| step | gas |
+|---|---:|
+| `SP1VerifierGroth16.verifyProof` (the pairing check) | 270,441 |
+| `LiftJournalGate.check` (decode + the full relying-party gate) | **85,287** |
+| **together** | **~356,000** |
+
+The gate is 32% on top of the proof verification, and it is not optional: `verifyProof` alone
+establishes only that some program committed some public values. Measured 2026-08-29,
+`verifier/test/LiftJournalGate.t.sol`.
+
 ## SP1 zkVM proving
 
 | workload | CPU | GPU safe | GPU all |
