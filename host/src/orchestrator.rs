@@ -25,7 +25,6 @@
 use std::{
     sync::{
         Arc, Mutex,
-        atomic::{AtomicUsize, Ordering},
         mpsc::{SyncSender, sync_channel},
     },
     thread,
@@ -92,6 +91,13 @@ pub struct StreamReport {
     /// Wall-clock of the root proof.
     pub root_wall: Duration,
     /// The whole run, challenge phase included.
+    ///
+    /// ⚠️ **Excludes the root program's `setup`**, which the driver runs between the streaming
+    /// phase and the root timer — deliberately, since holding two proving keys resident costs
+    /// 54% per leaf. So this sits a little under the process's own wall clock: on the n=8
+    /// cadence run, 770.68 s against 779.55 s real. It also *includes* each leaf's host-side
+    /// verification, where `serial_counterfactual` sums only `prove_wall` — a second bias, this
+    /// one against the streamed run. Both are about 1%, and neither is hidden.
     pub end_to_end: Duration,
     /// Summed time provers spent waiting for a response to exist.
     pub pool_idle: Duration,
@@ -205,7 +211,6 @@ pub fn stream_lift(
     let pool_idle = Arc::new(Mutex::new(Duration::ZERO));
     let queue_delay = Arc::new(Mutex::new(Duration::ZERO));
     let last_produced = Arc::new(Mutex::new(Duration::ZERO));
-    let dispatched = Arc::new(AtomicUsize::new(0));
 
     let challenge_wall = thread::scope(|scope| {
         // The receiver is owned INSIDE the scope, and the last handle outside the worker set is
@@ -239,11 +244,19 @@ pub fn stream_lift(
             let pool_idle = Arc::clone(&pool_idle);
             let queue_delay = Arc::clone(&queue_delay);
             let last_produced = Arc::clone(&last_produced);
-            let dispatched = Arc::clone(&dispatched);
             scope.spawn(move || {
                 loop {
                     // Time spent here is a prover with nothing to do, which is the number
                     // that says a deployment has more machines than it needs.
+                    //
+                    // ⚠️ This counts waiting for a response *that will come*. The final `recv`,
+                    // the one returning Err because the channel closed, breaks below without
+                    // being counted — so a worker sitting out the last leaf's prove on an
+                    // otherwise finished run contributes nothing here. That is deliberate under
+                    // the stated definition, but it means `pool_idle` is an undercount against
+                    // the fully-counted `queue_delay` whenever pool > 1, and the printed
+                    // comparison between them is biased toward "proving is the bottleneck" by
+                    // exactly that much.
                     let idle_from = Instant::now();
                     let arrival = { rx.lock().expect("receiver lock").recv() };
                     let Ok(arrival) = arrival else { break };
@@ -259,7 +272,6 @@ pub fn stream_lift(
                             *g = arrival.produced_at;
                         }
                     }
-                    dispatched.fetch_add(1, Ordering::Relaxed);
                     let leaf_input = LeafInput {
                         version: snark_lifter_split::LEAF_FRAME_VERSION,
                         chain_code: statement.chain_code.clone(),

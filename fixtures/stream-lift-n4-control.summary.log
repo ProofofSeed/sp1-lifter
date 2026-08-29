@@ -5,37 +5,37 @@
 ── timeline (n=4, pool=1) ──
   challenge phase (global, before any response can exist): 0.01s
   last response finished by the producer:                   0.02s
-  leaf proving, summed:                                    226.39s
-  root:                                                    110.52s
-  end to end:                                              337.03s
+  leaf proving, summed:                                    228.34s
+  root:                                                    111.99s
+  end to end:                                              340.44s
 
   provers idle, waiting for a response to exist:            0.01s
-  finished responses queued, waiting for a prover:          340.53s
+  finished responses queued, waiting for a prover:          343.52s
   ⇒ the proving side is the bottleneck
 
 ── what the pipeline is worth ──
   ⚠️ proving is the bottleneck, so the overlap below is bounded by how fast leaves
      are proved, not by how fast responses arrive. With 1 prover(s) against a leaf
-     of ~56.60s, one machine keeps pace only with an arrival interval above that.
-  produced, then lifted (no overlap):                       336.92s
-  streamed (this run):                                      337.03s
+     of ~57.08s, one machine keeps pace only with an arrival interval above that.
+  produced, then lifted (no overlap):                       340.34s
+  streamed (this run):                                      340.44s
   overlap saved:                                            0.00s (1.00x)
 streamed lift: PASS
-      345.72 real      3438.97 user       150.63 sys
-         71788773376  maximum resident set size
+      348.99 real      3436.96 user       149.93 sys
+         72973402112  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-            37406407  page reclaims
+            36877391  page reclaims
                    0  page faults
                    0  swaps
                    0  block input operations
                    0  block output operations
                    0  messages sent
                    0  messages received
-                   2  signals received
-                   0  voluntary context switches
-             2730918  involuntary context switches
-      62200133888755  instructions retired
-      13869759992782  cycles elapsed
-         71567316656  peak memory footprint
+                   1  signals received
+                   2  voluntary context switches
+             2729677  involuntary context switches
+      62198996575345  instructions retired
+      13868255521328  cycles elapsed
+         72708331832  peak memory footprint

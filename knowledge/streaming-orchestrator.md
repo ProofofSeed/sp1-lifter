@@ -46,19 +46,22 @@ an arrival interval to model the cadence.
 
 | | re-run (logged) | the unlogged original |
 |---|---:|---:|
-| leaf proving, summed | **226.39 s** (56.60 s mean) | 238.56 s (59.64 s) |
-| root | **110.52 s** | 117.99 s |
-| end to end | **337.03 s** | 356.57 s |
+| leaf proving, summed | **228.34 s** (57.09 s mean) | 238.56 s (59.64 s) |
+| root | **111.99 s** | 117.99 s |
+| end to end | **340.44 s** | 356.57 s |
 | overlap | **1.00×** | 1.00× |
-| peak RSS | **71.79 GB** | not recorded |
+| peak RSS | **72.97 GB** | not recorded |
+
+(The control was run twice, before and after a change to the orchestrator's accounting; the two agree
+within 1% — 226.39 / 110.52 / 337.03 / 71.79 GB and the row above. The log holds the second.)
 
 The original column was real but its log was never saved, so it could not be traced to a file — the
 same provenance failure this project has recorded before. The re-run is 5% faster across the board
 and confirms the shape, including the 1.00× that says a machine producing responses instantly has
 nothing to overlap. **Quote the logged column.**
 
-✅ **It also resolves the root discrepancy below.** At n=4 the orchestrator's root takes 110.52 s
-against the `102.0 + 2.55·N` line's 112.2 s — **1.5%**. So the line does describe a root the
+✅ **It also resolves the root discrepancy below.** At n=4 the orchestrator's root takes 111.99 s
+against the `102.0 + 2.55·N` line's 112.2 s — **0.2%** (110.52 s, 1.5%, on the first of the two runs). So the line does describe a root the
 orchestrator drives, and the n=8 cadence run's 184.85 s against a predicted 122.4 s is an anomaly of
 that run, not a systematic property of the orchestrator's root.
 
