@@ -17,10 +17,10 @@ use std::time::Instant;
 
 use sp1_sdk::blocking::ProverClient;
 use snark_lifter_host::{
-    HARDENED_OFFSET, WPP, bip32_vector_1, execute_lift, lift_input_for, vector_1_proof,
+    HARDENED_OFFSET, WPP, bip32_vector_1, execute_lift, lift_input_for, n_eps, vector_1_proof,
 };
 use snark_lifter_statement::{H, PV, S};
-use zkboo::{params::n_eps, verifier::verify};
+use zkboo::verifier::{VerifyOptions, verify};
 
 const SEED_ENTROPY: &[u8] = b"snark-lifter cycle probe entropy";
 const BINDING: &[u8] = b"";
@@ -49,7 +49,8 @@ fn main() {
         let (circuit, output, proof) = vector_1_proof(n, SEED_ENTROPY, BINDING);
         let prove_time = t.elapsed();
         let ok =
-            verify::<_, H, PV, S, WPP>(&circuit, &output, &proof, BINDING).expect("native verify");
+            verify::<_, H, PV, S, WPP, _>(&circuit, &output, &proof, BINDING, VerifyOptions::new())
+                .expect("native verify");
         assert!(ok, "native verification failed at {n} iters");
         let (_, chain_code) = bip32_vector_1();
         let input = lift_input_for(chain_code, HARDENED_OFFSET, output, BINDING, proof);

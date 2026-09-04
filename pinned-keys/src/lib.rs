@@ -32,6 +32,15 @@
 //! drifted, printing the correct value. Run it after anything that touches a leaf program or
 //! what it links.
 
+// 🚨 BOTH VALUES BELOW ARE STALE, KNOWINGLY, as of the move to zkboo 1.2.0.
+//
+// That release changes the circuits both leaves link — assertions became ordinary gates, and the
+// affine comb's advice became ordinary inputs — so both keys have moved and neither has been
+// recomputed yet, because doing so means building the guests. `cargo run --bin vkeys` refuses
+// while they disagree and prints the values to put here; nothing else in the workspace will
+// produce a proof that verifies until it does. The staleness is loud rather than silent, which
+// is the arrangement this crate exists to keep.
+
 /// The verifying key of `program-leaf`, the hardened-child leaf.
 pub const LEAF_VK: [u32; 8] = [
     0x55123cc9, 0x7c91e427, 0x63539ee8, 0x2f975740, 0x076e89c9, 0x0aac5262, 0x1b87f9ea, 0x0c92a711,

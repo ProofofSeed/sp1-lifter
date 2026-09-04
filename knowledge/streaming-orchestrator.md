@@ -1,5 +1,11 @@
 # Proving leaves as responses arrive
 
+> 🚨 **Every figure below was measured against the withdrawn ZKBoo 2.0.0 and is superseded.**
+> The move to zkboo 1.2.0 on 2026-09-04 changed every proof, every circuit fingerprint and
+> every guest verifying key; nothing here has been re-taken. Kept for the method and the
+> shape of the results, not for the numbers. Do not quote them, and do not rescale them by a
+> factor seen elsewhere. See `zkboo-1.2.0-migration.md`.
+
 `host/src/orchestrator.rs` and the `stream-lift` driver. Built 2026-08-28.
 
 The monolithic lifter cannot start until the last response exists, so device time and proving time

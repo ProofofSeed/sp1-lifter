@@ -25,13 +25,12 @@ use std::time::Instant;
 
 use sp1_sdk::blocking::{EnvProver, ProverClient};
 use snark_lifter_host::{
-    HARDENED_OFFSET, bip32_vector_1, execute_lift, expectation_for, lift_input_for,
+    HARDENED_OFFSET, bip32_vector_1, execute_lift, expectation_for, lift_input_for, n_eps,
     oversize_and_msg, tamper_and_msg, vector_1_proof,
 };
 use snark_lifter_statement::{
     JournalCheckError, JournalExpectation, LiftInput, LiftJournal, check_journal,
 };
-use zkboo::params::n_eps;
 
 const SEED_ENTROPY: &[u8] = b"snark-lifter S1 acceptance entropy";
 const BINDING: &[u8] = b"snark-lifter S1 acceptance tx binding";

@@ -1,6 +1,8 @@
-# Workspace for the SNARK lifter: a classically-secure succinct lift of ZKBoo
+# Workspace for the SP1 lifter: a classically-secure succinct lift of ZKBoo
 # proofs of seed, cheap to verify on Ethereum L1 today. Stack: SP1 (sdk 6.4.0),
 # ratified 2026-08-19 — see knowledge/milestones.md for the amendment record.
+# The repository is named for its proof system because other back ends are expected
+# alongside it, not because SP1 is the only way to lift these proofs.
 
 [workspace]
 resolver = "3"
@@ -24,17 +26,41 @@ edition = "2024"
 license = "LGPL-3.0-or-later"
 
 # tiny-keccak is patched to SP1's accelerated fork (the Keccak precompile): inside the
-# zkVM, zkboo's Keccak256Hasher drives the precompile; on host targets the fork
+# zkVM, this workspace's Keccak256Hasher drives the precompile; on host targets the fork
 # compiles to the stock implementation, so digests are identical everywhere.
 #
-# The zkboo crates are NOT patched. They are required at an exact version and resolved
-# from crates.io, so that what a proof was made with is recorded in Cargo.lock with a
-# checksum rather than in whatever state a working tree happened to be in. A path patch
-# whose local version stops satisfying the requirement is silently ignored by cargo and
-# the published crate is resolved instead, with no warning at all; that failure has
-# already cost this project a round of proofs that were well-formed and did not verify.
+# The zkboo crates ARE patched to local working trees, and that is a reversal.
+#
+# They used to be required from crates.io at an exact version, so that what a proof was made
+# with was recorded in Cargo.lock with a checksum rather than in whatever state a working tree
+# happened to be in. That is still the arrangement this project wants. It is not available:
+# zkboo 1.2.0 is unpublished, and every version that ever was published is yanked, so there is
+# no registry copy of the code these binaries must be built against.
+#
+# The failure the old arrangement guarded against — a patch silently disengaging when the local
+# version stops satisfying the requirement, cargo resolving the published crate instead with no
+# warning, and a round of proofs coming out well-formed and failing to verify — is guarded here
+# by the requirement itself. Every manifest asks for `=1.2.0`, and no 1.2.0 exists on crates.io;
+# a disengaged patch therefore fails to resolve loudly instead of resolving to something else
+# quietly. `host/build.rs` additionally refuses to build unless every zkboo crate in the lockfile
+# is at that version and comes from a path override, and records the git revision and dirty state
+# of each checkout into the binary.
+#
+# Restore the registry arrangement, and the guard that goes with it, as soon as 1.2.0 is
+# published.
 [patch.crates-io]
 tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", tag = "patch-2.0.2-sp1-6.0.0" }
+
+zkboo              = { path = "../../zkboo/zkboo" }
+zkboo-sha2         = { path = "../../zkboo/zkboo-sha2" }
+zkboo-hmac         = { path = "../../zkboo/zkboo-hmac" }
+zkboo-modular      = { path = "../../zkboo/zkboo-modular" }
+zkboo-ecc          = { path = "../../zkboo/zkboo-ecc" }
+zkboo-circuit-hash = { path = "../../zkboo/zkboo-circuit-hash" }
+zkboo-profiling    = { path = "../../zkboo/zkboo-profiling" }
+zkboo-bip32        = { path = "../../zkboo/zkboo-bip32" }
+zkboo-keccak       = { path = "../../zkboo/zkboo-keccak" }
+zkboo-ripemd160    = { path = "../../zkboo/zkboo-ripemd160" }
 
 # GPU proving on Apple Silicon, via the Metal backend for SP1 Hypercube. SP1's own GPU
 # story is CUDA-only, so without this the prover falls back to the CPU on this machine.

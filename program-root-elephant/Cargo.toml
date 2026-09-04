@@ -10,8 +10,8 @@ publish = false
 sp1-zkvm = { version = "=6.4.0", features = ["verify"] }
 postcard = { version = "1.1", default-features = false, features = ["alloc"] }
 sha2 = { version = "0.10", default-features = false }
-zkboo = { version = "=2.0.0", features = ["keccak", "u32", "u64"] }
-zkboo-circuit-hash = { version = "=2.0.0" }
+zkboo = { version = "=1.2.0", features = ["u32", "u64"] }
+zkboo-circuit-hash = { version = "=1.2.0" }
 snark-lifter-elephant = { path = "../elephant" }
 snark-lifter-split = { path = "../split" }
 snark-lifter-pinned-keys = { path = "../pinned-keys" }

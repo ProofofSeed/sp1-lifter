@@ -36,7 +36,7 @@ use snark_lifter_split::{
 };
 use zkboo::{
     circuit::Circuit,
-    executor::exec,
+    executor::{ExecOptions, exec},
     prover::par_prove,
     verifier::replay::{OwnedFlexibleWordPairPool, ViewReplayerBackend},
     word::Words,
@@ -174,7 +174,7 @@ fn main() {
     println!("  zkboo: {}", snark_lifter_host::zkboo_provenance());
 
     let circuit = EthereumAddressCircuit::with_witness(PRIV_KEY.to_vec());
-    let expected_output = exec::<_, WP>(&circuit);
+    let expected_output = exec::<_, WP, _>(&circuit, ExecOptions::new());
 
     if mode == "gate" || mode == "both" {
         // The matrix runs at its own floor, never the proving count. Native proving of an

@@ -26,33 +26,61 @@ use snark_lifter_statement::LiftProof;
 pub use snark_lifter_statement::{H, PS, PV, S};
 use zkboo::{
     backend::{Backend, Frontend},
-    circuit::Circuit,
-    word::Words,
+    circuit::{Assertions, Circuit},
+    word::{CompositeWord, Words},
 };
-use zkboo_bip32::{be_bytes_to_word, ethereum_address};
+use zkboo_bip32::{
+    PublicKeyAdvice, be_bytes_to_word, ethereum_address, public_key_advice,
+    public_key_advice_shape,
+};
 
 /// Byte length of a secp256k1 private key.
 pub const PRIV_KEY_LEN: usize = 32;
 
+/// The private key as a host word: 32 big-endian bytes as four `u64` limbs.
+fn be_words(bytes: &[u8]) -> CompositeWord<u64, 4> {
+    let mut limbs = [0u64; 4];
+    for (i, chunk) in bytes.chunks(8).enumerate() {
+        limbs[i] = u64::from_be_bytes(chunk.try_into().expect("eight bytes"));
+    }
+    return CompositeWord::from_be_words(limbs);
+}
+
 /// Ethereum-address derivation as a ZKBoo circuit.
 ///
-/// No public parameters: the witness is the private key and the address is the output.
+/// No public parameters: the witness is the private key and the address is the output, followed
+/// by the assertion flag.
+///
+/// The affine comb inside `d·G` runs on prover advice — one chord slope per window, plus a
+/// tangent at the top — which the prover computes on the host from the witness and feeds in as
+/// ordinary secret inputs. Advice constrains nothing by itself; the in-circuit assertions the
+/// comb raises are what pin it down, and they end up in the flag this circuit outputs last.
+/// Ignore that flag and the statement is vacuous: see `snark_lifter_statement::check_journal`.
 pub struct EthereumAddressCircuit {
     private_key: Vec<u8>,
+    advice: PublicKeyAdvice,
 }
 
 impl EthereumAddressCircuit {
     /// Creates the circuit with a genuine witness, for proving.
     pub fn with_witness(private_key: Vec<u8>) -> Self {
         assert_eq!(private_key.len(), PRIV_KEY_LEN, "private key must be 32 bytes");
-        return Self { private_key };
+        let advice = public_key_advice(be_words(&private_key));
+        return Self {
+            private_key,
+            advice,
+        };
     }
 
     /// Creates the circuit for verifying: the replay backend sources input values from the
     /// opened views, so only the number of allocated inputs matters here.
+    ///
+    /// The advice slots are part of that count, so they are allocated at the shape a genuine
+    /// witness would produce and filled with zeros.
     pub fn public_only() -> Self {
         return Self {
             private_key: alloc::vec![0u8; PRIV_KEY_LEN],
+            advice: public_key_advice_shape(),
         };
     }
 }
@@ -65,9 +93,11 @@ impl Circuit for EthereumAddressCircuit {
             .map(|&b| frontend.input(b))
             .collect::<Vec<_>>();
         let d = be_bytes_to_word(&bytes);
-        ethereum_address(frontend, d)
+        let mut assertions = Assertions::new();
+        ethereum_address(frontend, d, &self.advice, &mut assertions)
             .into_iter()
             .for_each(|w| frontend.output(w));
+        assertions.output(frontend);
     }
 }
 
@@ -107,7 +137,7 @@ pub struct ElephantJournal {
     /// Structural fingerprint of the verified circuit, computed in-guest.
     pub fingerprint: S,
     /// The circuit output the proof was verified against: the 20-byte address, and the
-    /// assertion word every zkboo circuit now emits last.
+    /// assertion word the circuit emits last.
     pub expected_output: Words,
     /// The challenge binding the proof was verified under.
     pub binding: Vec<u8>,

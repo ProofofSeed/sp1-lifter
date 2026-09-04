@@ -13,7 +13,7 @@ use sp1_sdk::{
 };
 use snark_lifter_statement::{H, HardenedChildCircuit, LiftInput, PS, PV, S};
 use zkboo::{
-    executor::{OwnedFlexibleWordPool, exec},
+    executor::{ExecOptions, OwnedFlexibleWordPool, exec},
     prover::{par_prove, proof::Response, views::OwnedFlexibleWordTriplePool},
     verifier::replay::OwnedFlexibleWordPairPool,
     word::Words,
@@ -55,10 +55,30 @@ pub type WPP = OwnedFlexibleWordPairPool<usize>;
 ///
 /// Printed by every driver next to the prover configuration, for the same reason the prover
 /// configuration is printed: a measurement means nothing without the thing it measured. The
-/// build refuses outright if any zkboo crate resolves from anywhere but crates.io at the
-/// required version — see `build.rs` for the failure this guards against.
+/// build refuses outright unless every zkboo crate resolves at the required version from a path
+/// override — see `build.rs` for the failure this guards against, and for why a path is what a
+/// correct build now looks like. Each crate is reported by the git revision of its checkout,
+/// with a `-dirty` suffix if that checkout had uncommitted work when this binary was built.
 pub fn zkboo_provenance() -> &'static str {
     return env!("ZKBOO_PROVENANCE");
+}
+
+/// Repetitions needed for `(2/3)^n <= 2^-2b`, where `b` is a post-quantum security level in bits.
+///
+/// The project convention that a post-quantum target needs twice the classical bits, so that
+/// Grover on the grinding is priced in: `n_eps(128) == 438` for PQ-128, and `n_eps(64) == 219`,
+/// which is the classical-128 figure this repository lifts at.
+///
+/// Vendored from `zkboo-harness`, where zkboo 1.2.0 moved it out of the core crate. That crate is
+/// `publish = false`, so depending on it would make this workspace unpublishable too. The
+/// arithmetic is unchanged.
+pub const fn n_eps(pq_security_bits: usize) -> usize {
+    // 1 / log2(3/2) ~ NUM / DEN.
+    const NUM: u128 = 1_709_511_291_351_455;
+    const DEN: u128 = 1_000_000_000_000_000;
+    let two_b = (2 * pq_security_bits) as u128;
+    // ceil(two_b * NUM / DEN)
+    return ((two_b * NUM + (DEN - 1)) / DEN) as usize;
 }
 
 /// Decodes a hex string (must have even length and valid digits).
@@ -88,7 +108,7 @@ pub fn vector_1_proof(
 ) -> (HardenedChildCircuit, Words, Vec<Response<S, S>>) {
     let (parent_priv, chain_code) = bip32_vector_1();
     let circuit = HardenedChildCircuit::with_witness(chain_code, parent_priv, HARDENED_OFFSET);
-    let output = exec::<_, WP>(&circuit);
+    let output = exec::<_, WP, _>(&circuit, ExecOptions::new());
     let proof = par_prove::<_, H, PS, PV, S, WTP>(&circuit, num_iters, seed_entropy, binding);
     return (circuit, output, proof);
 }
@@ -179,7 +199,8 @@ pub const REQUIRED_ELEPHANT_PROOF_FORMAT_VERSION: u32 = 3;
 /// unreachable, so it reports green against precisely the circuit drift it exists to catch.
 ///
 /// 🚨 It also enforces a requirement nothing else in this repository states: **the last output
-/// word is ZKBoo 2.0.0's assertion word, and it must be 1.** Prover advice (`Backend::hint`) is
+/// word is the circuit's assertion word, and it must be 1.** Prover advice — the affine comb's
+/// slopes, computed on the host from the witness and fed in as secret inputs — is
 /// unconstrained except by the in-circuit assertions accumulated into that word, so a proof of
 /// `(any address the prover likes, assertion = 0)` is honestly obtainable by anyone with no seed
 /// knowledge at all. A relying party that checks only the twenty address bytes, or that builds an

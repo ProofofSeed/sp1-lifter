@@ -1,5 +1,11 @@
 # What everything costs, on this machine
 
+> 🚨 **Every figure below was measured against the withdrawn ZKBoo 2.0.0 and is superseded.**
+> The move to zkboo 1.2.0 on 2026-09-04 changed every proof, every circuit fingerprint and
+> every guest verifying key; nothing here has been re-taken. Kept for the method and the
+> shape of the results, not for the numbers. Do not quote them, and do not rescale them by a
+> factor seen elsewhere. See `zkboo-1.2.0-migration.md`.
+
 Every figure measured 2026-08-28 unless a row says otherwise, on an M4 Max (16 cores / 137 GB) at
 `RAYON_NUM_THREADS=12 GOMAXPROCS=12`, one run at a time, against the released ZKBoo 2.0.0.
 RSS is `/usr/bin/time -l` maximum resident set size for the whole process.

@@ -16,16 +16,20 @@
 
 extern crate alloc;
 
+mod hasher;
+
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use zkboo::{
     backend::{Backend, Frontend},
-    circuit::Circuit,
-    crypto::{HashPRG, Hasher, Keccak256Hasher},
+    circuit::{Assertions, Circuit},
+    crypto::{HashPRG, Hasher},
     prover::proof::Proof,
     word::Words,
 };
 use zkboo_bip32::hardened_child_key;
+
+pub use hasher::Keccak256Hasher;
 
 /// Hasher used for commitments, PRGs and challenge entropy: Keccak-256, the production hash.
 pub type H = Keccak256Hasher;
@@ -116,6 +120,20 @@ impl Circuit for HardenedChildCircuit {
         child_chain_code
             .into_iter()
             .for_each(|w| frontend.output(w)); // 32x u8
+        // The assertion flag, last, as every circuit this repository lifts emits it.
+        //
+        // Nothing is asserted here, so the flag is the constant 1 and this statement's copy of
+        // it carries no information: BIP-32 hardened derivation is hashing, with no advice to
+        // pin down. It is emitted anyway so that one journal shape, one gate and one on-chain
+        // decoder serve every statement in the suite — including the Ethereum-address one,
+        // where the flag is the whole of what makes the proof mean anything.
+        //
+        // ⚠️ zkboo 1.2.0 does not emit this. The removed 2.0.0 put an assertion accumulator on
+        // the `Backend` trait and appended the flag to every circuit's output automatically;
+        // 1.2.0 makes assertions ordinary circuit-side gates, so a circuit that omits
+        // `Assertions::output` has no flag at all and the gates below would refuse it. Emitting
+        // it is now this crate's responsibility.
+        Assertions::new().output(frontend);
     }
 }
 
@@ -127,15 +145,14 @@ impl Circuit for HardenedChildCircuit {
 /// must bump this constant.
 pub const LIFT_FRAME_VERSION: u32 = 1;
 
-// zkboo 2.0.0 did not move this, and the reason is worth stating because it looks as though it
-// should have. That release invalidated every proof 1.x produced: every circuit's outputs now end
-// with an assertion word, so `expected_output` gains an entry and `PROOF_FORMAT_VERSION` is 3. But
-// this constant guards the *layout* of the frame, not the values in it, and neither the shape of
-// `LiftInput` nor the enabled word features changed — the assertion word is a `u8`, a type these
-// outputs already carry, so the postcard encoding of `Words` is unchanged. What catches a proof
-// from the old format is `REQUIRED_PROOF_FORMAT_VERSION` below, which is the mechanism built for
-// exactly this and which the journal gate enforces. Bumping a version tag whose documented
-// contract was not breached would make the next reader distrust the contract.
+// zkboo 1.2.0 did not move this, and the reason is worth stating because it looks as though it
+// should have. That release invalidated every proof made against its predecessors — the challenge
+// transcript, the view commitments and the PRG are now domain-separated, so every commitment and
+// every Fiat-Shamir challenge differs. But this constant guards the *layout* of the frame, not the
+// values in it, and neither the shape of `LiftInput` nor the enabled word features changed. The
+// assertion word is a `u8`, a type these outputs already carry, so the postcard encoding of
+// `Words` is unchanged. Bumping a version tag whose documented contract was not breached would
+// make the next reader distrust the contract.
 
 /// The verification input frame passed from host to guest (postcard-encoded).
 ///
@@ -170,6 +187,15 @@ pub const LIFT_JOURNAL_VERSION: u32 = 2;
 /// would silently begin *requiring* the older format rather than refusing it. Pinning it
 /// means a format change is a decision someone makes here, and until they do, proofs
 /// carrying the new format are refused.
+///
+/// 🪤 **This value does not distinguish a 1.2.0 proof from a withdrawn-2.0.0 one, and cannot.**
+/// Both declare format 3, and the formats are incompatible: 1.2.0 domain-separates the challenge
+/// transcript, the view commitments and the PRG, so every commitment and every challenge differs,
+/// while the constant identifying the format stayed where 2.0.0 had left it. Anything relying on
+/// this field alone to reject a proof from the earlier line will accept it. What actually rejects
+/// one is verification itself, which fails; the circuit fingerprint, which moved with the
+/// assertion flag becoming ordinary gates; and the guest verifying keys, which moved with both.
+/// Three independent refusals, none of them this constant.
 pub const REQUIRED_PROOF_FORMAT_VERSION: u32 = 3;
 
 /// The journal committed by the lift guest: the complete lifted statement.
@@ -275,10 +301,11 @@ pub enum JournalCheckError {
 /// the two steps, and the on-chain verifier takes the verifying key as an explicit
 /// argument for the same reason.
 ///
-/// 🚨 **The assertion word is checked here, unconditionally.** ZKBoo 2.0.0 lets a prover supply
-/// advice (`Backend::hint`) that is unconstrained on its own; what pins it down is the
-/// in-circuit assertions, accumulated by conjunction into the trailing word of the circuit's
-/// output. A prover running the honest protocol on a witness that does *not* satisfy the
+/// 🚨 **The assertion word is checked here, unconditionally.** A prover may supply advice — a
+/// value it computes from the witness and feeds in as an ordinary secret input — which is
+/// unconstrained on its own; what pins it down is the in-circuit assertions, accumulated by
+/// conjunction into the trailing word of the circuit's output. A prover running the honest
+/// protocol on a witness that does *not* satisfy the
 /// circuit obtains a perfectly valid proof whose assertion word is **0** — a genuine proof of
 /// *"I ran this circuit and its assertions did not hold"*, which anyone can produce for any
 /// claimed output with no witness knowledge whatsoever.

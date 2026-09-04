@@ -1,13 +1,16 @@
-# snark-lifter
+# sp1-lifter
 
 A succinct lifter for ZKBoo proofs of seed with classical (pre-quantum) security, built to be cheap to verify on Ethereum L1 today: the genuine `zkboo` Rust verifier runs as an SP1 zkVM program, and the verification run is wrapped (fully locally, via SP1's native gnark Groth16 layer — no Docker, no external service) into a single BN254 pairing proof checkable on-chain for a few hundred thousand gas.
 This trades the post-quantum guarantees of the companion STARK lifter for immediate deployability; the secure-element story (stage 1) is unchanged.
 See `knowledge/milestones.md` for what is established so far, including the recorded stack history (an initial RISC Zero implementation, superseded the same day for measured reasons).
+The repository is named for its proof system because other back ends are expected alongside it, not because SP1 is the only way to lift these proofs.
+
+🚨 **Every measured figure in `knowledge/` is superseded**, and nothing in this tree has been built or proved since. The zkboo ecosystem was re-architected as 1.2.0 on 2026-09-04, which changed every proof, every circuit fingerprint and every guest verifying key; the ported code has not yet been run. `knowledge/zkboo-1.2.0-migration.md` is the authority on what that changed and what remains to do.
 
 ## Usage
 
 Requires the SP1 toolchain (`sp1up`; sdk 6.4.0 with the `succinct` rust toolchain) and Go, for the native gnark wrap.
-The ZKBoo crates come from crates.io at the exact version the build script demands, so no local working tree is needed and none is used; a build that resolves them any other way is refused.
+The ZKBoo crates come from local checkouts under `<zkboo>`, patched in at the workspace root, because 1.2.0 is unpublished and every published version is yanked. The build script refuses anything that does not resolve at exactly that version from a path, and records each checkout's git revision and dirty state into the binary. This inverts the arrangement that held while the crates were published, and should be inverted back when they are published again.
 
 Proving runs on the GPU. Build with `--features metal` and everything below goes through the Metal backend for SP1 Hypercube (`knowledge/gpu-proving.md`).
 To measure against the CPU, force the GPU path off with the switches in `fixtures/cpu-arm-switches.txt` rather than by rebuilding, so that both arms are one binary.
@@ -30,6 +33,7 @@ cargo build --release -p snark-lifter-host --features metal   # once; the binari
 ```
 
 The Foundry suite reads a fixture that `lift` generates; without one it **skips**, and a fully skipped suite still prints `Suite result: ok`, so check for `5 passed` rather than `ok`.
+⚠️ The fixture currently in `verifier/fixtures/` was produced by the withdrawn 2.0.0 stack and is internally consistent, so the suite passes on it. Regenerate it before reading a green suite as evidence about this tree.
 
 `lift` performs one proving pass: in the default `groth16` mode the single SP1 call runs core → compress → shrink → wrap, so the on-chain fixture costs one pass rather than two.
 `compressed` mode is for throughput probes at small repetition counts; it is not a stage to run before `groth16`.
@@ -48,4 +52,4 @@ Proving cost is tunable from the environment without a rebuild — `SHARD_SIZE`,
 - `program-leaf-elephant/`, `program-root-elephant/` — the same split over the secp256k1 Ethereum-address statement, which has no public parameters and a different journal shape, so it needs its own pair of guests. Driven by `elephant-split`.
 - `pinned-keys/` — the leaf verifying keys, compiled into the roots so that a root's own key says which leaf program it will admit. 🚨 **Run `vkeys` after editing any crate a guest links — a comment-only change has been measured moving a guest key** (`knowledge/guest-keys-move-on-comments.md`). **It has no dependencies on purpose:** a crate the leaf programs link would move their keys whenever it changed, and the pin would never converge. `vkeys` re-derives every key from the built ELFs and fails if a pinned constant has drifted.
 - `host/src/orchestrator.rs` — the streaming orchestrator: a leaf proof is dispatched as each response arrives rather than after the last one, so leaf proving overlaps response generation. Driven by `stream-lift`; see `knowledge/streaming-orchestrator.md`.
-- `knowledge/` — design record, milestone plan, and measured numbers, including `gpu-proving.md` for what the Metal backend does to this workload and `gpu-corruption.md` for the defect that bounds it.
+- `knowledge/` — design record, milestone plan, and measured numbers, including `gpu-proving.md` for what the Metal backend does to this workload, `gpu-corruption.md` for the defect that bounds it, and `zkboo-1.2.0-migration.md` for the dependency re-architecture that superseded every number in the rest.

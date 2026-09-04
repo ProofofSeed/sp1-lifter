@@ -31,7 +31,9 @@ use alloc::{vec::Vec, format, string::String};
 use serde::{Deserialize, Serialize};
 use snark_lifter_statement::{H, S};
 use zkboo::{
-    crypto::{GeneratesRandom, HashPRG, Hasher, PseudoRandomGenerator},
+    crypto::{
+        GeneratesRandom, HashPRG, Hasher, PseudoRandomGenerator, TAG_CHALLENGE, absorb_framed,
+    },
     prover::challenge::ChallengeGenerator,
     word::Words,
 };
@@ -50,11 +52,6 @@ pub const ROOT_JOURNAL_VERSION: u32 = 1;
 
 /// Domain separator for [`statement_digest`].
 const STATEMENT_DOMAIN: &[u8] = b"SNARK-LIFTER-SPLIT-STATEMENT-v1";
-
-/// Domain separator the ZKBoo challenge hasher opens with. **Must** match
-/// `zkboo`'s prover and verifier byte for byte, or the re-derived challenge
-/// sequence will not be the one the proof was generated against.
-const ZKBOO_BINDING_DOMAIN: &[u8] = b"ZKBOO-BINDING-v1";
 
 /// The digest binding a leaf to the statement it is a response for.
 ///
@@ -289,10 +286,14 @@ pub fn aggregate(
         return Err(AggregateError::NoLeaves);
     }
     let mut challenge_hasher = H::new();
-    // Framed binding — must match zkboo's prover and verifier exactly.
-    challenge_hasher.update(ZKBOO_BINDING_DOMAIN);
-    challenge_hasher.update(&(binding.len() as u64).to_le_bytes());
-    challenge_hasher.update(binding);
+    // The framed binding that opens the challenge transcript. This must match zkboo's prover and
+    // verifier byte for byte or the re-derived challenge sequence is not the one the proof was
+    // made against, so the tag and the framing helper are taken from zkboo itself rather than
+    // copied. They were copied until 1.2.0, under the tag `ZKBOO-BINDING-v1`, which that release
+    // replaced with `TAG_CHALLENGE` while also domain-separating the view commitments and the
+    // PRG — a change a copied constant would have survived silently, re-deriving a challenge
+    // sequence that no honest proof could ever match.
+    absorb_framed(&mut challenge_hasher, TAG_CHALLENGE, binding);
     for (i, leaf) in leaves.iter().enumerate() {
         if leaf.version != LEAF_JOURNAL_VERSION {
             return Err(AggregateError::LeafVersionMismatch(i));

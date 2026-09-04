@@ -20,7 +20,7 @@ use snark_lifter_statement::{
     H, HardenedChildCircuit, LIFT_FRAME_VERSION, LIFT_JOURNAL_VERSION, LiftInput, LiftJournal, PV,
     S,
 };
-use zkboo::verifier::{replay::OwnedFlexibleWordPairPool, verify};
+use zkboo::verifier::{VerifyOptions, replay::OwnedFlexibleWordPairPool, verify};
 use zkboo_circuit_hash::hash_circuit;
 
 type WPP = OwnedFlexibleWordPairPool<usize>;
@@ -35,11 +35,12 @@ pub fn main() {
     // status; the relying-party gate demands success), so refusals both commit a
     // diagnostic tag as the public values and panic: the tag names the refuser for
     // harness assertions, the panic makes the failure a non-success execution.
-    let valid = match verify::<_, H, PV, S, WPP>(
+    let valid = match verify::<_, H, PV, S, WPP, _>(
         &circuit,
         &input.expected_output,
         &input.proof,
         &input.binding,
+        VerifyOptions::new(),
     ) {
         Ok(valid) => valid,
         Err(e) => {

@@ -21,7 +21,7 @@ pragma solidity ^0.8.20;
 /// - **`minResponses`.** ZKBoo's soundness is (2/3)^k in the number of responses, and its
 ///   verifier accepts any count, the empty proof included. Skip this and the prover picks
 ///   its own soundness.
-/// - **The assertion word.** ZKBoo 2.0.0 leaves prover advice unconstrained except by the
+/// - **The assertion word.** ZKBoo leaves prover advice unconstrained except by the
 ///   circuit's in-circuit assertions, accumulated by conjunction into the last word of the
 ///   output. Run the honest prover on a witness that does *not* satisfy the circuit and you
 ///   get a perfectly valid proof whose assertion word is 0 — a genuine proof of "I ran this

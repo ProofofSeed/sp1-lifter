@@ -4196,6 +4196,8 @@ name = "snark-lifter-statement"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "tiny-keccak",
+ "zeroize",
  "zkboo",
  "zkboo-bip32",
 ]
@@ -6144,22 +6146,17 @@ dependencies = [
 
 [[package]]
 name = "zkboo"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2386749a2f49f91fca3091c680a1f6ed416094a013bb400512b7ed0b07de1db6"
+version = "1.2.0"
 dependencies = [
  "postcard",
  "rayon",
  "serde",
- "tiny-keccak",
  "zeroize",
 ]
 
 [[package]]
 name = "zkboo-bip32"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f58056b781a876a443fc76543f4b15bf5705199b6fb80b63fe58a855fc3ed00"
+version = "1.2.0"
 dependencies = [
  "zkboo",
  "zkboo-ecc",
@@ -6172,18 +6169,14 @@ dependencies = [
 
 [[package]]
 name = "zkboo-circuit-hash"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87dd13197a8e083cbee2cc1831f36066e3d2593211c272579369c560d25224e5"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-ecc"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69d680828dfc550e57fdc7dad5dce2854a5d5fc9959b50325d1419274efcfa54"
+version = "1.2.0"
 dependencies = [
  "zkboo",
  "zkboo-modular",
@@ -6191,54 +6184,42 @@ dependencies = [
 
 [[package]]
 name = "zkboo-hmac"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d34d712708a700871085223c2614f691f74fab67fdaf0333cf44187d1adbc7a"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-keccak"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c15d61fc9c4f1963eb2308bbc154798b7c30ecfd318c24346523bff061546067"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-modular"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4f8f041d75a565a5d65ecc600e521717dfabd59219bf543307f91481b435068"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-profiling"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "671c6d28a49595e9c1006fe5de96d2dd645a1ce7bbb2f4391e14bc47bb61d5af"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-ripemd160"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6efbdd90525915bf68a6cd9a2002af30262af15a19076fff67020dd1971c8f60"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-sha2"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22fe8faf4fd80c78de71f588718ce4ebd9ff495e7402d9a6ca422f005056736f"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
