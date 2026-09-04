@@ -1,5 +1,5 @@
 [package]
-name = "snark-lifter-host"
+name = "sp1-lifter-host"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -35,10 +35,10 @@ serde = { version = "1.0.228" }
 zkboo = { version = "=1.2.0", features = ["u32", "u64", "parallel"] }
 zkboo-bip32 = { version = "=1.2.0" }
 zkboo-circuit-hash = { version = "=1.2.0" }
-snark-lifter-statement = { path = "../statement" }
-snark-lifter-elephant = { path = "../elephant" }
-snark-lifter-split = { path = "../split" }
-snark-lifter-pinned-keys = { path = "../pinned-keys" }
+sp1-lifter-statement = { path = "../statement" }
+sp1-lifter-elephant = { path = "../elephant" }
+sp1-lifter-split = { path = "../split" }
+sp1-lifter-pinned-keys = { path = "../pinned-keys" }
 sha2 = { version = "0.10" }
 sp1-prover = { version = "=6.4.0" }
 sp1-hypercube = { version = "=6.4.0" }

@@ -1,5 +1,5 @@
 [package]
-name = "snark-lifter-program-leaf"
+name = "sp1-lifter-program-leaf"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,5 +10,5 @@ publish = false
 sp1-zkvm = { version = "=6.4.0" }
 postcard = { version = "1.1", default-features = false, features = ["alloc"] }
 zkboo = { version = "=1.2.0", features = ["u32", "u64"] }
-snark-lifter-statement = { path = "../statement" }
-snark-lifter-split = { path = "../split" }
+sp1-lifter-statement = { path = "../statement" }
+sp1-lifter-split = { path = "../split" }

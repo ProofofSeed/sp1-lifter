@@ -35,8 +35,8 @@ use sp1_sdk::{
     SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey,
     blocking::{EnvProver, ProveRequest, Prover},
 };
-use snark_lifter_split::LeafInput;
-use snark_lifter_statement::{H, HardenedChildCircuit, PS, PV, S};
+use sp1_lifter_split::LeafInput;
+use sp1_lifter_statement::{H, HardenedChildCircuit, PS, PV, S};
 use zkboo::{
     executor::{ExecOptions, exec},
     prover::{
@@ -279,7 +279,7 @@ pub fn stream_lift(
                         }
                     }
                     let leaf_input = LeafInput {
-                        version: snark_lifter_split::LEAF_FRAME_VERSION,
+                        version: sp1_lifter_split::LEAF_FRAME_VERSION,
                         chain_code: statement.chain_code.clone(),
                         index: statement.index,
                         expected_output: statement.expected_output.clone(),

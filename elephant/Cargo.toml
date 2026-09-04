@@ -1,5 +1,5 @@
 [package]
-name = "snark-lifter-elephant"
+name = "sp1-lifter-elephant"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,4 +10,4 @@ publish = false
 serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
 zkboo = { version = "=1.2.0", features = ["u32", "u64"] }
 zkboo-bip32 = { version = "=1.2.0" }
-snark-lifter-statement = { path = "../statement" }
+sp1-lifter-statement = { path = "../statement" }

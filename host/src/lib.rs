@@ -11,7 +11,7 @@ use sp1_sdk::{
     blocking::{EnvProver, Prover},
     include_elf,
 };
-use snark_lifter_statement::{H, HardenedChildCircuit, LiftInput, PS, PV, S};
+use sp1_lifter_statement::{H, HardenedChildCircuit, LiftInput, PS, PV, S};
 use zkboo::{
     executor::{ExecOptions, OwnedFlexibleWordPool, exec},
     prover::{par_prove, proof::Response, views::OwnedFlexibleWordTriplePool},
@@ -21,28 +21,28 @@ use zkboo::{
 pub use zkboo_bip32::HARDENED_OFFSET;
 
 /// The lift program ELF, built by `sp1-build` from `program/`.
-pub const LIFT_ELF: Elf = include_elf!("snark-lifter-program");
+pub const LIFT_ELF: Elf = include_elf!("sp1-lifter-program");
 
 /// The elephant probe program ELF (secp256k1 Ethereum-address statement).
-pub const ELEPHANT_ELF: Elf = include_elf!("snark-lifter-program-elephant");
+pub const ELEPHANT_ELF: Elf = include_elf!("sp1-lifter-program-elephant");
 
 /// The split-and-aggregate probe's leaf program ELF (one response per proof).
-pub const LEAF_ELF: Elf = include_elf!("snark-lifter-program-leaf");
+pub const LEAF_ELF: Elf = include_elf!("sp1-lifter-program-leaf");
 
 /// The split-and-aggregate probe's root program ELF (cross-leaf global Fiat-Shamir gate).
-pub const ROOT_ELF: Elf = include_elf!("snark-lifter-program-root");
+pub const ROOT_ELF: Elf = include_elf!("sp1-lifter-program-root");
 
 /// The elephant leaf program ELF (one secp256k1 response per proof).
-pub const LEAF_ELEPHANT_ELF: Elf = include_elf!("snark-lifter-program-leaf-elephant");
+pub const LEAF_ELEPHANT_ELF: Elf = include_elf!("sp1-lifter-program-leaf-elephant");
 
 /// The elephant root program ELF.
-pub const ROOT_ELEPHANT_ELF: Elf = include_elf!("snark-lifter-program-root-elephant");
+pub const ROOT_ELEPHANT_ELF: Elf = include_elf!("sp1-lifter-program-root-elephant");
 
 /// The leaf verifying key `program-root` has compiled in.
-pub use snark_lifter_pinned_keys::LEAF_VK as PINNED_LEAF_VK;
+pub use sp1_lifter_pinned_keys::LEAF_VK as PINNED_LEAF_VK;
 
 /// The leaf verifying key `program-root-elephant` has compiled in.
-pub use snark_lifter_pinned_keys::LEAF_ELEPHANT_VK as PINNED_LEAF_ELEPHANT_VK;
+pub use sp1_lifter_pinned_keys::LEAF_ELEPHANT_VK as PINNED_LEAF_ELEPHANT_VK;
 
 /// Executor-side word pool.
 pub type WP = OwnedFlexibleWordPool<usize>;
@@ -119,10 +119,10 @@ pub fn lift_input_for(
     index: u32,
     output: Words,
     binding: &[u8],
-    proof: snark_lifter_statement::LiftProof,
+    proof: sp1_lifter_statement::LiftProof,
 ) -> LiftInput {
     return LiftInput {
-        version: snark_lifter_statement::LIFT_FRAME_VERSION,
+        version: sp1_lifter_statement::LIFT_FRAME_VERSION,
         chain_code,
         index,
         expected_output: output,
@@ -144,16 +144,16 @@ pub fn lift_stdin(input: &LiftInput) -> SP1Stdin {
 pub fn expectation_for(
     input: &LiftInput,
     min_responses: u32,
-) -> snark_lifter_statement::JournalExpectation {
+) -> sp1_lifter_statement::JournalExpectation {
     let public_circuit = HardenedChildCircuit::public_only(input.chain_code.clone(), input.index);
-    return snark_lifter_statement::JournalExpectation {
+    return sp1_lifter_statement::JournalExpectation {
         fingerprint: zkboo_circuit_hash::hash_circuit::<_, H>(&public_circuit),
         chain_code: input.chain_code.clone(),
         index: input.index,
         expected_output: input.expected_output.clone(),
         binding: input.binding.clone(),
         min_responses,
-        proof_format_version: snark_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION,
+        proof_format_version: sp1_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION,
     };
 }
 
@@ -168,23 +168,23 @@ pub fn expectation_for_statement(
     expected_output: &zkboo::word::Words,
     binding: &[u8],
     min_responses: u32,
-) -> snark_lifter_statement::JournalExpectation {
+) -> sp1_lifter_statement::JournalExpectation {
     let public_circuit = HardenedChildCircuit::public_only(chain_code.to_vec(), index);
-    return snark_lifter_statement::JournalExpectation {
+    return sp1_lifter_statement::JournalExpectation {
         fingerprint: zkboo_circuit_hash::hash_circuit::<_, H>(&public_circuit),
         chain_code: chain_code.to_vec(),
         index,
         expected_output: expected_output.clone(),
         binding: binding.to_vec(),
         min_responses,
-        proof_format_version: snark_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION,
+        proof_format_version: sp1_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION,
     };
 }
 
 /// The ZKBoo proof format the elephant statement requires.
 ///
 /// Pinned here rather than read from the linked `zkboo`, for the reason
-/// `snark_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION` gives: an expectation taken from
+/// `sp1_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION` gives: an expectation taken from
 /// whatever a consumer happens to link tracks that consumer instead of constraining it, so a
 /// consumer that downgraded would silently begin *requiring* the older format. The elephant
 /// driver used to pass `zkboo::PROOF_FORMAT_VERSION` straight through, which is exactly the
@@ -208,14 +208,14 @@ pub const REQUIRED_ELEPHANT_PROOF_FORMAT_VERSION: u32 = 3;
 /// built happens to satisfy it, because they all come from executing a genuine witness — and
 /// "happens to" is not "is required to".
 ///
-/// This lives in the host crate on purpose. The obvious home is `snark-lifter-elephant`, but the
+/// This lives in the host crate on purpose. The obvious home is `sp1-lifter-elephant`, but the
 /// elephant guests link that crate, and a change to it moves their verifying keys — invalidating
 /// the pinned leaf key and every cached leaf proof, at over an hour each to rebuild.
 pub fn elephant_expectation_for(
     expected_output: &zkboo::word::Words,
     binding: &[u8],
     min_responses: u32,
-) -> Result<snark_lifter_elephant::ElephantExpectation, String> {
+) -> Result<sp1_lifter_elephant::ElephantExpectation, String> {
     let assertion = expected_output
         .as_vec::<u8>()
         .last()
@@ -227,9 +227,9 @@ pub fn elephant_expectation_for(
              in-circuit assertions are not required to hold and the statement proves nothing"
         ));
     }
-    return Ok(snark_lifter_elephant::ElephantExpectation {
+    return Ok(sp1_lifter_elephant::ElephantExpectation {
         fingerprint: zkboo_circuit_hash::hash_circuit::<_, H>(
-            &snark_lifter_elephant::EthereumAddressCircuit::public_only(),
+            &sp1_lifter_elephant::EthereumAddressCircuit::public_only(),
         ),
         expected_output: expected_output.clone(),
         binding: binding.to_vec(),
@@ -243,7 +243,7 @@ pub fn elephant_expectation_for(
 /// The decode is exact-length: trailing bytes after the journal are refused, so the
 /// public values cannot smuggle data past the decoder. Any Solidity-side decoder of
 /// the same public values must enforce the same full-consumption rule.
-pub fn decode_journal(public_values: &[u8]) -> Result<snark_lifter_statement::LiftJournal, String> {
+pub fn decode_journal(public_values: &[u8]) -> Result<sp1_lifter_statement::LiftJournal, String> {
     let (journal, rest) = postcard::take_from_bytes(public_values)
         .map_err(|e| format!("journal decode failed: {e}"))?;
     if !rest.is_empty() {
@@ -261,7 +261,7 @@ pub fn decode_journal(public_values: &[u8]) -> Result<snark_lifter_statement::Li
 pub fn execute_lift(
     client: &EnvProver,
     input: &LiftInput,
-) -> Result<(snark_lifter_statement::LiftJournal, sp1_sdk::ExecutionReport), String> {
+) -> Result<(sp1_lifter_statement::LiftJournal, sp1_sdk::ExecutionReport), String> {
     let (public_values, report) = client
         .execute(LIFT_ELF, lift_stdin(input))
         .run()
@@ -360,13 +360,13 @@ pub fn check_lifted_proof(
     client: &EnvProver,
     proof: &SP1ProofWithPublicValues,
     vk: &SP1VerifyingKey,
-    expectation: &snark_lifter_statement::JournalExpectation,
-) -> Result<snark_lifter_statement::LiftJournal, String> {
+    expectation: &sp1_lifter_statement::JournalExpectation,
+) -> Result<sp1_lifter_statement::LiftJournal, String> {
     client
         .verify(proof, vk, None)
         .map_err(|e| format!("proof verification failed: {e:#}"))?;
     let journal = decode_journal(proof.public_values.as_slice())?;
-    snark_lifter_statement::check_journal(&journal, expectation)
+    sp1_lifter_statement::check_journal(&journal, expectation)
         .map_err(|e| format!("journal gate refused: {e:?}"))?;
     return Ok(journal);
 }
@@ -418,13 +418,13 @@ fn rebuild_response(response: &Response<S, S>, msg: Words) -> Response<S, S> {
 
 // ─── split-and-aggregate probe ────────────────────────────────────────────────────
 
-/// Assembles a [`LeafInput`](snark_lifter_split::LeafInput) frame for one response.
+/// Assembles a [`LeafInput`](sp1_lifter_split::LeafInput) frame for one response.
 pub fn leaf_input_for(
     input: &LiftInput,
     position: usize,
-) -> snark_lifter_split::LeafInput {
-    return snark_lifter_split::LeafInput {
-        version: snark_lifter_split::LEAF_FRAME_VERSION,
+) -> sp1_lifter_split::LeafInput {
+    return sp1_lifter_split::LeafInput {
+        version: sp1_lifter_split::LEAF_FRAME_VERSION,
         chain_code: input.chain_code.clone(),
         index: input.index,
         expected_output: input.expected_output.clone(),
@@ -435,7 +435,7 @@ pub fn leaf_input_for(
 }
 
 /// Builds the leaf program's stdin.
-pub fn leaf_stdin(input: &snark_lifter_split::LeafInput) -> SP1Stdin {
+pub fn leaf_stdin(input: &sp1_lifter_split::LeafInput) -> SP1Stdin {
     let frame = postcard::to_allocvec(input).expect("serialize leaf frame");
     let mut stdin = SP1Stdin::new();
     stdin.write_vec(frame);
@@ -449,7 +449,7 @@ pub fn leaf_stdin(input: &snark_lifter_split::LeafInput) -> SP1Stdin {
 pub fn leaf_journal_native(
     input: &LiftInput,
     position: usize,
-) -> snark_lifter_split::LeafJournal {
+) -> sp1_lifter_split::LeafJournal {
     use zkboo::{circuit::Circuit, verifier::replay::ViewReplayerBackend};
     let response = &input.proof[position];
     assert!(response.is_well_formed(), "response {position} is malformed");
@@ -459,17 +459,17 @@ pub fn leaf_journal_native(
     let commitments = replayer
         .finalize_with_arg(&input.expected_output)
         .expect("native replay");
-    return snark_lifter_split::LeafJournal {
-        version: snark_lifter_split::LEAF_JOURNAL_VERSION,
+    return sp1_lifter_split::LeafJournal {
+        version: sp1_lifter_split::LEAF_JOURNAL_VERSION,
         position: position as u32,
-        statement_digest: snark_lifter_split::statement_digest(
+        statement_digest: sp1_lifter_split::statement_digest(
             &input.chain_code,
             input.index,
             &input.expected_output,
             &input.binding,
         ),
         party: response.challenge().index() as u8,
-        commitments: commitments.map(|c| snark_lifter_split::LeafCommitment {
+        commitments: commitments.map(|c| sp1_lifter_split::LeafCommitment {
             digest: *c.digest(),
             output_share: c.output_share().clone(),
         }),
@@ -481,9 +481,9 @@ pub fn root_input_for(
     input: &LiftInput,
     leaf_vk: [u32; 8],
     leaf_public_values: Vec<Vec<u8>>,
-) -> snark_lifter_split::RootInput {
-    return snark_lifter_split::RootInput {
-        version: snark_lifter_split::ROOT_FRAME_VERSION,
+) -> sp1_lifter_split::RootInput {
+    return sp1_lifter_split::RootInput {
+        version: sp1_lifter_split::ROOT_FRAME_VERSION,
         chain_code: input.chain_code.clone(),
         index: input.index,
         expected_output: input.expected_output.clone(),
@@ -496,8 +496,8 @@ pub fn root_input_for(
 /// Decodes the root program's committed public values.
 pub fn decode_root_journal(
     public_values: &[u8],
-) -> Result<snark_lifter_split::RootJournal, String> {
-    let (journal, rest): (snark_lifter_split::RootJournal, _) =
+) -> Result<sp1_lifter_split::RootJournal, String> {
+    let (journal, rest): (sp1_lifter_split::RootJournal, _) =
         postcard::take_from_bytes(public_values)
             .map_err(|e| format!("root journal decode failed: {e}"))?;
     if !rest.is_empty() {
@@ -507,11 +507,11 @@ pub fn decode_root_journal(
     // self-describing, so on the first layout change an unchecked version is a silent misparse
     // rather than an error: the fields would decode into the wrong shape and the gate would run
     // on nonsense. Only version 1 exists today, which is exactly when this is free to add.
-    if journal.version != snark_lifter_split::ROOT_JOURNAL_VERSION {
+    if journal.version != sp1_lifter_split::ROOT_JOURNAL_VERSION {
         return Err(format!(
             "root journal version is {}, not {}",
             journal.version,
-            snark_lifter_split::ROOT_JOURNAL_VERSION
+            sp1_lifter_split::ROOT_JOURNAL_VERSION
         ));
     }
     return Ok(journal);

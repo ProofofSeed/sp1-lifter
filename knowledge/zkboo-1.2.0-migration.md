@@ -60,7 +60,7 @@ verbatim into `statement/src/hasher.rs`, forty lines, still patched to SP1's acc
 `tiny-keccak` so a guest still drives the Keccak precompile. No digest changes: the hasher moved,
 the transcript did not.
 
-**`n_eps`, vendored** into `snark_lifter_host` from the same harness, for the same publishability
+**`n_eps`, vendored** into `sp1_lifter_host` from the same harness, for the same publishability
 reason. The arithmetic is unchanged.
 
 **Entry points.** Fifteen collapsed into six, every optional argument travelling in an options

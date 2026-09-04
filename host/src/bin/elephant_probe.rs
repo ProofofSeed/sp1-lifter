@@ -26,9 +26,9 @@
 use std::time::Instant;
 
 use sp1_sdk::blocking::{Prover, ProverClient};
-use snark_lifter_elephant::{ELEPHANT_FRAME_VERSION, ElephantInput, EthereumAddressCircuit};
-use snark_lifter_host::{ELEPHANT_ELF, WP, WTP, n_eps};
-use snark_lifter_statement::{H, PS, PV, S};
+use sp1_lifter_elephant::{ELEPHANT_FRAME_VERSION, ElephantInput, EthereumAddressCircuit};
+use sp1_lifter_host::{ELEPHANT_ELF, WP, WTP, n_eps};
+use sp1_lifter_statement::{H, PS, PV, S};
 use zkboo::{
     executor::{ExecOptions, exec},
     prover::par_prove,
@@ -121,7 +121,7 @@ fn main() {
     assert!(counts.iter().all(|&n| n >= 1), "response counts must be positive");
     assert!(counts.len() >= 2, "a single point cannot separate the fixed cost from the marginal one; give at least two counts");
     println!("── elephant probe (Ethereum address = Keccak256(x_be ‖ y_be)[12:]) ──");
-    println!("  zkboo: {}", snark_lifter_host::zkboo_provenance());
+    println!("  zkboo: {}", sp1_lifter_host::zkboo_provenance());
 
     let circuit = EthereumAddressCircuit::with_witness(PRIV_KEY.to_vec());
     let t = Instant::now();

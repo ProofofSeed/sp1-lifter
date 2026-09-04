@@ -15,14 +15,14 @@
 sp1_zkvm::entrypoint!(main);
 
 use sha2::{Digest, Sha256};
-use snark_lifter_elephant::{
+use sp1_lifter_elephant::{
     ELEPHANT_JOURNAL_VERSION, ElephantJournal, ElephantRootJournal, EthereumAddressCircuit, H,
 };
-use snark_lifter_split::{
+use sp1_lifter_split::{
     ELEPHANT_SPLIT_FRAME_VERSION, ElephantRootInput, LeafJournal, ROOT_JOURNAL_VERSION,
     aggregate, statement_digest_generic,
 };
-use snark_lifter_pinned_keys::LEAF_ELEPHANT_VK;
+use sp1_lifter_pinned_keys::LEAF_ELEPHANT_VK;
 use zkboo_circuit_hash::hash_circuit;
 
 const NO_PUBLIC_PARAMS: &[u8] = &[];

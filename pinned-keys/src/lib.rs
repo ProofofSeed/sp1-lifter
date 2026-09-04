@@ -20,7 +20,7 @@
 //!
 //! It must be linked by the root programs and the host, and **not** by the leaf programs. A
 //! leaf that linked it would change its own verifying key whenever that key was recorded here,
-//! which does not converge. Keeping it out of `snark-lifter-split` — which the leaves do link —
+//! which does not converge. Keeping it out of `sp1-lifter-split` — which the leaves do link —
 //! is what makes the two-stage build terminate: build the leaf, read its key, record it here,
 //! build the root.
 //!

@@ -16,7 +16,7 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use snark_lifter_statement::{
+use sp1_lifter_statement::{
     H, HardenedChildCircuit, LIFT_FRAME_VERSION, LIFT_JOURNAL_VERSION, LiftInput, LiftJournal, PV,
     S,
 };

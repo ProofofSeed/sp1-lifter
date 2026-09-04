@@ -1,5 +1,5 @@
 [package]
-name = "snark-lifter-program-root"
+name = "sp1-lifter-program-root"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,6 +12,6 @@ postcard = { version = "1.1", default-features = false, features = ["alloc"] }
 sha2 = { version = "0.10", default-features = false }
 zkboo = { version = "=1.2.0", features = ["u32", "u64"] }
 zkboo-circuit-hash = { version = "=1.2.0" }
-snark-lifter-statement = { path = "../statement" }
-snark-lifter-split = { path = "../split" }
-snark-lifter-pinned-keys = { path = "../pinned-keys" }
+sp1-lifter-statement = { path = "../statement" }
+sp1-lifter-split = { path = "../split" }
+sp1-lifter-pinned-keys = { path = "../pinned-keys" }

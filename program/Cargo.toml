@@ -1,5 +1,5 @@
 [package]
-name = "snark-lifter-program"
+name = "sp1-lifter-program"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,4 +11,4 @@ sp1-zkvm = { version = "=6.4.0" }
 postcard = { version = "1.1", default-features = false, features = ["alloc"] }
 zkboo = { version = "=1.2.0", features = ["u32", "u64"] }
 zkboo-circuit-hash = { version = "=1.2.0" }
-snark-lifter-statement = { path = "../statement" }
+sp1-lifter-statement = { path = "../statement" }

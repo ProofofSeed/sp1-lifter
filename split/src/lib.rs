@@ -29,7 +29,7 @@ extern crate alloc;
 
 use alloc::{vec::Vec, format, string::String};
 use serde::{Deserialize, Serialize};
-use snark_lifter_statement::{H, S};
+use sp1_lifter_statement::{H, S};
 use zkboo::{
     crypto::{
         GeneratesRandom, HashPRG, Hasher, PseudoRandomGenerator, TAG_CHALLENGE, absorb_framed,
@@ -193,7 +193,7 @@ pub struct RootInput {
     pub binding: Vec<u8>,
     /// The verifying-key digest every leaf proof must have been produced under.
     ///
-    /// ✅ **Both roots compile this key in** (`snark_lifter_pinned_keys`), since 2026-08-28,
+    /// ✅ **Both roots compile this key in** (`sp1_lifter_pinned_keys`), since 2026-08-28,
     /// and refuse a claimed value that disagrees before admitting any proof — so the pin lives
     /// inside the root's own verifying key, and pinning that key gets this for free. The field
     /// is kept so a journal stays self-describing.
@@ -214,7 +214,7 @@ pub struct RootJournal {
     pub version: u32,
     /// The lifted statement, in exactly the layout the monolithic lifter commits — so
     /// `check_journal` and the on-chain fixture guards apply to it unchanged.
-    pub lift: snark_lifter_statement::LiftJournal,
+    pub lift: sp1_lifter_statement::LiftJournal,
     /// The leaf verifying-key digest the root verified every leaf proof against. A
     /// relying party MUST pin this; see [`RootInput::leaf_vk`].
     pub leaf_vk: [u32; 8],

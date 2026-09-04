@@ -16,17 +16,17 @@
 use std::time::Instant;
 
 use sp1_sdk::blocking::ProverClient;
-use snark_lifter_host::{
+use sp1_lifter_host::{
     HARDENED_OFFSET, WPP, bip32_vector_1, execute_lift, lift_input_for, n_eps, vector_1_proof,
 };
-use snark_lifter_statement::{H, PV, S};
+use sp1_lifter_statement::{H, PV, S};
 use zkboo::verifier::{VerifyOptions, verify};
 
 const SEED_ENTROPY: &[u8] = b"snark-lifter cycle probe entropy";
 const BINDING: &[u8] = b"";
 
 fn main() {
-    println!("  zkboo: {}", snark_lifter_host::zkboo_provenance());
+    println!("  zkboo: {}", sp1_lifter_host::zkboo_provenance());
     let mut iters: Vec<usize> = std::env::args()
         .skip(1)
         .map(|a| a.parse().expect("iteration counts must be positive integers"))

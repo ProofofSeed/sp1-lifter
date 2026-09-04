@@ -46,7 +46,7 @@ subset of leaves re-derives a different challenge sequence and therefore attests
 about the whole — the same property that makes a truncated proof fail, and that makes
 zkboo's ranged proving safe. Split naively and you have 219 proofs of nothing.
 
-Everything that recovers the statement lives in one function, `snark_lifter_split::aggregate`:
+Everything that recovers the statement lives in one function, `sp1_lifter_split::aggregate`:
 
 - the leaves are a **complete, in-order, duplicate-free** cover of the proof;
 - every leaf attests **the same statement**;

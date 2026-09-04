@@ -11,7 +11,7 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use snark_lifter_elephant::{ELEPHANT_FRAME_VERSION, ElephantInput, EthereumAddressCircuit, H, PV, S};
+use sp1_lifter_elephant::{ELEPHANT_FRAME_VERSION, ElephantInput, EthereumAddressCircuit, H, PV, S};
 use zkboo::verifier::{VerifyOptions, replay::OwnedFlexibleWordPairPool, verify};
 use zkboo_circuit_hash::hash_circuit;
 

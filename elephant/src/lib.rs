@@ -19,11 +19,11 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
-use snark_lifter_statement::LiftProof;
+use sp1_lifter_statement::LiftProof;
 
 /// The crypto suite, re-exported so consumers of this statement need not also depend on
 /// the production statement crate: the two must use the same suite or nothing composes.
-pub use snark_lifter_statement::{H, PS, PV, S};
+pub use sp1_lifter_statement::{H, PS, PV, S};
 use zkboo::{
     backend::{Backend, Frontend},
     circuit::{Assertions, Circuit},
@@ -55,7 +55,7 @@ fn be_words(bytes: &[u8]) -> CompositeWord<u64, 4> {
 /// tangent at the top — which the prover computes on the host from the witness and feeds in as
 /// ordinary secret inputs. Advice constrains nothing by itself; the in-circuit assertions the
 /// comb raises are what pin it down, and they end up in the flag this circuit outputs last.
-/// Ignore that flag and the statement is vacuous: see `snark_lifter_statement::check_journal`.
+/// Ignore that flag and the statement is vacuous: see `sp1_lifter_statement::check_journal`.
 pub struct EthereumAddressCircuit {
     private_key: Vec<u8>,
     advice: PublicKeyAdvice,
@@ -157,7 +157,7 @@ pub struct ElephantRootJournal {
     /// The verifying key every admitted leaf proof carried.
     ///
     /// ✅ **Compiled into the root** since 2026-08-28: it refuses any claimed key disagreeing
-    /// with `snark_lifter_pinned_keys::LEAF_ELEPHANT_VK` before admitting a proof, so the
+    /// with `sp1_lifter_pinned_keys::LEAF_ELEPHANT_VK` before admitting a proof, so the
     /// root's own verifying key says which leaf program it admits and this field is a
     /// self-description rather than a load-bearing input. (This doc previously said it was
     /// prover-chosen and had to be checked by a relying party; that stopped being true when
@@ -233,7 +233,7 @@ pub fn check_elephant_journal(
     if journal.proof_format_version != expectation.proof_format_version {
         return Err(ElephantCheckError::ProofFormatMismatch);
     }
-    // Unconditional; see `snark_lifter_statement::check_journal`. A proof whose in-circuit
+    // Unconditional; see `sp1_lifter_statement::check_journal`. A proof whose in-circuit
     // assertions did not hold is valid, attests nothing, and anyone can produce one for any
     // address without knowing a seed.
     match journal.expected_output.as_vec::<u8>().last() {

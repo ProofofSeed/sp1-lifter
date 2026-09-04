@@ -1,5 +1,5 @@
 [package]
-name = "snark-lifter-pinned-keys"
+name = "sp1-lifter-pinned-keys"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

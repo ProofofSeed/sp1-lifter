@@ -24,11 +24,11 @@
 use std::time::Instant;
 
 use sp1_sdk::blocking::{EnvProver, ProverClient};
-use snark_lifter_host::{
+use sp1_lifter_host::{
     HARDENED_OFFSET, bip32_vector_1, execute_lift, expectation_for, lift_input_for, n_eps,
     oversize_and_msg, tamper_and_msg, vector_1_proof,
 };
-use snark_lifter_statement::{
+use sp1_lifter_statement::{
     JournalCheckError, JournalExpectation, LiftInput, LiftJournal, check_journal,
 };
 
@@ -39,7 +39,7 @@ fn lift_input(
     chain_code: Vec<u8>,
     output: zkboo::word::Words,
     binding: &[u8],
-    proof: snark_lifter_statement::LiftProof,
+    proof: sp1_lifter_statement::LiftProof,
 ) -> LiftInput {
     return lift_input_for(chain_code, HARDENED_OFFSET, output, binding, proof);
 }
@@ -85,7 +85,7 @@ fn main() {
 
     if rejects {
         println!("── reject matrix (n=8) ──");
-        println!("  zkboo: {}", snark_lifter_host::zkboo_provenance());
+        println!("  zkboo: {}", sp1_lifter_host::zkboo_provenance());
         let n = 8;
         let (_, output, proof) = vector_1_proof(n, SEED_ENTROPY, BINDING);
         let (_, chain_code) = bip32_vector_1();

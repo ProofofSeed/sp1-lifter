@@ -19,7 +19,7 @@
 use std::time::Instant;
 
 use sp1_sdk::{HashableKey, ProvingKey, blocking::{ProveRequest, Prover}};
-use snark_lifter_host::{
+use sp1_lifter_host::{
     HARDENED_OFFSET, LIFT_ELF, bip32_vector_1, check_lifted_proof, expectation_for,
     lift_input_for, lift_stdin, n_eps, prover_backend, prover_client, vector_1_proof,
 };

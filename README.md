@@ -18,7 +18,7 @@ To measure against the CPU, force the GPU path off with the switches in `fixture
 ⚠️ **Set `SP1_METAL_MERKLE=0` for any run you are not watching.** With every phase accelerated the backend is 4.7× faster than this machine's CPU prover on a one-response lift — and it also produces a proof that fails its own verification about once in twenty-eight and then parks the run for ever. Leaving the Merkle tree on the CPU has run 115 consecutive proofs clean, at 1.9× on a single leaf and 2.3× on a full-scale lift. See `knowledge/gpu-corruption.md`.
 
 ```sh
-cargo build --release -p snark-lifter-host --features metal   # once; the binaries below are in target/release
+cargo build --release -p sp1-lifter-host --features metal   # once; the binaries below are in target/release
 
 ./target/release/cycle-probe                # instruction-law sweep
 ./target/release/s1-acceptance              # reject matrix + full-scale 219

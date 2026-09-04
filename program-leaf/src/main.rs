@@ -4,7 +4,7 @@
 //!
 //! This is the leaf of the split-and-aggregate probe. It does the part of verification
 //! that distributes — the view replay — and none of the part that does not. It therefore
-//! attests nothing on its own; see `snark_lifter_split::LeafJournal`.
+//! attests nothing on its own; see `sp1_lifter_split::LeafJournal`.
 //!
 //! Note what is deliberately absent: the circuit fingerprint. Computing it here would
 //! pay a whole-circuit structural traversal once per response instead of once per proof,
@@ -15,8 +15,8 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use snark_lifter_statement::{H, HardenedChildCircuit, PV, S};
-use snark_lifter_split::{
+use sp1_lifter_statement::{H, HardenedChildCircuit, PV, S};
+use sp1_lifter_split::{
     LEAF_FRAME_VERSION, LEAF_JOURNAL_VERSION, LeafCommitment, LeafInput, LeafJournal,
     statement_digest,
 };

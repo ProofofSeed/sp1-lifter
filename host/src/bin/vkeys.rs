@@ -11,7 +11,7 @@
 //! constant when one has drifted, so the fix is a copy rather than an investigation.
 
 use sp1_sdk::{HashableKey, ProvingKey, blocking::Prover};
-use snark_lifter_host::{
+use sp1_lifter_host::{
     ELEPHANT_ELF, LEAF_ELEPHANT_ELF, LEAF_ELF, LIFT_ELF, ROOT_ELEPHANT_ELF, ROOT_ELF,
     prover_client,
 };
@@ -30,7 +30,7 @@ fn main() {
     sp1_sdk::setup_logger();
     let (client, _) = prover_client();
     println!("── verifying keys ──");
-    println!("  zkboo: {}", snark_lifter_host::zkboo_provenance());
+    println!("  zkboo: {}", sp1_lifter_host::zkboo_provenance());
     let mut leaf_digests = Vec::new();
     for (name, elf) in [
         ("lift (monolithic)", LIFT_ELF),
@@ -50,8 +50,8 @@ fn main() {
     println!();
     println!("── the leaf keys the roots have compiled in ──");
     for (name, digest, pinned) in [
-        ("leaf", leaf_digests[0].1, snark_lifter_host::PINNED_LEAF_VK),
-        ("leaf-elephant", leaf_digests[1].1, snark_lifter_host::PINNED_LEAF_ELEPHANT_VK),
+        ("leaf", leaf_digests[0].1, sp1_lifter_host::PINNED_LEAF_VK),
+        ("leaf-elephant", leaf_digests[1].1, sp1_lifter_host::PINNED_LEAF_ELEPHANT_VK),
     ] {
         if digest == pinned {
             println!("  {name:<16} pinned correctly");
@@ -62,8 +62,8 @@ fn main() {
             println!("      Update the constant in the root program's source to the second line.");
         }
     }
-    let drifted = leaf_digests[0].1 != snark_lifter_host::PINNED_LEAF_VK
-        || leaf_digests[1].1 != snark_lifter_host::PINNED_LEAF_ELEPHANT_VK;
+    let drifted = leaf_digests[0].1 != sp1_lifter_host::PINNED_LEAF_VK
+        || leaf_digests[1].1 != sp1_lifter_host::PINNED_LEAF_ELEPHANT_VK;
     assert!(!drifted, "a root program has a stale leaf verifying key compiled into it");
     println!("verifying keys: PASS");
 }
