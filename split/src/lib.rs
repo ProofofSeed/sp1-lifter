@@ -48,7 +48,10 @@ pub const LEAF_JOURNAL_VERSION: u32 = 1;
 pub const ROOT_FRAME_VERSION: u32 = 1;
 
 /// Version tag of the [`RootJournal`] layout.
-pub const ROOT_JOURNAL_VERSION: u32 = 1;
+///
+/// This covers the nested lift journal too, so it moves whenever that shape does — as it did when
+/// the lift journal's proof-format field became a 32-byte identity.
+pub const ROOT_JOURNAL_VERSION: u32 = 2;
 
 /// Domain separator for [`statement_digest`].
 const STATEMENT_DOMAIN: &[u8] = b"SNARK-LIFTER-SPLIT-STATEMENT-v1";

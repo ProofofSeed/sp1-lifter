@@ -158,7 +158,7 @@ fn main() {
         // guards is a consumer that upgrades zkboo while still pinning an older
         // verifying key, which no single-build test can stage.
         let mut exp = expectation_for(&input, n as u32);
-        exp.proof_format_version += 1;
+        exp.proof_format_id[0] ^= 1;
         expect_consumer_refusal(
             "R8 wrong proof format",
             &journal,

@@ -153,7 +153,7 @@ pub fn expectation_for(
         expected_output: input.expected_output.clone(),
         binding: input.binding.clone(),
         min_responses,
-        proof_format_version: sp1_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION,
+        proof_format_id: sp1_lifter_statement::REQUIRED_PROOF_FORMAT_ID,
     };
 }
 
@@ -177,19 +177,26 @@ pub fn expectation_for_statement(
         expected_output: expected_output.clone(),
         binding: binding.to_vec(),
         min_responses,
-        proof_format_version: sp1_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION,
+        proof_format_id: sp1_lifter_statement::REQUIRED_PROOF_FORMAT_ID,
     };
 }
 
 /// The ZKBoo proof format the elephant statement requires.
 ///
-/// Pinned here rather than read from the linked `zkboo`, for the reason
-/// `sp1_lifter_statement::REQUIRED_PROOF_FORMAT_VERSION` gives: an expectation taken from
-/// whatever a consumer happens to link tracks that consumer instead of constraining it, so a
-/// consumer that downgraded would silently begin *requiring* the older format. The elephant
-/// driver used to pass `zkboo::PROOF_FORMAT_VERSION` straight through, which is exactly the
-/// check-that-cannot-fail the other crate documents itself as existing to prevent.
-pub const REQUIRED_ELEPHANT_PROOF_FORMAT_VERSION: u32 = 3;
+/// Pinned rather than read from the linked `zkboo`, for the reason
+/// `sp1_lifter_statement::REQUIRED_PROOF_FORMAT_ID` gives: an expectation taken from whatever a
+/// consumer happens to link tracks that consumer instead of constraining it, so a consumer that
+/// downgraded would silently begin *requiring* the older format. The elephant driver used to pass
+/// `zkboo::PROOF_FORMAT_VERSION` straight through, which is exactly the check-that-cannot-fail
+/// the other crate documents itself as existing to prevent.
+///
+/// It is the statement crate's constant rather than a second copy of the same digest. Both
+/// statements are lifted from the same ZKBoo proof format, and two literals of it would be two
+/// records of one fact — which is the arrangement that let `PROOF_FORMAT_VERSION` sit at `3`
+/// across an incompatible change. This crate already links the statement crate, so naming it
+/// here adds no dependency and moves no guest key.
+pub const REQUIRED_ELEPHANT_PROOF_FORMAT_ID: [u8; 32] =
+    sp1_lifter_statement::REQUIRED_PROOF_FORMAT_ID;
 
 /// The reference consumer expectation for the elephant statement, with the fingerprint
 /// **recomputed** over the public-only circuit rather than copied from the journal under test.
@@ -200,7 +207,7 @@ pub const REQUIRED_ELEPHANT_PROOF_FORMAT_VERSION: u32 = 3;
 ///
 /// 🚨 It also enforces a requirement nothing else in this repository states: **the last output
 /// word is the circuit's assertion word, and it must be 1.** Prover advice — the affine comb's
-/// slopes, computed on the host from the witness and fed in as secret inputs — is
+/// slopes, which the comb mirrors on the host from the scalar and feeds in as secret inputs — is
 /// unconstrained except by the in-circuit assertions accumulated into that word, so a proof of
 /// `(any address the prover likes, assertion = 0)` is honestly obtainable by anyone with no seed
 /// knowledge at all. A relying party that checks only the twenty address bytes, or that builds an
@@ -234,7 +241,7 @@ pub fn elephant_expectation_for(
         expected_output: expected_output.clone(),
         binding: binding.to_vec(),
         min_responses,
-        proof_format_version: REQUIRED_ELEPHANT_PROOF_FORMAT_VERSION,
+        proof_format_id: REQUIRED_ELEPHANT_PROOF_FORMAT_ID,
     });
 }
 

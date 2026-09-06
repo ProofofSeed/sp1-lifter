@@ -61,7 +61,7 @@ pub fn main() {
         expected_output: input.expected_output,
         binding: input.binding,
         num_responses: input.proof.len().try_into().expect("response count exceeds u32"),
-        proof_format_version: zkboo::PROOF_FORMAT_VERSION,
+        proof_format_id: zkboo::PROOF_FORMAT_ID,
     };
     sp1_zkvm::io::commit_slice(&postcard::to_allocvec(&journal).expect("encode journal"));
 }

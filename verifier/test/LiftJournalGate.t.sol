@@ -14,6 +14,16 @@ import {LiftJournalGate as G} from "../src/LiftJournalGate.sol";
 /// once `verifyProof` has accepted them, which is the only thing standing between a
 /// relying contract and a valid proof of the wrong statement.
 contract LiftJournalGateTest is Test {
+    /// `REQUIRED_PROOF_FORMAT_ID` from the statement crate: the digest of ZKBoo's canonical
+    /// reference proof.
+    ///
+    /// A third copy of that digest, after the statement crate's and zkboo's own, and
+    /// deliberately so: a relying contract is a separate trust domain and must pin what it
+    /// requires rather than read it out of the thing it is checking. Update it here whenever the
+    /// Rust constant moves, and expect the fixture to need regenerating in the same breath.
+    bytes32 internal constant EXPECTED_PROOF_FORMAT_ID =
+        0x4be5d4e64c11ba4d40e78977f68d45ad8bf01fe31aa27507e8ddca20223a7370;
+
     bytes internal pv;
     G.Expectation internal expectation;
 
@@ -36,18 +46,18 @@ contract LiftJournalGateTest is Test {
             outputU8Hash: keccak256(j.outputU8),
             bindingHash: keccak256(j.binding),
             minResponses: 219,
-            proofFormatVersion: 3
+            proofFormatId: EXPECTED_PROOF_FORMAT_ID
         });
     }
 
     function test_decodes_the_real_journal() public view {
         G.Journal memory j = G.decode(pv);
-        assertEq(j.version, 2, "journal version");
+        assertEq(j.version, 3, "journal version");
         assertTrue(j.valid, "valid");
         assertEq(j.chainCode.length, 32, "chain code length");
         assertEq(j.index, 0x80000000, "hardened index");
         assertEq(j.numResponses, 219, "response count");
-        assertEq(j.proofFormatVersion, 3, "proof format");
+        assertEq(j.proofFormatId, EXPECTED_PROOF_FORMAT_ID, "proof format");
         assertEq(j.assertionWord, 1, "assertion word must be set");
         // 32 key bytes plus the assertion word.
         assertEq(j.outputU8.length, 33, "u8 output words");
@@ -69,6 +79,19 @@ contract LiftJournalGateTest is Test {
         e.outputU8Hash = keccak256(j.outputU8);
         vm.expectRevert(abi.encodeWithSelector(G.AssertionWordNotSet.selector, uint8(0)));
         this.gate(bad, e);
+    }
+
+    /// The format clause, which is the one this journal shape exists to make workable. Its
+    /// predecessor was a counter that sat at 3 across an incompatible change of the proof
+    /// format, so the clause could not fire on the transition it was written for; the identity
+    /// is the digest of the format's own bytes, so a moved format moves it.
+    function test_rejects_a_different_proof_format() public {
+        G.Expectation memory e = expectation;
+        e.proofFormatId = bytes32(uint256(e.proofFormatId) ^ 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(G.ProofFormatMismatch.selector, EXPECTED_PROOF_FORMAT_ID, e.proofFormatId)
+        );
+        this.gate(pv, e);
     }
 
     function test_rejects_too_few_responses() public {

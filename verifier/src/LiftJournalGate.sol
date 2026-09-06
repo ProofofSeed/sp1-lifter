@@ -38,7 +38,7 @@ library LiftJournalGate {
     error StatementMismatch();
     error BindingMismatch();
     error TooFewResponses(uint32 found, uint32 required);
-    error ProofFormatMismatch(uint32 found, uint32 expected);
+    error ProofFormatMismatch(bytes32 found, bytes32 expected);
     error AssertionWordMissing();
     error AssertionWordNotSet(uint8 found);
 
@@ -54,7 +54,7 @@ library LiftJournalGate {
         uint8 assertionWord;
         bytes binding;
         uint32 numResponses;
-        uint32 proofFormatVersion;
+        bytes32 proofFormatId;
     }
 
     /// What a consumer requires. Hashes rather than bytes, so a statement pins into one
@@ -67,7 +67,7 @@ library LiftJournalGate {
         bytes32 outputU8Hash;
         bytes32 bindingHash;
         uint32 minResponses;
-        uint32 proofFormatVersion;
+        bytes32 proofFormatId;
     }
 
     /// Decodes and gates in one call. Reverts unless every clause holds.
@@ -80,8 +80,8 @@ library LiftJournalGate {
         if (keccak256(j.outputU8) != e.outputU8Hash) revert StatementMismatch();
         if (keccak256(j.binding) != e.bindingHash) revert BindingMismatch();
         if (j.numResponses < e.minResponses) revert TooFewResponses(j.numResponses, e.minResponses);
-        if (j.proofFormatVersion != e.proofFormatVersion) {
-            revert ProofFormatMismatch(j.proofFormatVersion, e.proofFormatVersion);
+        if (j.proofFormatId != e.proofFormatId) {
+            revert ProofFormatMismatch(j.proofFormatId, e.proofFormatId);
         }
         // Unconditional, and deliberately not derived from the expectation: an expectation
         // agreeing with the journal in every other field would otherwise sail through.
@@ -96,6 +96,12 @@ library LiftJournalGate {
     /// one. The assertion word is the last **u8** word — not the last byte of the journal,
     /// and not the last byte of the expected output either, since `Words` stores wider word
     /// types after the u8 vector and these statements carry u64 words there.
+    ///
+    /// 🪤 The proof-format identity and the fingerprint are the only fields that are *not*
+    /// varints: postcard writes a `[u8; 32]` as thirty-two raw bytes with no length prefix. The
+    /// identity replaced a `u32` counter that *was* a varint, so a decoder ported from the old
+    /// journal reads one byte where it must read thirty-two, and then fails on the trailing
+    /// bytes rather than on the field it got wrong.
     function decode(bytes memory pv) internal pure returns (Journal memory j) {
         uint256 off;
         uint256 len;
@@ -125,7 +131,13 @@ library LiftJournalGate {
         j.binding = _slice(pv, off, len);
         off += len;
         (j.numResponses, off) = _u32(pv, off);
-        (j.proofFormatVersion, off) = _u32(pv, off);
+        // The proof-format identity is a `[u8; 32]`, which postcard writes as thirty-two raw
+        // bytes with no length prefix — not a varint, as the counter it replaced was.
+        if (off + 32 > pv.length) revert JournalTruncated();
+        bytes32 formatId;
+        assembly { formatId := mload(add(add(pv, 32), off)) }
+        j.proofFormatId = formatId;
+        off += 32;
         // Trailing bytes would let public values smuggle data past the decoder.
         if (off != pv.length) revert JournalTrailingBytes();
         return j;

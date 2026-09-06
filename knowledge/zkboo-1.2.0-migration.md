@@ -30,17 +30,22 @@ because the *method* and the *shape* of those results carry over and the cost of
 does not. Nothing in them may be quoted as current, and no figure in them may be rescaled by a
 factor observed elsewhere — the elephant refit is this project's standing lesson on that.
 
-## 🪤 `PROOF_FORMAT_VERSION` did not move, and cannot catch this
+## 🪤 `PROOF_FORMAT_VERSION` could not catch this — and has since been replaced
 
-It is `3` under 1.2.0 and was `3` under 2.0.0, across an incompatible format change. The constant
-that exists to identify the format was left where the withdrawn release had put it.
+It was `3` under 1.2.0 and `3` under the withdrawn 2.0.0, across an incompatible format change:
+the constant whose whole job was identifying the format had been left where the earlier release
+put it. `REQUIRED_PROOF_FORMAT_VERSION`, the journal gate's clause built for exactly this,
+therefore accepted a 2.0.0 journal, and no value it could have held would have separated two
+formats declaring the same number. What actually refused an old proof was verification failing,
+the circuit fingerprint having moved, and the guest verifying keys having moved — three refusals,
+none of them the one designed for the job.
 
-`REQUIRED_PROOF_FORMAT_VERSION`, the journal gate's clause built for exactly this, therefore
-accepts a 2.0.0 journal. It is not a defect in the clause: no value it could hold would separate
-two formats that declare the same number. What actually refuses an old proof is verification
-failing, the circuit fingerprint having moved, and the guest verifying keys having moved — three
-refusals, none of them the one designed for the job. Recorded because the next reader will
-otherwise assume that clause covers this transition.
+✅ **Closed upstream on 2026-09-06.** The counter is deleted; `zkboo::PROOF_FORMAT_ID` is a
+`[u8; 32]` that *is* the digest of a canonical reference proof, so the identity and the bytes it
+names are one record rather than two, and re-pinning them is the same edit as announcing the
+change. It over-triggers by design — the canonical proof is made by a circuit, so a change to the
+circuit vocabulary moves it too — which costs a regeneration where the counter cost a silent
+acceptance. See `zkboo-next-delta.md` for what absorbing it changed here.
 
 ## The changes this repository made
 

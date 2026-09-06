@@ -70,7 +70,7 @@ pub fn main() {
             expected_output: input.expected_output,
             binding: input.binding,
             num_responses: leaves.len().try_into().expect("response count exceeds u32"),
-            proof_format_version: zkboo::PROOF_FORMAT_VERSION,
+            proof_format_id: zkboo::PROOF_FORMAT_ID,
         },
         leaf_vk: LEAF_ELEPHANT_VK,
     };

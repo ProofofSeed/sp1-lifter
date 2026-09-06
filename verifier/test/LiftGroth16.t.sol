@@ -43,7 +43,7 @@ contract LiftGroth16Test is Test {
     /// older program stays internally consistent, so `verifyProof` accepts it and the
     /// suite would go green against a program that no longer exists. Bump this with
     /// `LIFT_JOURNAL_VERSION` and a stale fixture fails loudly instead.
-    uint8 internal constant EXPECTED_JOURNAL_VERSION = 2;
+    uint8 internal constant EXPECTED_JOURNAL_VERSION = 3;
 
     /// The structural fingerprint of the circuit this fixture must attest, sitting at
     /// `publicValues[2..34]` (the journal's third field, a bare 32-byte digest).

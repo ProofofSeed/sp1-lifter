@@ -29,10 +29,7 @@ use zkboo::{
     circuit::{Assertions, Circuit},
     word::{CompositeWord, Words},
 };
-use zkboo_bip32::{
-    PublicKeyAdvice, be_bytes_to_word, ethereum_address, public_key_advice,
-    public_key_advice_shape,
-};
+use zkboo_bip32::{be_bytes_to_word, ethereum_address};
 
 /// Byte length of a secp256k1 private key.
 pub const PRIV_KEY_LEN: usize = 32;
@@ -51,53 +48,59 @@ fn be_words(bytes: &[u8]) -> CompositeWord<u64, 4> {
 /// No public parameters: the witness is the private key and the address is the output, followed
 /// by the assertion flag.
 ///
-/// The affine comb inside `d·G` runs on prover advice — one chord slope per window, plus a
-/// tangent at the top — which the prover computes on the host from the witness and feeds in as
-/// ordinary secret inputs. Advice constrains nothing by itself; the in-circuit assertions the
-/// comb raises are what pin it down, and they end up in the flag this circuit outputs last.
-/// Ignore that flag and the statement is vacuous: see `sp1_lifter_statement::check_journal`.
+/// The affine comb inside `d·G` needs a chord slope at every window and a tangent at the top,
+/// values the verifier cannot compute and the prover supplies as ordinary secret inputs. The comb
+/// obtains them by mirroring itself on the host from the scalar, so what this circuit carries is
+/// the scalar — `Some` where there is a witness to mirror, `None` on a verifier, a fingerprinting
+/// pass or a profiling run, where input values are never read. Those slopes constrain nothing by
+/// themselves; the in-circuit assertions the comb raises around them are what pin them down, and
+/// they end up in the flag this circuit outputs last. Ignore that flag and the statement is
+/// vacuous: see `sp1_lifter_statement::check_journal`.
 pub struct EthereumAddressCircuit {
     private_key: Vec<u8>,
-    advice: PublicKeyAdvice,
+    scalar: Option<CompositeWord<u64, 4>>,
 }
 
 impl EthereumAddressCircuit {
     /// Creates the circuit with a genuine witness, for proving.
     pub fn with_witness(private_key: Vec<u8>) -> Self {
         assert_eq!(private_key.len(), PRIV_KEY_LEN, "private key must be 32 bytes");
-        let advice = public_key_advice(be_words(&private_key));
+        let scalar = Some(be_words(&private_key));
         return Self {
             private_key,
-            advice,
+            scalar,
         };
     }
 
     /// Creates the circuit for verifying: the replay backend sources input values from the
     /// opened views, so only the number of allocated inputs matters here.
     ///
-    /// The advice slots are part of that count, so they are allocated at the shape a genuine
-    /// witness would produce and filled with zeros.
+    /// The comb allocates its slope inputs either way; without a scalar to mirror there is simply
+    /// no host value to put in them.
     pub fn public_only() -> Self {
         return Self {
             private_key: alloc::vec![0u8; PRIV_KEY_LEN],
-            advice: public_key_advice_shape(),
+            scalar: None,
         };
     }
 }
 
 impl Circuit for EthereumAddressCircuit {
     fn exec<B: Backend>(&self, frontend: &Frontend<B>) {
-        let bytes = self
-            .private_key
-            .iter()
-            .map(|&b| frontend.input(b))
-            .collect::<Vec<_>>();
-        let d = be_bytes_to_word(&bytes);
-        let mut assertions = Assertions::new();
-        ethereum_address(frontend, d, &self.advice, &mut assertions)
-            .into_iter()
-            .for_each(|w| frontend.output(w));
-        assertions.output(frontend);
+        // The scope emits the assertion flag as its last output word when the body returns, so
+        // the address words are written inside it. Here the flag is load-bearing: it is the
+        // conjunction of everything the comb asserts about the slopes it was handed.
+        Assertions::scope(frontend, |assertions| {
+            let bytes = self
+                .private_key
+                .iter()
+                .map(|&b| frontend.input(b))
+                .collect::<Vec<_>>();
+            let d = be_bytes_to_word(&bytes);
+            ethereum_address(frontend, d, self.scalar, assertions)
+                .into_iter()
+                .for_each(|w| frontend.output(w));
+        });
     }
 }
 
@@ -118,7 +121,7 @@ pub struct ElephantInput {
 }
 
 /// Version tag of the [`ElephantJournal`] layout; bump on any change to its shape.
-pub const ELEPHANT_JOURNAL_VERSION: u32 = 1;
+pub const ELEPHANT_JOURNAL_VERSION: u32 = 2;
 
 /// The journal an elephant lift commits: the complete lifted statement.
 ///
@@ -143,8 +146,8 @@ pub struct ElephantJournal {
     pub binding: Vec<u8>,
     /// Number of responses (repetitions) in the verified proof.
     pub num_responses: u32,
-    /// The ZKBoo proof format the program was built against.
-    pub proof_format_version: u32,
+    /// The ZKBoo proof format the program was built against (`zkboo::PROOF_FORMAT_ID`).
+    pub proof_format_id: [u8; 32],
 }
 
 /// The journal an elephant **root** commits: the lift, plus the leaf key it admitted under.
@@ -175,8 +178,8 @@ pub struct ElephantExpectation {
     pub binding: Vec<u8>,
     /// Minimum acceptable number of responses.
     pub min_responses: u32,
-    /// Required ZKBoo proof format version.
-    pub proof_format_version: u32,
+    /// Required ZKBoo proof format identity.
+    pub proof_format_id: [u8; 32],
 }
 
 /// Why an [`ElephantJournal`] was refused.
@@ -230,7 +233,7 @@ pub fn check_elephant_journal(
     if journal.num_responses < expectation.min_responses {
         return Err(ElephantCheckError::TooFewResponses);
     }
-    if journal.proof_format_version != expectation.proof_format_version {
+    if journal.proof_format_id != expectation.proof_format_id {
         return Err(ElephantCheckError::ProofFormatMismatch);
     }
     // Unconditional; see `sp1_lifter_statement::check_journal`. A proof whose in-circuit
