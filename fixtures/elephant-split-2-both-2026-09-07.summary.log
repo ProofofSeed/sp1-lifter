@@ -1,0 +1,44 @@
+── elephant split (n=2, mode=both) ──
+  prover config: backend=cpu/metal-built[SP1_METAL_MERKLE=0] shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  zkboo: 10 crates at 1.2.0 from local paths: zkboo=4d443d4ec412 zkboo-sha2=f6a9338d9798 zkboo-hmac=cfd1b99b6ce8 zkboo-modular=5dd32865f05e zkboo-ecc=181341018c11 zkboo-circuit-hash=f5a522d3eafd zkboo-profiling=c6ce1c1c21ba zkboo-bip32=3c6a48a0431d zkboo-keccak=a503af3c5eb4 zkboo-ripemd160=8ce2561c6572
+  zkboo: 10 crates at 1.2.0 from local paths: zkboo=4d443d4ec412 zkboo-sha2=f6a9338d9798 zkboo-hmac=cfd1b99b6ce8 zkboo-modular=5dd32865f05e zkboo-ecc=181341018c11 zkboo-circuit-hash=f5a522d3eafd zkboo-profiling=c6ce1c1c21ba zkboo-bip32=3c6a48a0431d zkboo-keccak=a503af3c5eb4 zkboo-ripemd160=8ce2561c6572
+  proved 24 elephant responses natively in 821.03ms
+── cross-leaf gate matrix on the elephant statement (n=24, no proving) ──
+  control (all 24 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 1: challenge 0 != 1) ✓
+  G2 substituted response: refused (leaf 1: challenge 0 != 2) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 1: challenge 0 != 1) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 1: challenge 0 != 2) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+
+  proved 2 elephant responses natively in 315.45ms
+── 2 elephant leaf proofs ──
+  leaf 0: 3911.91s, 203 bytes of public values
+  leaf 1: 3927.63s, 203 bytes of public values
+
+── elephant root over 2 leaves ──
+  root: 15476.43s (gate green, 2 responses, fingerprint a64f0f8a…)
+elephant split: PASS
+    23329.45 real    263895.11 user     10886.72 sys
+         81462132736  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+          2147482636  page reclaims
+                1011  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+              224644  voluntary context switches
+           150793624  involuntary context switches
+    4563198868245131  instructions retired
+    1042973397250279  cycles elapsed
+         86912399280  peak memory footprint

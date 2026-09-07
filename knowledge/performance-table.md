@@ -66,6 +66,37 @@ The root over four leaves is unchanged within noise, which is the prediction the
 fixed term makes: the root is dominated by the one-off secp256k1 fingerprint traversal, and that
 term moved 5.1004e9 → 5.0986e9, i.e. −0.035%. RSS was not taken for the split runs.
 
+### The elephant statement, split
+
+| | 2.0.0 | 1.2.0 | change |
+| ------------------- | -----------: | -----------: | -----: |
+| one leaf | 4,207.74 s | 3,919.77 s | −6.84% |
+| root over two leaves | 15,589.86 s | 15,476.43 s | −0.73% |
+| two leaves + root | 24,005.34 s | 23,315.97 s | −2.87% |
+
+The root is unchanged, as its fixed term predicts. Two 2.0.0-era root runs differ from each other
+by 0.62%, so the 0.73% is inside the noise floor the baseline itself sets. The leaf saved 6.84% of
+seconds for 11.70% of instructions — the elephant leaf got 5.50% slower per instruction across the
+release where the hardened child got 4.74%.
+
+🪤 **RSS is not comparable and is deliberately absent.** The 2.0.0 figures (73.4 GB leaf, 74.4 GB
+root) are per-phase peaks from separate processes; the 1.2.0 run measured 81.46 GB as one process's
+maximum across both phases. Different quantity — "not measured" is the honest entry, not "+10%".
+
+At full classical-128 soundness, from the measured leaf:
+
+| | 2.0.0 | 1.2.0 |
+| ----------------------------------- | -------: | -------: |
+| 219 leaves + root, one machine | 11.07 d | **10.12 d** |
+| critical path, one machine per leaf | 5.65 h | **5.39 h** |
+| root's share of the critical path | 79% | 79.8% |
+
+🔑 The root is still four fifths of the wall clock, so more machines is not the lever — the one-off
+fingerprint traversal is. 🔴 And the root has been measured at **N = 2 only**: one point cannot
+separate a fixed term from a marginal one, so its cost at N = 219 is an assumption. The 2.0.0
+round's 5.65 h borrowed the *hardened child's* root marginal for the elephant; that borrow is not
+repeated here.
+
 Split arithmetic at n = 4: split on one machine 349.1 s against a 286.1 s monolith — an overhead of
 1.22× — with a critical path of 174.2 s, a 1.64× speedup given four machines, and the root at 65.7%
 of that path. 🔑 The root's share is why more machines is not the next lever.

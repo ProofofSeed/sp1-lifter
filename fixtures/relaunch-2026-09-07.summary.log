@@ -472,3 +472,68 @@ second call in the same test is warm, which is the same trap one level down.
 🔑 The general shape, and it is the third instance today: an instrument that has to hold
 its own fixture will charge the subject for holding it.  Ask where the data lives before
 believing what the meter says.
+
+================================================================================
+`elephant-split 2 both` — PASS.  23,329.45 s real (6 h 28 m 49 s), peak RSS 81.46 GB.
+Cores delivered (user+sys)/real = 11.78 of 12 → quiet machine, timings stand.
+================================================================================
+  cross-leaf gate matrix (n=24, no proving): 9 refusals + control accepted  PASS
+  leaf 0                3,911.91 s     203 B of public values
+  leaf 1                3,927.63 s     203 B
+  root over 2 leaves   15,476.43 s     gate green, fingerprint a64f0f8a…
+
+SCORING THE PREDICTIONS WRITTEN BEFORE THE RUN
+  leaf   predicted 3,890 s, band 3,700–4,050 → measured mean 3,919.77.  ✅ in band,
+         point estimate off by 0.77%.
+  root   predicted 15,300 s, band 15,100–15,600 → measured 15,476.43.  ✅ in band,
+         point estimate off by 1.15%.
+  total  predicted 23,100 s → measured 23,329.45.  ✅ off by 0.99%.
+  gate   predicted green with the control accepting → green.  ✅
+  RSS    predicted "unchanged at ~74 GB" → measured 81.46 GB.  ❌ but see below: the
+         prediction was against a figure of a different SHAPE and is void, not wrong.
+
+🪤 THE RSS PREDICTION WAS NOT COMPARABLE, AND THAT IS MY ERROR, NOT A REGRESSION.
+The baselines are per-phase peaks from SEPARATE processes — `elephant-leaf-retime`
+(73.38 GB, leaves only) and `elephant-root-n2` (74.37 GB, root only).  Today's 81.46 GB
+is one process's maximum across leaves AND root.  Different quantity.  There is no
+like-for-like RSS comparison available without re-running the phases separately, and the
+right entry is "not measured", not "+10%".
+
+WHAT CHANGED, WITH THE ONE COMPARISON THAT IS LIKE FOR LIKE
+  leaf   4,207.74 s → 3,919.77 s      −6.84%
+  root  15,589.86 s → 15,476.43 s     −0.73%   (−0.11% against the 15,493.61 rerun)
+  total 24,005.34 s → 23,315.97 s     −2.87%
+
+  🔑 The root is UNCHANGED, and that was the prediction's whole basis: the root is
+  dominated by the one-off secp256k1 fingerprint traversal, which is the elephant law's
+  FIXED term, and that term moved −0.035%.  Two old root runs differ from each other by
+  0.62%, so the 0.73% "change" is inside the noise floor set by the baseline itself.
+
+  🔴 The leaf saved 6.84% of SECONDS for 11.70% of INSTRUCTIONS.  The elephant leaf got
+  5.50% slower per instruction across the release; the hardened child got 4.74% slower.
+  Same direction, different size — see `knowledge/instructions-are-not-seconds.md`.
+
+⚠️ HOW MUCH CREDIT THE LEAF PREDICTION DESERVES: less than it looks.  Its point estimate
+came from multiplying the measured instruction saving by the child's rate degradation —
+a factor borrowed ACROSS STATEMENTS, which this project has a standing rule against and
+which I flagged as unjustified when I wrote it.  It happened to be good to 0.8
+percentage points (4.74% borrowed vs 5.50% actual).  Landing inside a band that was
+drawn wide BECAUSE the step was unjustified is the band working, not the step being
+sound.  Had I used instruction proportionality alone — 3,715 s — I would have been
+outside my own band on the low side.
+
+FULL-SCALE PROJECTION, classical-128 (219 responses)
+  219 leaves, sequential      858,430 s = 9.94 days
+  + one root                   15,476 s
+  one machine                        = 10.12 days      (was 11.07)
+  critical path, enough machines      = 5.39 h         (was 5.65)
+  root share of the critical path       79.8%          (was 79%)
+
+🔑 The root is still four fifths of the wall clock, so more machines is still not the
+lever — the one-off fingerprint traversal is.
+🔴 CAVEAT, unchanged from the previous round and worth restating because it is easy to
+lose: the root has been measured at N=2 ONLY.  One point cannot separate a fixed term
+from a marginal one, so the root's cost at N=219 is an assumption, not a measurement.
+The previous round's 5.65 h borrowed the HARDENED CHILD's root marginal (2.55 s/leaf)
+for the elephant; that is exactly the cross-statement borrowing this file has now caught
+twice in a day, and it is not repeated here.
