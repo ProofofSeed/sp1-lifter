@@ -35,13 +35,13 @@ use sp1_sdk::{
     SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey,
     blocking::{EnvProver, ProveRequest, Prover},
 };
-use snark_lifter_split::LeafInput;
-use snark_lifter_statement::{H, HardenedChildCircuit, PS, PV, S};
+use sp1_lifter_split::LeafInput;
+use sp1_lifter_statement::{H, HardenedChildCircuit, PS, PV, S};
 use zkboo::{
-    executor::exec,
+    executor::{ExecOptions, exec},
     prover::{
-        challenge::build_challenge_entropy,
-        proof::{ProofBuilder, Response, collectors::OwnedResponseDataCollector},
+        challenge::{ChallengeOptions, build_challenge_entropy},
+        proof::{ProofBuilder, ProofOptions, Response, collectors::OwnedResponseDataCollector},
     },
     word::Words,
 };
@@ -149,13 +149,19 @@ fn produce(
     tx: SyncSender<Arrival>,
 ) -> Duration {
     let t = Instant::now();
-    let challenge_entropy =
-        build_challenge_entropy::<_, H, PS, PV, S, WTP>(circuit, seed_entropy, binding, num_responses);
+    let challenge_entropy = build_challenge_entropy::<_, H, PS, PV, S, _, WTP, _>(
+        circuit,
+        seed_entropy,
+        binding,
+        num_responses,
+        ChallengeOptions::new(),
+    );
     let challenge_wall = t.elapsed();
     let mut builder = ProofBuilder::<H, PS, PV, S, OwnedResponseDataCollector<S, S>, WTP>::new(
         seed_entropy,
         challenge_entropy,
         num_responses,
+        ProofOptions::new(),
     );
     // The producer's own clock, which advances only while it is computing or waiting out a
     // modelled arrival interval — never while it is blocked on a full channel.
@@ -273,7 +279,7 @@ pub fn stream_lift(
                         }
                     }
                     let leaf_input = LeafInput {
-                        version: snark_lifter_split::LEAF_FRAME_VERSION,
+                        version: sp1_lifter_split::LEAF_FRAME_VERSION,
                         chain_code: statement.chain_code.clone(),
                         index: statement.index,
                         expected_output: statement.expected_output.clone(),
@@ -357,7 +363,7 @@ pub fn hardened_child_statement(
     binding: &[u8],
 ) -> (HardenedChildCircuit, Statement) {
     let circuit = HardenedChildCircuit::with_witness(chain_code.clone(), parent_priv, index);
-    let expected_output = exec::<_, WP>(&circuit);
+    let expected_output = exec::<_, WP, _>(&circuit, ExecOptions::new());
     return (
         circuit,
         Statement { chain_code, index, expected_output, binding: binding.to_vec() },

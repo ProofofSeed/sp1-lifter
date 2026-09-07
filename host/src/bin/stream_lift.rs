@@ -26,13 +26,13 @@
 use std::time::{Duration, Instant};
 
 use sp1_sdk::{HashableKey, ProvingKey, SP1Proof, SP1Stdin, blocking::{ProveRequest, Prover}};
-use snark_lifter_host::{
+use sp1_lifter_host::{
     HARDENED_OFFSET, LEAF_ELF, ROOT_ELF, bip32_vector_1, decode_root_journal,
     orchestrator::{StreamReport, hardened_child_statement, stream_lift},
     expectation_for_statement, prover_backend, prover_client,
 };
-use snark_lifter_split::RootInput;
-use snark_lifter_statement::check_journal;
+use sp1_lifter_split::RootInput;
+use sp1_lifter_statement::check_journal;
 
 const SEED_ENTROPY: &[u8] = b"snark-lifter streaming orchestrator entropy";
 const BINDING: &[u8] = b"snark-lifter streaming orchestrator tx binding";
@@ -112,7 +112,7 @@ fn main() {
     let leaf_vk = leaf_pk.verifying_key().clone();
     assert_eq!(
         leaf_vk.hash_u32(),
-        snark_lifter_host::PINNED_LEAF_VK,
+        sp1_lifter_host::PINNED_LEAF_VK,
         "the pinned leaf key is stale against the built leaf ELF — run `vkeys` and update \
          `pinned-keys`"
     );
@@ -137,7 +137,7 @@ fn main() {
     }
     let root_pk = client.setup(ROOT_ELF).expect("root program setup");
     let root_input = RootInput {
-        version: snark_lifter_split::ROOT_FRAME_VERSION,
+        version: sp1_lifter_split::ROOT_FRAME_VERSION,
         chain_code: statement.chain_code.clone(),
         index: statement.index,
         expected_output: statement.expected_output.clone(),

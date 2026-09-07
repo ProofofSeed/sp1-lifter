@@ -54,18 +54,18 @@
 use std::time::{Duration, Instant};
 
 use sp1_sdk::{HashableKey, ProvingKey, SP1Proof, SP1Stdin, blocking::{ProveRequest, Prover}};
-use snark_lifter_host::{
+use sp1_lifter_host::{
     HARDENED_OFFSET, LEAF_ELF, LIFT_ELF, ROOT_ELF, bip32_vector_1, decode_root_journal,
     expectation_for, leaf_input_for, leaf_journal_native, leaf_stdin, lift_input_for, lift_stdin,
     root_input_for, vector_1_proof,
 };
-use snark_lifter_split::{AggregateError, LeafJournal, aggregate, statement_digest};
-use snark_lifter_statement::{LiftInput, check_journal};
+use sp1_lifter_split::{AggregateError, LeafJournal, aggregate, statement_digest};
+use sp1_lifter_statement::{LiftInput, check_journal};
 
 const SEED_ENTROPY: &[u8] = b"snark-lifter split probe entropy";
 const BINDING: &[u8] = b"snark-lifter split probe tx binding";
 
-fn expect_refusal(name: &str, leaves: &[LeafJournal], digest: &snark_lifter_statement::S, expected: fn(&AggregateError) -> bool) {
+fn expect_refusal(name: &str, leaves: &[LeafJournal], digest: &sp1_lifter_statement::S, expected: fn(&AggregateError) -> bool) {
     match aggregate(leaves, digest, BINDING) {
         Ok(()) => panic!("{name}: the gate ACCEPTED a leaf set it must refuse"),
         Err(e) if expected(&e) => println!("  {name}: refused ({}) ✓", e.tag()),
@@ -194,9 +194,9 @@ fn main() {
         unsafe { std::env::set_var("RUST_LOG", "info") };
     }
     sp1_sdk::setup_logger();
-    let (client, config) = snark_lifter_host::prover_client();
+    let (client, config) = sp1_lifter_host::prover_client();
     assert_ne!(
-        snark_lifter_host::prover_backend(),
+        sp1_lifter_host::prover_backend(),
         "mock",
         "a mock proof carries no evidence: this probe's timings would be meaningless"
     );
@@ -261,7 +261,7 @@ fn main() {
             .run()
             .expect("monolithic proving");
         mono_wall = t.elapsed();
-        let journal = snark_lifter_host::check_lifted_proof(
+        let journal = sp1_lifter_host::check_lifted_proof(
             &client,
             &lifted,
             pk.verifying_key(),
@@ -280,7 +280,7 @@ fn main() {
     let leaf_vk = leaf_pk.verifying_key().clone();
     assert_eq!(
         leaf_vk.hash_u32(),
-        snark_lifter_host::PINNED_LEAF_VK,
+        sp1_lifter_host::PINNED_LEAF_VK,
         "the pinned leaf key is stale against the built leaf ELF — run `vkeys` and update \
          `pinned-keys`"
     );

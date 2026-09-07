@@ -1,5 +1,9 @@
 # GPU proving, measured on this machine
 
+> ⚠️ The absolute timings here were taken against the withdrawn ZKBoo 2.0.0 (see
+> `zkboo-1.2.0-migration.md`). The CPU-to-GPU *ratios* are properties of the SP1 backend and
+> should carry; the seconds are of a workload that no longer exists.
+
 `sp1-metal` (hashberg-io, tag `v0.1.0`) is a Metal backend for SP1 Hypercube 6.4.0 on Apple Silicon.
 SP1's own GPU support is CUDA-only, so without it this machine's prover is the CPU.
 This note records what it does to *this* workload, which is not the workload it was measured on.

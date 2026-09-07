@@ -4070,137 +4070,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "snark-lifter-elephant"
-version = "0.1.0"
-dependencies = [
- "serde",
- "snark-lifter-statement",
- "zkboo",
- "zkboo-bip32",
-]
-
-[[package]]
-name = "snark-lifter-host"
-version = "0.1.0"
-dependencies = [
- "hex",
- "postcard",
- "serde",
- "sha2",
- "slop-basefold-prover",
- "slop-dft",
- "slop-jagged",
- "slop-multilinear",
- "snark-lifter-elephant",
- "snark-lifter-pinned-keys",
- "snark-lifter-split",
- "snark-lifter-statement",
- "sp1-build",
- "sp1-core-executor",
- "sp1-hypercube",
- "sp1-prover",
- "sp1-sdk",
- "zkboo",
- "zkboo-bip32",
- "zkboo-circuit-hash",
- "zkboo-profiling",
-]
-
-[[package]]
-name = "snark-lifter-pinned-keys"
-version = "0.1.0"
-
-[[package]]
-name = "snark-lifter-program"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "snark-lifter-statement",
- "sp1-zkvm",
- "zkboo",
- "zkboo-circuit-hash",
-]
-
-[[package]]
-name = "snark-lifter-program-elephant"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "snark-lifter-elephant",
- "sp1-zkvm",
- "zkboo",
- "zkboo-circuit-hash",
-]
-
-[[package]]
-name = "snark-lifter-program-leaf"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "snark-lifter-split",
- "snark-lifter-statement",
- "sp1-zkvm",
- "zkboo",
-]
-
-[[package]]
-name = "snark-lifter-program-leaf-elephant"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "snark-lifter-elephant",
- "snark-lifter-split",
- "sp1-zkvm",
- "zkboo",
-]
-
-[[package]]
-name = "snark-lifter-program-root"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "sha2",
- "snark-lifter-pinned-keys",
- "snark-lifter-split",
- "snark-lifter-statement",
- "sp1-zkvm",
- "zkboo",
- "zkboo-circuit-hash",
-]
-
-[[package]]
-name = "snark-lifter-program-root-elephant"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "sha2",
- "snark-lifter-elephant",
- "snark-lifter-pinned-keys",
- "snark-lifter-split",
- "sp1-zkvm",
- "zkboo",
- "zkboo-circuit-hash",
-]
-
-[[package]]
-name = "snark-lifter-split"
-version = "0.1.0"
-dependencies = [
- "serde",
- "snark-lifter-statement",
- "zkboo",
-]
-
-[[package]]
-name = "snark-lifter-statement"
-version = "0.1.0"
-dependencies = [
- "serde",
- "zkboo",
- "zkboo-bip32",
-]
-
-[[package]]
 name = "snowbridge-amcl"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4480,6 +4349,139 @@ dependencies = [
  "elliptic-curve",
  "serde",
  "sp1-primitives",
+]
+
+[[package]]
+name = "sp1-lifter-elephant"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "sp1-lifter-statement",
+ "zkboo",
+ "zkboo-bip32",
+]
+
+[[package]]
+name = "sp1-lifter-host"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "postcard",
+ "serde",
+ "sha2",
+ "slop-basefold-prover",
+ "slop-dft",
+ "slop-jagged",
+ "slop-multilinear",
+ "sp1-build",
+ "sp1-core-executor",
+ "sp1-hypercube",
+ "sp1-lifter-elephant",
+ "sp1-lifter-pinned-keys",
+ "sp1-lifter-split",
+ "sp1-lifter-statement",
+ "sp1-prover",
+ "sp1-sdk",
+ "zkboo",
+ "zkboo-bip32",
+ "zkboo-circuit-hash",
+ "zkboo-profiling",
+]
+
+[[package]]
+name = "sp1-lifter-pinned-keys"
+version = "0.1.0"
+
+[[package]]
+name = "sp1-lifter-program"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "sp1-lifter-statement",
+ "sp1-zkvm",
+ "zkboo",
+ "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "sp1-lifter-program-elephant"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "sp1-lifter-elephant",
+ "sp1-zkvm",
+ "zkboo",
+ "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "sp1-lifter-program-leaf"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "sp1-lifter-split",
+ "sp1-lifter-statement",
+ "sp1-zkvm",
+ "zkboo",
+]
+
+[[package]]
+name = "sp1-lifter-program-leaf-elephant"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "sp1-lifter-elephant",
+ "sp1-lifter-split",
+ "sp1-zkvm",
+ "zkboo",
+]
+
+[[package]]
+name = "sp1-lifter-program-root"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "sha2",
+ "sp1-lifter-pinned-keys",
+ "sp1-lifter-split",
+ "sp1-lifter-statement",
+ "sp1-zkvm",
+ "zkboo",
+ "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "sp1-lifter-program-root-elephant"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "sha2",
+ "sp1-lifter-elephant",
+ "sp1-lifter-pinned-keys",
+ "sp1-lifter-split",
+ "sp1-zkvm",
+ "zkboo",
+ "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "sp1-lifter-split"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "sp1-lifter-statement",
+ "zkboo",
+]
+
+[[package]]
+name = "sp1-lifter-statement"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tiny-keccak",
+ "zeroize",
+ "zkboo",
+ "zkboo-bip32",
 ]
 
 [[package]]
@@ -6144,22 +6146,17 @@ dependencies = [
 
 [[package]]
 name = "zkboo"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2386749a2f49f91fca3091c680a1f6ed416094a013bb400512b7ed0b07de1db6"
+version = "1.2.0"
 dependencies = [
  "postcard",
  "rayon",
  "serde",
- "tiny-keccak",
  "zeroize",
 ]
 
 [[package]]
 name = "zkboo-bip32"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f58056b781a876a443fc76543f4b15bf5705199b6fb80b63fe58a855fc3ed00"
+version = "1.2.0"
 dependencies = [
  "zkboo",
  "zkboo-ecc",
@@ -6172,73 +6169,59 @@ dependencies = [
 
 [[package]]
 name = "zkboo-circuit-hash"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87dd13197a8e083cbee2cc1831f36066e3d2593211c272579369c560d25224e5"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-ecc"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69d680828dfc550e57fdc7dad5dce2854a5d5fc9959b50325d1419274efcfa54"
+version = "1.2.0"
 dependencies = [
+ "zeroize",
  "zkboo",
  "zkboo-modular",
 ]
 
 [[package]]
 name = "zkboo-hmac"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d34d712708a700871085223c2614f691f74fab67fdaf0333cf44187d1adbc7a"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-keccak"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c15d61fc9c4f1963eb2308bbc154798b7c30ecfd318c24346523bff061546067"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-modular"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4f8f041d75a565a5d65ecc600e521717dfabd59219bf543307f91481b435068"
+version = "1.2.0"
 dependencies = [
+ "zeroize",
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-profiling"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "671c6d28a49595e9c1006fe5de96d2dd645a1ce7bbb2f4391e14bc47bb61d5af"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-ripemd160"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6efbdd90525915bf68a6cd9a2002af30262af15a19076fff67020dd1971c8f60"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-sha2"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22fe8faf4fd80c78de71f588718ce4ebd9ff495e7402d9a6ca422f005056736f"
+version = "1.2.0"
 dependencies = [
  "zkboo",
 ]

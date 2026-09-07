@@ -26,10 +26,14 @@
 use std::time::Instant;
 
 use sp1_sdk::blocking::{Prover, ProverClient};
-use snark_lifter_elephant::{ELEPHANT_FRAME_VERSION, ElephantInput, EthereumAddressCircuit};
-use snark_lifter_host::{ELEPHANT_ELF, WP, WTP};
-use snark_lifter_statement::{H, PS, PV, S};
-use zkboo::{executor::exec, params::n_eps, prover::par_prove, verifier::verify};
+use sp1_lifter_elephant::{ELEPHANT_FRAME_VERSION, ElephantInput, EthereumAddressCircuit};
+use sp1_lifter_host::{ELEPHANT_ELF, WP, WTP, n_eps};
+use sp1_lifter_statement::{H, PS, PV, S};
+use zkboo::{
+    executor::{ExecOptions, exec},
+    prover::par_prove,
+    verifier::{VerifyOptions, verify},
+};
 use zkboo::verifier::replay::OwnedFlexibleWordPairPool;
 
 type WPP = OwnedFlexibleWordPairPool<usize>;
@@ -47,7 +51,9 @@ const PRIV_KEY: [u8; 32] = [
 ///
 /// Whole-program instructions for a 219-response guest run, and the wall clock of the
 /// full-scale proving run that produced the on-chain fixture. Both are measured on this
-/// machine against zkboo 2.0.0; see `knowledge/iteration.md`. The proving *rate* implied by
+/// machine against the withdrawn zkboo 2.0.0; see `knowledge/iteration.md`. They have not been
+/// re-taken since the move to 1.2.0, which changed the circuits and every proof. The proving
+/// *rate* implied by
 /// their ratio is what the days-at-full-scale figure below rests on, and it is the
 /// hardened-child statement's rate, assumed to carry to a workload with an entirely
 /// different instruction mix.
@@ -67,13 +73,16 @@ struct Point {
 
 fn probe(n: usize) -> Point {
     let circuit = EthereumAddressCircuit::with_witness(PRIV_KEY.to_vec());
-    let output = exec::<_, WP>(&circuit);
+    let output = exec::<_, WP, _>(&circuit, ExecOptions::new());
     let t = Instant::now();
     let proof = par_prove::<_, H, PS, PV, S, WTP>(&circuit, n, SEED_ENTROPY, BINDING);
     let prove = t.elapsed();
     let verify_circuit = EthereumAddressCircuit::public_only();
     let t = Instant::now();
-    let ok = verify::<_, H, PV, S, WPP>(&verify_circuit, &output, &proof, BINDING).expect("verify");
+    let ok = verify::<_, H, PV, S, WPP, _>(
+        &verify_circuit, &output, &proof, BINDING, VerifyOptions::new(),
+    )
+    .expect("verify");
     let verify_time = t.elapsed();
     assert!(ok, "native verification failed at n={n}");
     let input = ElephantInput {
@@ -112,7 +121,7 @@ fn main() {
     assert!(counts.iter().all(|&n| n >= 1), "response counts must be positive");
     assert!(counts.len() >= 2, "a single point cannot separate the fixed cost from the marginal one; give at least two counts");
     println!("── elephant probe (Ethereum address = Keccak256(x_be ‖ y_be)[12:]) ──");
-    println!("  zkboo: {}", snark_lifter_host::zkboo_provenance());
+    println!("  zkboo: {}", sp1_lifter_host::zkboo_provenance());
 
     let circuit = EthereumAddressCircuit::with_witness(PRIV_KEY.to_vec());
     let t = Instant::now();
@@ -125,7 +134,7 @@ fn main() {
     println!("    predicted response size: {predicted_response} bytes ({:.3} MB)", predicted_response as f64 / 1e6);
     println!("    predicted proof size at {}: {:.3} GB", n_eps(64), prof.proof_size::<S, S>(n_eps(64)) as f64 / 1e9);
     let t = Instant::now();
-    let output = exec::<_, WP>(&circuit);
+    let output = exec::<_, WP, _>(&circuit, ExecOptions::new());
     let exec_time = t.elapsed();
     let addr: Vec<String> = output.u8.iter().take(20).map(|b| format!("{b:02x}")).collect();
     println!("  executed in {exec_time:.2?} → address 0x{}", addr.join(""));

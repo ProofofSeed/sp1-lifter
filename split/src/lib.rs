@@ -29,9 +29,11 @@ extern crate alloc;
 
 use alloc::{vec::Vec, format, string::String};
 use serde::{Deserialize, Serialize};
-use snark_lifter_statement::{H, S};
+use sp1_lifter_statement::{H, S};
 use zkboo::{
-    crypto::{GeneratesRandom, HashPRG, Hasher, PseudoRandomGenerator},
+    crypto::{
+        GeneratesRandom, HashPRG, Hasher, PseudoRandomGenerator, TAG_CHALLENGE, absorb_framed,
+    },
     prover::challenge::ChallengeGenerator,
     word::Words,
 };
@@ -46,15 +48,13 @@ pub const LEAF_JOURNAL_VERSION: u32 = 1;
 pub const ROOT_FRAME_VERSION: u32 = 1;
 
 /// Version tag of the [`RootJournal`] layout.
-pub const ROOT_JOURNAL_VERSION: u32 = 1;
+///
+/// This covers the nested lift journal too, so it moves whenever that shape does — as it did when
+/// the lift journal's proof-format field became a 32-byte identity.
+pub const ROOT_JOURNAL_VERSION: u32 = 2;
 
 /// Domain separator for [`statement_digest`].
 const STATEMENT_DOMAIN: &[u8] = b"SNARK-LIFTER-SPLIT-STATEMENT-v1";
-
-/// Domain separator the ZKBoo challenge hasher opens with. **Must** match
-/// `zkboo`'s prover and verifier byte for byte, or the re-derived challenge
-/// sequence will not be the one the proof was generated against.
-const ZKBOO_BINDING_DOMAIN: &[u8] = b"ZKBOO-BINDING-v1";
 
 /// The digest binding a leaf to the statement it is a response for.
 ///
@@ -196,7 +196,7 @@ pub struct RootInput {
     pub binding: Vec<u8>,
     /// The verifying-key digest every leaf proof must have been produced under.
     ///
-    /// ✅ **Both roots compile this key in** (`snark_lifter_pinned_keys`), since 2026-08-28,
+    /// ✅ **Both roots compile this key in** (`sp1_lifter_pinned_keys`), since 2026-08-28,
     /// and refuse a claimed value that disagrees before admitting any proof — so the pin lives
     /// inside the root's own verifying key, and pinning that key gets this for free. The field
     /// is kept so a journal stays self-describing.
@@ -217,7 +217,7 @@ pub struct RootJournal {
     pub version: u32,
     /// The lifted statement, in exactly the layout the monolithic lifter commits — so
     /// `check_journal` and the on-chain fixture guards apply to it unchanged.
-    pub lift: snark_lifter_statement::LiftJournal,
+    pub lift: sp1_lifter_statement::LiftJournal,
     /// The leaf verifying-key digest the root verified every leaf proof against. A
     /// relying party MUST pin this; see [`RootInput::leaf_vk`].
     pub leaf_vk: [u32; 8],
@@ -289,10 +289,14 @@ pub fn aggregate(
         return Err(AggregateError::NoLeaves);
     }
     let mut challenge_hasher = H::new();
-    // Framed binding — must match zkboo's prover and verifier exactly.
-    challenge_hasher.update(ZKBOO_BINDING_DOMAIN);
-    challenge_hasher.update(&(binding.len() as u64).to_le_bytes());
-    challenge_hasher.update(binding);
+    // The framed binding that opens the challenge transcript. This must match zkboo's prover and
+    // verifier byte for byte or the re-derived challenge sequence is not the one the proof was
+    // made against, so the tag and the framing helper are taken from zkboo itself rather than
+    // copied. They were copied until 1.2.0, under the tag `ZKBOO-BINDING-v1`, which that release
+    // replaced with `TAG_CHALLENGE` while also domain-separating the view commitments and the
+    // PRG — a change a copied constant would have survived silently, re-deriving a challenge
+    // sequence that no honest proof could ever match.
+    absorb_framed(&mut challenge_hasher, TAG_CHALLENGE, binding);
     for (i, leaf) in leaves.iter().enumerate() {
         if leaf.version != LEAF_JOURNAL_VERSION {
             return Err(AggregateError::LeafVersionMismatch(i));

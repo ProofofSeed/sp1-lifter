@@ -27,7 +27,7 @@ import {Verifier} from "../src/vendor/Groth16Verifier.sol";
 ///
 /// - omitting the **count** check accepts proofs at prover-chosen soundness, since the
 ///   ZKBoo verifier accepts even the empty proof;
-/// - omitting the **assertion word** accepts a proof that asserts nothing. ZKBoo 2.0.0
+/// - omitting the **assertion word** accepts a proof that asserts nothing. ZKBoo
 ///   leaves prover advice unconstrained except by the circuit's in-circuit assertions,
 ///   which are accumulated into the last word of the output. Run the honest prover on a
 ///   witness that does not satisfy the circuit and you get a perfectly valid proof whose
@@ -43,7 +43,7 @@ contract LiftGroth16Test is Test {
     /// older program stays internally consistent, so `verifyProof` accepts it and the
     /// suite would go green against a program that no longer exists. Bump this with
     /// `LIFT_JOURNAL_VERSION` and a stale fixture fails loudly instead.
-    uint8 internal constant EXPECTED_JOURNAL_VERSION = 2;
+    uint8 internal constant EXPECTED_JOURNAL_VERSION = 3;
 
     /// The structural fingerprint of the circuit this fixture must attest, sitting at
     /// `publicValues[2..34]` (the journal's third field, a bare 32-byte digest).
@@ -52,9 +52,17 @@ contract LiftGroth16Test is Test {
     /// change of *circuit* that leaves the layout intact — which is the drift that
     /// actually happened once already, when adopting the ZKB++ view commitment moved the
     /// fingerprint from `33e1f70b…` to `e23ddb6a…` without touching the journal shape,
-    /// and again when zkboo 2.0.0 gave every circuit a trailing assertion word and moved it
-    /// to `d4825905…`.
+    /// and again when the withdrawn zkboo 2.0.0 gave every circuit a trailing assertion word
+    /// and moved it to `d4825905…`.
     /// Update it deliberately when the circuit changes, which is the point.
+    ///
+    /// 🚨 **Stale as of the move to zkboo 1.2.0.** That release makes assertions ordinary
+    /// circuit-side gates, so the flag this statement emits is now gates of its own and the
+    /// fingerprint has moved again; the domain separation it also introduced invalidates every
+    /// proof made before it. The fixture in `verifier/fixtures/` was produced by the withdrawn
+    /// 2.0.0 stack, so this suite passing attests that stack and not the one in this tree. It
+    /// goes green until the fixture is regenerated and then fails at `EXPECTED_VKEY` — which is
+    /// the loud failure this pin exists for, arriving one run later than one would like.
     bytes32 internal constant EXPECTED_FINGERPRINT =
         0xd48259056d4b45ae38cb57178a6487fa7ffafbf0360e09248ab9c317efeb0a2b;
 

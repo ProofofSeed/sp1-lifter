@@ -20,7 +20,7 @@
 //!
 //! It must be linked by the root programs and the host, and **not** by the leaf programs. A
 //! leaf that linked it would change its own verifying key whenever that key was recorded here,
-//! which does not converge. Keeping it out of `snark-lifter-split` — which the leaves do link —
+//! which does not converge. Keeping it out of `sp1-lifter-split` — which the leaves do link —
 //! is what makes the two-stage build terminate: build the leaf, read its key, record it here,
 //! build the root.
 //!
@@ -31,6 +31,15 @@
 //! `cargo run --bin vkeys` recomputes both keys from the leaf ELFs and refuses if either has
 //! drifted, printing the correct value. Run it after anything that touches a leaf program or
 //! what it links.
+
+// 🚨 BOTH VALUES BELOW ARE STALE, KNOWINGLY, as of the move to zkboo 1.2.0.
+//
+// That release changes the circuits both leaves link — assertions became ordinary gates, and the
+// affine comb's advice became ordinary inputs — so both keys have moved and neither has been
+// recomputed yet, because doing so means building the guests. `cargo run --bin vkeys` refuses
+// while they disagree and prints the values to put here; nothing else in the workspace will
+// produce a proof that verifies until it does. The staleness is loud rather than silent, which
+// is the arrangement this crate exists to keep.
 
 /// The verifying key of `program-leaf`, the hardened-child leaf.
 pub const LEAF_VK: [u32; 8] = [

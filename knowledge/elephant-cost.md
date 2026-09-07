@@ -1,5 +1,11 @@
 # The cost of lifting the Ethereum-address statement
 
+> 🚨 **Every figure below was measured against the withdrawn ZKBoo 2.0.0 and is superseded.**
+> The move to zkboo 1.2.0 on 2026-09-04 changed every proof, every circuit fingerprint and
+> every guest verifying key; nothing here has been re-taken. Kept for the method and the
+> shape of the results, not for the numbers. Do not quote them, and do not rescale them by a
+> factor seen elsewhere. See `zkboo-1.2.0-migration.md`.
+
 Re-measured 2026-08-28 on the 16-core Apple Silicon machine (137 GB), SP1 sdk 6.4.0, **zkboo 2.0.0**.
 Everything below is measured on this machine unless it is labelled an extrapolation or a projection.
 

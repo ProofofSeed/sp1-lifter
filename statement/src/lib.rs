@@ -16,16 +16,20 @@
 
 extern crate alloc;
 
+mod hasher;
+
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use zkboo::{
     backend::{Backend, Frontend},
-    circuit::Circuit,
-    crypto::{HashPRG, Hasher, Keccak256Hasher},
+    circuit::{Assertions, Circuit},
+    crypto::{HashPRG, Hasher},
     prover::proof::Proof,
     word::Words,
 };
 use zkboo_bip32::hardened_child_key;
+
+pub use hasher::Keccak256Hasher;
 
 /// Hasher used for commitments, PRGs and challenge entropy: Keccak-256, the production hash.
 pub type H = Keccak256Hasher;
@@ -100,22 +104,34 @@ impl HardenedChildCircuit {
 
 impl Circuit for HardenedChildCircuit {
     fn exec<B: Backend>(&self, frontend: &Frontend<B>) {
-        let chain_code = self
-            .chain_code
-            .iter()
-            .map(|&b| frontend.alloc(b))
-            .collect::<Vec<_>>();
-        let parent_priv = self
-            .parent_priv
-            .iter()
-            .map(|&b| frontend.input(b))
-            .collect::<Vec<_>>();
-        let (child_priv, child_chain_code) =
-            hardened_child_key(frontend.allocator(), chain_code, parent_priv, self.index);
-        frontend.output(child_priv); // 4x u64 (little-endian word order)
-        child_chain_code
-            .into_iter()
-            .for_each(|w| frontend.output(w)); // 32x u8
+        // The scope emits the assertion flag as its last output word when the body returns, so
+        // everything this circuit outputs belongs inside it.
+        //
+        // Nothing is asserted here, so the flag is the constant 1 and this statement's copy of
+        // it carries no information: BIP-32 hardened derivation is hashing, with no advice to
+        // pin down. The scope is opened anyway so that one journal shape, one gate and one
+        // on-chain decoder serve every statement in the suite — including the Ethereum-address
+        // one, where the flag is the whole of what makes the proof mean anything. zkboo
+        // deliberately does not impose a universal trailing word; a circuit that opens no scope
+        // emits none, and the gates below would then refuse every proof of it.
+        Assertions::scope(frontend, |_| {
+            let chain_code = self
+                .chain_code
+                .iter()
+                .map(|&b| frontend.alloc(b))
+                .collect::<Vec<_>>();
+            let parent_priv = self
+                .parent_priv
+                .iter()
+                .map(|&b| frontend.input(b))
+                .collect::<Vec<_>>();
+            let (child_priv, child_chain_code) =
+                hardened_child_key(frontend.allocator(), chain_code, parent_priv, self.index);
+            frontend.output(child_priv); // 4x u64 (little-endian word order)
+            child_chain_code
+                .into_iter()
+                .for_each(|w| frontend.output(w)); // 32x u8
+        });
     }
 }
 
@@ -127,15 +143,14 @@ impl Circuit for HardenedChildCircuit {
 /// must bump this constant.
 pub const LIFT_FRAME_VERSION: u32 = 1;
 
-// zkboo 2.0.0 did not move this, and the reason is worth stating because it looks as though it
-// should have. That release invalidated every proof 1.x produced: every circuit's outputs now end
-// with an assertion word, so `expected_output` gains an entry and `PROOF_FORMAT_VERSION` is 3. But
-// this constant guards the *layout* of the frame, not the values in it, and neither the shape of
-// `LiftInput` nor the enabled word features changed — the assertion word is a `u8`, a type these
-// outputs already carry, so the postcard encoding of `Words` is unchanged. What catches a proof
-// from the old format is `REQUIRED_PROOF_FORMAT_VERSION` below, which is the mechanism built for
-// exactly this and which the journal gate enforces. Bumping a version tag whose documented
-// contract was not breached would make the next reader distrust the contract.
+// zkboo 1.2.0 did not move this, and the reason is worth stating because it looks as though it
+// should have. That release invalidated every proof made against its predecessors — the challenge
+// transcript, the view commitments and the PRG are now domain-separated, so every commitment and
+// every Fiat-Shamir challenge differs. But this constant guards the *layout* of the frame, not the
+// values in it, and neither the shape of `LiftInput` nor the enabled word features changed. The
+// assertion word is a `u8`, a type these outputs already carry, so the postcard encoding of
+// `Words` is unchanged. Bumping a version tag whose documented contract was not breached would
+// make the next reader distrust the contract.
 
 /// The verification input frame passed from host to guest (postcard-encoded).
 ///
@@ -159,18 +174,30 @@ pub struct LiftInput {
 }
 
 /// Version tag of the [`LiftJournal`] layout; bump on any change to its shape.
-pub const LIFT_JOURNAL_VERSION: u32 = 2;
+pub const LIFT_JOURNAL_VERSION: u32 = 3;
 
-/// The ZKBoo proof format this statement is defined over (`zkboo::PROOF_FORMAT_VERSION`
-/// at the revision this crate was written against).
+/// The ZKBoo proof format this statement is defined over: `zkboo::PROOF_FORMAT_ID` at the
+/// revision this crate was written against.
 ///
 /// Declared here rather than read from the linked `zkboo`, deliberately. Deriving the
-/// requirement from whatever version a consumer happens to link would make the check
-/// track the consumer instead of constraining it: a consumer that downgraded its `zkboo`
-/// would silently begin *requiring* the older format rather than refusing it. Pinning it
-/// means a format change is a decision someone makes here, and until they do, proofs
-/// carrying the new format are refused.
-pub const REQUIRED_PROOF_FORMAT_VERSION: u32 = 3;
+/// requirement from whatever a consumer happens to link would make the check track the consumer
+/// instead of constraining it: a consumer that downgraded its `zkboo` would silently begin
+/// *requiring* the older format rather than refusing it. Pinning it means a format change is a
+/// decision someone makes here, and until they do, proofs carrying another format are refused.
+///
+/// ✅ **This replaces a counter that could not do the job.** `PROOF_FORMAT_VERSION` was `3` on
+/// both sides of an incompatible change — 1.2.0's domain separation moved every commitment and
+/// every challenge while the constant stayed put — so this clause accepted a proof from a format
+/// it was written to refuse, and no value it could have held would have separated two formats
+/// declaring the same number. The identity is now the digest of a canonical reference proof, so
+/// it cannot fail to move when the bytes move. It is deliberately conservative in the other
+/// direction: it also moves for changes that are not format changes, such as the circuit
+/// vocabulary the canonical proof is made with. Over-triggering costs a regeneration;
+/// under-triggering was the failure it replaces.
+pub const REQUIRED_PROOF_FORMAT_ID: [u8; 32] = [
+    0x4b, 0xe5, 0xd4, 0xe6, 0x4c, 0x11, 0xba, 0x4d, 0x40, 0xe7, 0x89, 0x77, 0xf6, 0x8d, 0x45, 0xad,
+    0x8b, 0xf0, 0x1f, 0xe3, 0x1a, 0xa2, 0x75, 0x07, 0xe8, 0xdd, 0xca, 0x20, 0x22, 0x3a, 0x73, 0x70,
+];
 
 /// The journal committed by the lift guest: the complete lifted statement.
 ///
@@ -207,16 +234,16 @@ pub struct LiftJournal {
     pub binding: Vec<u8>,
     /// Number of responses (repetitions) in the verified proof.
     pub num_responses: u32,
-    /// The ZKBoo proof format the program was built against (`zkboo::PROOF_FORMAT_VERSION`):
-    /// the layout of the response bytes together with the view-commitment scheme they are
-    /// checked against.
+    /// The ZKBoo proof format the program was built against (`zkboo::PROOF_FORMAT_ID`): the
+    /// layout of the response bytes together with the view-commitment scheme they are checked
+    /// against, identified by the digest of a canonical reference proof.
     ///
     /// ⚠️ This cannot be inferred from `fingerprint`: adopting the ZKB++ view commitment
     /// changed every commitment — and hence every Fiat-Shamir challenge — while leaving
     /// circuits and protocol parameters untouched, so the circuit hash is blind to it.
     /// The verifying key does bind it (the format is compiled into the program), but only
     /// implicitly; committing it makes the attested format legible to a journal consumer.
-    pub proof_format_version: u32,
+    pub proof_format_id: [u8; 32],
 }
 
 /// What a journal consumer requires of a [`LiftJournal`].
@@ -235,8 +262,8 @@ pub struct JournalExpectation {
     /// Minimum acceptable number of responses (e.g. `n_eps(64) == 219` for the
     /// classical-128 target).
     pub min_responses: u32,
-    /// Required ZKBoo proof format version.
-    pub proof_format_version: u32,
+    /// Required ZKBoo proof format identity.
+    pub proof_format_id: [u8; 32],
 }
 
 /// Why a [`LiftJournal`] was refused by [`check_journal`].
@@ -275,10 +302,11 @@ pub enum JournalCheckError {
 /// the two steps, and the on-chain verifier takes the verifying key as an explicit
 /// argument for the same reason.
 ///
-/// 🚨 **The assertion word is checked here, unconditionally.** ZKBoo 2.0.0 lets a prover supply
-/// advice (`Backend::hint`) that is unconstrained on its own; what pins it down is the
-/// in-circuit assertions, accumulated by conjunction into the trailing word of the circuit's
-/// output. A prover running the honest protocol on a witness that does *not* satisfy the
+/// 🚨 **The assertion word is checked here, unconditionally.** A prover may supply advice — a
+/// value it computes from the witness and feeds in as an ordinary secret input — which is
+/// unconstrained on its own; what pins it down is the in-circuit assertions, accumulated by
+/// conjunction into the trailing word of the circuit's output. A prover running the honest
+/// protocol on a witness that does *not* satisfy the
 /// circuit obtains a perfectly valid proof whose assertion word is **0** — a genuine proof of
 /// *"I ran this circuit and its assertions did not hold"*, which anyone can produce for any
 /// claimed output with no witness knowledge whatsoever.
@@ -322,7 +350,7 @@ pub fn check_journal(
     if journal.num_responses < expectation.min_responses {
         return Err(JournalCheckError::TooFewResponses);
     }
-    if journal.proof_format_version != expectation.proof_format_version {
+    if journal.proof_format_id != expectation.proof_format_id {
         return Err(JournalCheckError::ProofFormatMismatch);
     }
     // Unconditional, and deliberately not driven by the expectation: a proof whose in-circuit
@@ -354,7 +382,7 @@ mod assertion_word_tests {
             expected_output: output.clone(),
             binding: vec![],
             num_responses: 219,
-            proof_format_version: REQUIRED_PROOF_FORMAT_VERSION,
+            proof_format_id: REQUIRED_PROOF_FORMAT_ID,
         };
         let expectation = JournalExpectation {
             fingerprint: [7u8; 32],
@@ -363,7 +391,7 @@ mod assertion_word_tests {
             expected_output: output,
             binding: vec![],
             min_responses: 219,
-            proof_format_version: REQUIRED_PROOF_FORMAT_VERSION,
+            proof_format_id: REQUIRED_PROOF_FORMAT_ID,
         };
         return (journal, expectation);
     }

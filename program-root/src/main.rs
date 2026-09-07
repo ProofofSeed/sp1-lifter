@@ -18,14 +18,14 @@
 sp1_zkvm::entrypoint!(main);
 
 use sha2::{Digest, Sha256};
-use snark_lifter_statement::{
+use sp1_lifter_statement::{
     H, HardenedChildCircuit, LIFT_JOURNAL_VERSION, LiftJournal,
 };
-use snark_lifter_split::{
+use sp1_lifter_split::{
     LeafJournal, ROOT_FRAME_VERSION, ROOT_JOURNAL_VERSION, RootInput, RootJournal, aggregate,
     statement_digest,
 };
-use snark_lifter_pinned_keys::LEAF_VK;
+use sp1_lifter_pinned_keys::LEAF_VK;
 use zkboo_circuit_hash::hash_circuit;
 
 pub fn main() {
@@ -75,7 +75,7 @@ pub fn main() {
             expected_output: input.expected_output,
             binding: input.binding,
             num_responses: leaves.len().try_into().expect("response count exceeds u32"),
-            proof_format_version: zkboo::PROOF_FORMAT_VERSION,
+            proof_format_id: zkboo::PROOF_FORMAT_ID,
         },
         leaf_vk: LEAF_VK,
     };

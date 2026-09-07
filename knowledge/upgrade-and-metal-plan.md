@@ -1,5 +1,14 @@
 # Plan: zkboo 2.0.0, GPU proving, and the measurements that are now cheap
 
+> 🚨 **Written for the withdrawn ZKBoo 2.0.0, and superseded twice over.** Its figures are stale
+> for the reasons in `zkboo-1.2.0-migration.md` and `zkboo-next-delta.md`, and the elephant cycle
+> law it quotes was already refitted before that. Kept for the method and for the phase structure,
+> which the relaunch still follows. Do not quote a number from it.
+>
+> One item is now moot rather than merely stale: profiling the Bitcoin and Taproot statements
+> off-device. Upstream re-measured them after restoring the hint-backed cost of the affine
+> conversion, and neither statement is lifted here in any case.
+
 Written 2026-08-27, after reading the zkboo 2.0.0 changelogs, the `sp1-metal` release documents, and the whitepaper and ledger-app notes taken during the on-device round of 2026-08-26/27.
 It supersedes the quiet-machine relaunch recipe recorded in `split-and-streaming.md`, which it absorbs as one phase rather than replacing.
 

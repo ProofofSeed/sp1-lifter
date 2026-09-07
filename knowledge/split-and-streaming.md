@@ -1,5 +1,11 @@
 # Splitting the lift, and streaming into it
 
+> 🚨 **Every figure below was measured against the withdrawn ZKBoo 2.0.0 and is superseded.**
+> The move to zkboo 1.2.0 on 2026-09-04 changed every proof, every circuit fingerprint and
+> every guest verifying key; nothing here has been re-taken. Kept for the method and the
+> shape of the results, not for the numbers. Do not quote them, and do not rescale them by a
+> factor seen elsewhere. See `zkboo-1.2.0-migration.md`.
+
 The production lifter verifies every response of a ZKBoo proof inside one zkVM program, so
 its cost is one indivisible run: 6 h 28 m for the hardened-child statement at 219
 responses, and an extrapolated ~130 days for the Ethereum-address statement.
@@ -40,7 +46,7 @@ subset of leaves re-derives a different challenge sequence and therefore attests
 about the whole — the same property that makes a truncated proof fail, and that makes
 zkboo's ranged proving safe. Split naively and you have 219 proofs of nothing.
 
-Everything that recovers the statement lives in one function, `snark_lifter_split::aggregate`:
+Everything that recovers the statement lives in one function, `sp1_lifter_split::aggregate`:
 
 - the leaves are a **complete, in-order, duplicate-free** cover of the proof;
 - every leaf attests **the same statement**;

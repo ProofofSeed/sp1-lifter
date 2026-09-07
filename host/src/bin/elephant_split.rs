@@ -22,21 +22,21 @@
 use std::time::Instant;
 
 use sp1_sdk::{HashableKey, ProvingKey, SP1Proof, SP1Stdin, blocking::{ProveRequest, Prover}};
-use snark_lifter_elephant::{
+use sp1_lifter_elephant::{
     ELEPHANT_JOURNAL_VERSION, ElephantRootJournal, EthereumAddressCircuit,
     H, PS, PV, S, check_elephant_journal,
 };
-use snark_lifter_host::{
+use sp1_lifter_host::{
     LEAF_ELEPHANT_ELF, ROOT_ELEPHANT_ELF, WP, WTP, elephant_expectation_for, prover_backend,
     prover_client,
 };
-use snark_lifter_split::{
+use sp1_lifter_split::{
     AggregateError, ELEPHANT_SPLIT_FRAME_VERSION, ElephantLeafInput, ElephantRootInput,
     LEAF_JOURNAL_VERSION, LeafCommitment, LeafJournal, aggregate, statement_digest_generic,
 };
 use zkboo::{
     circuit::Circuit,
-    executor::exec,
+    executor::{ExecOptions, exec},
     prover::par_prove,
     verifier::replay::{OwnedFlexibleWordPairPool, ViewReplayerBackend},
     word::Words,
@@ -171,10 +171,10 @@ fn main() {
     assert_ne!(prover_backend(), "mock", "refusing to run under SP1_PROVER=mock");
     println!("── elephant split (n={n}, mode={mode}) ──");
     println!("  prover config: {config}");
-    println!("  zkboo: {}", snark_lifter_host::zkboo_provenance());
+    println!("  zkboo: {}", sp1_lifter_host::zkboo_provenance());
 
     let circuit = EthereumAddressCircuit::with_witness(PRIV_KEY.to_vec());
-    let expected_output = exec::<_, WP>(&circuit);
+    let expected_output = exec::<_, WP, _>(&circuit, ExecOptions::new());
 
     if mode == "gate" || mode == "both" {
         // The matrix runs at its own floor, never the proving count. Native proving of an
@@ -228,7 +228,7 @@ fn main() {
     // Saying it here costs nothing and names the actual problem.
     assert_eq!(
         leaf_vk.hash_u32(),
-        snark_lifter_host::PINNED_LEAF_ELEPHANT_VK,
+        sp1_lifter_host::PINNED_LEAF_ELEPHANT_VK,
         "the pinned elephant leaf key is stale against the built leaf ELF — run `vkeys` and \
          update `pinned-keys`"
     );
@@ -342,7 +342,7 @@ fn main() {
     // is not self-describing, so on a layout change an unchecked version misparses silently.
     assert_eq!(
         journal.version,
-        snark_lifter_split::ROOT_JOURNAL_VERSION,
+        sp1_lifter_split::ROOT_JOURNAL_VERSION,
         "elephant root journal layout version"
     );
     assert_eq!(journal.leaf_vk, leaf_vk.hash_u32(), "root attests a different leaf key");

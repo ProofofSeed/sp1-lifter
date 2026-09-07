@@ -17,8 +17,8 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use snark_lifter_elephant::{EthereumAddressCircuit, H, PV, S};
-use snark_lifter_split::{
+use sp1_lifter_elephant::{EthereumAddressCircuit, H, PV, S};
+use sp1_lifter_split::{
     ELEPHANT_SPLIT_FRAME_VERSION, ElephantLeafInput, LEAF_JOURNAL_VERSION, LeafCommitment,
     LeafJournal, statement_digest_generic,
 };
