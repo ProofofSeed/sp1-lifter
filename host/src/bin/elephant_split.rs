@@ -214,9 +214,30 @@ fn main() {
         let instructions = report.total_instruction_count();
         println!("  leaf instructions: {instructions}");
         println!("  executor wall: {:.2?}", t.elapsed());
+        // Reported against BOTH marginal terms, and against the previous measured leaf, because
+        // a single ratio to a superseded constant is how a stale figure gets read as a current
+        // one. The saving a leaf should show is an ABSOLUTE one — the drop in the marginal term
+        // — landing on a base that is smaller than the marginal term, because a leaf omits the
+        // fingerprint pass and adds frame parsing and journal encoding. Reapplying the old
+        // 0.973 ratio to the new marginal is scaling something whose parts moved separately.
+        const MARGINAL_OLD: f64 = 2.4627e9; // zkboo 2.0.0
+        const MARGINAL_NEW: f64 = 2.1148e9; // zkboo 1.2.0, refitted 2026-09-07
+        const LEAF_MEASURED_OLD: f64 = 2_395_132_641.0; // fixtures/elephant-execute-gate.summary.log
+        let predicted = LEAF_MEASURED_OLD - (MARGINAL_OLD - MARGINAL_NEW);
         println!(
-            "  monolithic law's marginal term: 2.4627e9 ⇒ leaf is {:.3}x of it",
-            instructions as f64 / 2.4627e9
+            "  vs marginal terms: {:.3}x of the old {MARGINAL_OLD:.4e}, {:.3}x of the new {MARGINAL_NEW:.4e}",
+            instructions as f64 / MARGINAL_OLD,
+            instructions as f64 / MARGINAL_NEW,
+        );
+        println!(
+            "  vs the previous measured leaf {LEAF_MEASURED_OLD:.0}: {:+.2}%",
+            (instructions as f64 - LEAF_MEASURED_OLD) / LEAF_MEASURED_OLD * 100.0,
+        );
+        println!(
+            "  predicted if the whole marginal saving is replay: {predicted:.0} ({:+.2}%); \
+             measured is {:+.2}% off that",
+            (predicted - LEAF_MEASURED_OLD) / LEAF_MEASURED_OLD * 100.0,
+            (instructions as f64 - predicted) / predicted * 100.0,
         );
         return;
     }

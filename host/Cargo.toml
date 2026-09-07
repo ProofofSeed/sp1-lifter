@@ -30,6 +30,7 @@ sp1-sdk = { version = "=6.4.0", features = ["blocking", "native-gnark"] }
 # the SDK does not re-export.
 sp1-core-executor = { version = "=6.4.0" }
 hex = { version = "0.4" }
+zeroize = { version = "1.8.2" }
 postcard = { version = "1.1", features = ["alloc"] }
 serde = { version = "1.0.228" }
 zkboo = { version = "=1.2.0", features = ["u32", "u64", "parallel"] }
@@ -80,6 +81,10 @@ path = "src/bin/stream_lift.rs"
 [[bin]]
 name = "elephant-split"
 path = "src/bin/elephant_split.rs"
+
+[[bin]]
+name = "statement-units"
+path = "src/bin/statement_units.rs"
 
 [[bin]]
 name = "vkeys"
