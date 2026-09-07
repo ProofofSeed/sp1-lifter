@@ -1,10 +1,83 @@
 # What everything costs, on this machine
 
-> 🚨 **Every figure below was measured against the withdrawn ZKBoo 2.0.0 and is superseded.**
-> The move to zkboo 1.2.0 on 2026-09-04 changed every proof, every circuit fingerprint and
-> every guest verifying key; nothing here has been re-taken. Kept for the method and the
-> shape of the results, not for the numbers. Do not quote them, and do not rescale them by a
-> factor seen elsewhere. See `zkboo-1.2.0-migration.md`.
+Two rounds sit in this file. The **1.2.0 round** below is current. Everything under "The 2.0.0
+round" was measured against the withdrawn ZKBoo 2.0.0 and is kept for the rows the 1.2.0 round has
+not re-taken — read those for the method and the shape of the results, never for the numbers, and
+never rescale one by a factor observed elsewhere. `instructions-are-not-seconds.md` is this
+project's shortest illustration of why that last rule exists.
+
+## Re-measured on zkboo 1.2.0 — 2026-09-07
+
+Same machine (M4 Max, 16 cores / 137 GB), same discipline: `RAYON_NUM_THREADS=12 GOMAXPROCS=12`,
+`SP1_METAL_MERKLE=0`, one run at a time on a quiet machine. The full-soundness lift delivered
+`(user+sys)/real = 11.88` of 12 requested threads, which is what "quiet" means here — a contended
+run reads about 9 and its timings are retracted on sight.
+
+### On-chain
+
+| step | 2.0.0 | 1.2.0 | change |
+| ------------------------------------------------------------- | ----------: | ----------: | -----: |
+| `SP1VerifierGroth16.verifyProof` (the pairing check) | 270,441 | 272,635 | +0.81% |
+| `LiftJournalGate.check` (decode + the full relying-party gate) | 85,287 | **89,325** | +4.74% |
+| **together** | ~356,000 | **361,960** | +1.75% |
+
+Both moved with the journal, which grew 188 → 219 bytes when the proof-format field became a bare
+32-byte digest instead of a one-byte counter. 🔴 That is a correlation, not an attribution: the
+sha256 word count accounts for about 12 gas of the pairing path's 2,194, so most of it is
+unexplained. `verifier/test/`, 18 tests green.
+
+### SP1 zkVM proving, GPU-safe arm
+
+| workload | 2.0.0 | 1.2.0 | change |
+| ---------------------------------------- | ------------------: | ------------------: | -----: |
+| **lift, 219 responses, groth16** | 10,296.1 s / 77.5 GB | **9,927.5 s / 76.5 GB** | −3.58% |
+| split: 4 leaves, summed | — | 234.6 s | — |
+| split: root over 4 leaves | 112.2 s | 114.5 s | +2.1% |
+| split: monolithic 4-response baseline | — | 286.1 s | — |
+
+The root over four leaves is unchanged within noise, which is the prediction the elephant law's
+fixed term makes: the root is dominated by the one-off secp256k1 fingerprint traversal, and that
+term moved 5.1004e9 → 5.0986e9, i.e. −0.035%. RSS was not taken for the split runs.
+
+Split arithmetic at n = 4: split on one machine 349.1 s against a 286.1 s monolith — an overhead of
+1.22× — with a critical path of 174.2 s, a 1.64× speedup given four machines, and the root at 65.7%
+of that path. 🔑 The root's share is why more machines is not the next lever.
+
+### Guest instruction laws, refitted
+
+| statement | law | marginal change | fixed change |
+| ---------------- | -------------------------- | --------------: | -----------: |
+| Ethereum address | `5.0986e9 + 2.1148e9 × n` | −14.13% | −0.035% |
+| hardened child | `3.0274e7 + 1.9889e7 × n` | −8.18% | −3.8% |
+| elephant leaf | 2,114,787,163 (measured) | −11.70% | n/a |
+
+🪤 Three savings for three things, and none predicts another. In particular the elephant leaf was
+*predicted* at −14.5% by deriving it from the refitted monolithic law, and that was wrong by more
+than the width of the band given; it is measured here, in fifteen seconds, instead. And none of
+them is a time saving — see `instructions-are-not-seconds.md`.
+
+At the hardened child's measured rate of 441,791 instructions/second, a monolithic elephant lift at
+219 responses is 4.6825e11 instructions ⇒ **12.3 days**. ⚠️ That rate is the hardened child's,
+carried across statements, which this project has measured to be wrong by 1.23× in one direction
+before. Order of magnitude only.
+
+### Artefacts
+
+| | 2.0.0 | 1.2.0 |
+| ----------------------- | ----: | ----: |
+| Groth16 proof | 356 B | 356 B |
+| journal (public values) | 188 B | 219 B |
+| proof file on disk | 1,882 B | 1,913 B |
+
+vkey `0x00f1810f…`, circuit fingerprint `0xbd121f6f…`, proof format id `0x4be5d4e6…`. Evidence:
+`fixtures/lift-219-2026-09-07.summary.log`, `fixtures/split-probe-2026-09-07.summary.log`,
+`fixtures/elephant-probe-2026-09-07b.summary.log`, `fixtures/relaunch-2026-09-07.summary.log`.
+
+## The 2.0.0 round
+
+> 🚨 **Every figure below was measured against the withdrawn ZKBoo 2.0.0.** Where the section
+> above re-takes a row, that row is the one to quote. The rest is the previous round, kept because
+> re-taking it costs hours and its method and shape carry.
 
 Every figure measured 2026-08-28 unless a row says otherwise, on an M4 Max (16 cores / 137 GB) at
 `RAYON_NUM_THREADS=12 GOMAXPROCS=12`, one run at a time, against the released ZKBoo 2.0.0.

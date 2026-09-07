@@ -1,10 +1,14 @@
 # Measured guest cycle law
 
 > 🚨 **Every figure below was measured against the withdrawn ZKBoo 2.0.0 and is superseded.**
-> The move to zkboo 1.2.0 on 2026-09-04 changed every proof, every circuit fingerprint and
-> every guest verifying key; nothing here has been re-taken. Kept for the method and the
-> shape of the results, not for the numbers. Do not quote them, and do not rescale them by a
-> factor seen elsewhere. See `zkboo-1.2.0-migration.md`.
+> The move to zkboo 1.2.0 changed every proof, every circuit fingerprint and every guest
+> verifying key. Kept for the method and the shape of the results, not for the numbers. Do not
+> quote them, and do not rescale them by a factor seen elsewhere.
+>
+> ➡️ **Current figures: `performance-table.md`, the "Re-measured on zkboo 1.2.0" section**, taken
+> 2026-09-07. What the port cost and what is now closed: `zkboo-1.2.0-migration.md`. Why a
+> superseded number may not be rescaled into a current one, measured rather than asserted:
+> `instructions-are-not-seconds.md`.
 
 **AMENDED (2026-08-19, Keccak acceleration):** with the guest's `tiny-keccak` patched to RISC Zero's accelerated fork (`tiny-keccak/v2.0.2-risczero.0`, the audited Keccak-precompile path; guest workspace only, digests identical), the law becomes **`verify_cycles ≈ 3.994e7 × n_responses`** (sweep 1/2/4/8, linear, negligible intercept) — a **3.45× reduction**, i.e. software Keccak (HashPRG tape regeneration + view commitments) was ~71% of the un-accelerated guest's cycles. Extrapolations: **8.75e9 @ 219**, 1.75e10 @ 438; measured full-scale S1 run: **8.99e9 user cycles**, executor wall 71.7 s. The Keccak permutations move to the dedicated Keccak circuit (proven via union recursion), so proving cost shifts partly there rather than vanishing — the proving throughput numbers in `iteration.md` §S2 are the ground truth. The un-accelerated law below stands as the baseline record.
 

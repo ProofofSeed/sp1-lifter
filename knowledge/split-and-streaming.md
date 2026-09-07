@@ -1,10 +1,14 @@
 # Splitting the lift, and streaming into it
 
 > 🚨 **Every figure below was measured against the withdrawn ZKBoo 2.0.0 and is superseded.**
-> The move to zkboo 1.2.0 on 2026-09-04 changed every proof, every circuit fingerprint and
-> every guest verifying key; nothing here has been re-taken. Kept for the method and the
-> shape of the results, not for the numbers. Do not quote them, and do not rescale them by a
-> factor seen elsewhere. See `zkboo-1.2.0-migration.md`.
+> The move to zkboo 1.2.0 changed every proof, every circuit fingerprint and every guest
+> verifying key. Kept for the method and the shape of the results, not for the numbers. Do not
+> quote them, and do not rescale them by a factor seen elsewhere.
+>
+> ➡️ **Current figures: `performance-table.md`, the "Re-measured on zkboo 1.2.0" section**, taken
+> 2026-09-07. What the port cost and what is now closed: `zkboo-1.2.0-migration.md`. Why a
+> superseded number may not be rescaled into a current one, measured rather than asserted:
+> `instructions-are-not-seconds.md`.
 
 The production lifter verifies every response of a ZKBoo proof inside one zkVM program, so
 its cost is one indivisible run: 6 h 28 m for the hardened-child statement at 219
