@@ -1,0 +1,417 @@
+# Relaunch against zkboo 1.2.0 (local trees, post assertion/advice/format rework)
+# M4 Max, 16 cores / 137 GB. Metal build, SP1_METAL_MERKLE=0 throughout.
+# Written as taken, one line at a time.
+
+## Provenance
+zkboo: 10 crates at 1.2.0 from local paths: zkboo=4d443d4ec412 zkboo-sha2=f6a9338d9798
+  zkboo-hmac=cfd1b99b6ce8 zkboo-modular=5dd32865f05e zkboo-ecc=181341018c11
+  zkboo-circuit-hash=f5a522d3eafd zkboo-profiling=c6ce1c1c21ba zkboo-bip32=3c6a48a0431d
+  zkboo-keccak=a503af3c5eb4 zkboo-ripemd160=8ce2561c6572
+
+## vkeys, first run (2026-09-07) — before re-pinning
+lift (monolithic)            0x00f1810f73350bbfed0d27effd830f5aab8f6e9ad669eaff50bbfb55ba656189
+elephant (monolithic probe)  0x009c91b5e8fcbf9e46967769476946c92198d8453775db92860e13170aa988a4
+leaf                         0x001866168e2a40b01a478c1bad0840bde66f95dcb2a84de9250b35d036104263
+root                         0x0054d5ee706bf42fbcffd08d654d8a243a4b67d118b7cb8c8122b69bfd18fb56
+leaf-elephant                0x005c621cc40566ea808476e6de2577359a4c78f610ff76bf258a448daed1c162
+root-elephant                0x008fad1b9f74f6592d968115196ab9bda7fbae677296946ad1d6697c45b111ce
+both leaf pins DRIFTED (expected); re-pinned from these values.
+
+## Statement circuit fingerprints (2026-09-07)
+hardened child (vector 1, m/0H)  bd121f6f7aa11c76705c717779c1a7c45aff1e2fa6680183a84e62fa0ae46ebb
+ethereum address                 a64f0f8a1a834ec0bd5e548a38941357554a96d9442a2dd6b2cdeabfcb5f1604
+NOTE: the hardened child's previous recorded value was d4825905... under the withdrawn 2.0.0.
+NOTE: no prior elephant fingerprint exists in this repo -- nothing was ever built before today,
+      so there is no baseline here to compare against and no claim is made about whether it moved.
+
+## vkeys, second run — after re-pinning: PASS
+root                         0x003fe1d867cfdc3c5f85d5885e492cd055aa7765b3f41f51e82265226ce4ba29
+root-elephant                0x00631572f3660a158dfa5e79745df5b22f818efc5f057459ba7aabd157c00b6d
+The two ROOT keys moved (they link pinned-keys); the two LEAF keys did not (they must not, and
+do not, link it). That is the two-stage build terminating, which is the whole point of the
+separate crate.
+
+## elephant-probe 1 2 4 (2026-09-07) -- full log in elephant-probe-2026-09-07.log
+nonlinear AND-messages: 368,123
+  ^ INDEPENDENTLY REPRODUCES the zkboo session's figure of 368,123 for the Ethereum address,
+    measured here through zkboo-profiling on this repo's own circuit. Their claim holds.
+predicted response size: 2,909,068 B
+  ^ the device measured 2,907,372 B under 2.0.0; the difference is 1,696 B = exactly one input
+    share, which is the known bimodality, i.e. these AGREE. See proof-size-is-bimodal memory.
+executed -> address 0x3e9003153d9a39d3f57b126b0c38513d5e289c3e
+fitted law: instructions = 5.0986e9 + 2.1148e9 x n   (3 points, |error| <= 0.0032%)
+  vs the previously recorded 5.1004e9 + 2.4627e9 x n (zkboo 2.0.0):
+    fixed term    -0.035%  (unchanged; it is the circuit-fingerprint traversal, and the gates
+                            did not move -- consistent with the AND count above)
+    marginal term -14.1%   (REAL IMPROVEMENT, and not a circuit change: the per-response term is
+                            the zkboo VERIFIER replaying a response inside the guest.)
+  *** RETRACTED, same day, before anyone relied on it: this log first attributed the -14.1% to
+      "options plumbing, domain-separated PRG/commitments". Both are wrong and the zkboo session
+      showed why. Domain separation ADDS a tag and an 8-byte length prefix per opened commitment,
+      so it moves the marginal term the wrong way. The options collapse is monomorphised generics
+      and does not survive into emitted code at all. I asserted a mechanism I had not measured,
+      in a log whose entire purpose is figures as taken. The FIGURE stands; the CAUSE is open.
+      Better-supported hypothesis, theirs: ViewReplayerBackend went 1,232 -> 474 lines, losing
+      fifteen per-gate recording branches (two inside bitand), eight always-present Vec fields
+      and an SSA wire-id bus touched on every storage-bit read and write.
+      Unaccounted for even so: 0.3479e9 / 368,123 = ~945 instructions per AND-message word.
+      Two predictable branches do not cost that. See the discriminating test below. ***
+  => the two terms moved independently AGAIN, in opposite proportions. Refit, never scale.
+
+## s1-acceptance (2026-09-07): PASS -- full log in s1-acceptance-2026-09-07.log
+reject matrix n=8: R1..R8 all refused by the named refuser, control accepted.
+  R8 (wrong proof format) now fires on a mutated 32-byte PROOF_FORMAT_ID, not a bumped counter.
+full-scale positive n=219: journal passes the consumer gate, fingerprint bd121f6f...
+  4,386,739,693 guest instructions, executor wall 29.53 s
+  vs the previously recorded 4.775013465e9 for the same run under zkboo 2.0.0: -8.1%
+
+## DISCRIMINATING TEST -- SUPERSEDED BELOW, kept because the error is the point
+ for the -14.1% marginal-term drop (designed BEFORE running it)
+Question: is the saving on the GATE PATH (per AND-message word) or in PER-RESPONSE FIXED COSTS
+(PRG construction, hasher setup)?
+Method: refit the hardened-child law with cycle-probe (execute-only) and compare the per-AND-word
+saving against the elephant's. The two statements are ~50x apart in AND-message words:
+  ethereum address 368,123   hardened child 7,417
+Elephant saving: (2.4627e9 - 2.1148e9) / 368,123 = 945 instructions per AND-message word.
+PREDICTIONS, written down first:
+  - GATE PATH  => hardened-child marginal falls by ~945 x 7,417 = 7.01e6, i.e. 21.66e6 -> ~14.65e6
+                  (a ~32% drop), and per-AND-word savings agree between the two statements.
+  - FIXED COST => hardened-child marginal falls by roughly the same ABSOLUTE amount per response
+                  as the elephant's does, which would be a tiny fraction of 0.3479e9, and the
+                  per-AND-word figures differ by ~50x.
+Crude prior from the n=219 totals alone (4.7750e9 -> 4.3867e9), IF the fixed term is unchanged:
+  0.3883e9 / 219 = 1.773e6 per response => 239 instr/AND-word, ~4x below the elephant's 945.
+  That points at FIXED COST, but it ASSUMES an unmoved fixed term, which is exactly the thing
+  that has to be measured rather than assumed. Do not quote it; run the refit.
+Must run on a quiet machine, after split-probe finishes -- concurrent runs contaminate both.
+
+## *** THE TEST ABOVE USED THE WRONG DENOMINATOR, AND A NUMBER FROM THE WRONG FILE ***
+Two errors, both mine, caught by the zkboo session.
+
+ERROR A -- provenance. I used 7,417 AND-messages for the hardened child. That figure is from
+  <zkboo>/succinct-lifter/knowledge/cost-numbers.md -- the table I had MYSELF flagged, in
+  writing, as sitting under a withdrawn-version header and as not this repo's to edit. My own
+  knowledge/elephant-cost.md:52 records 6,454, on the same line that states the 57x ratio.
+  Identifying a source as untrustworthy and then quoting it anyway is worse than not checking.
+  Correct figure, from this repo: hardened child 6,454, ethereum address 368,123, ratio 57.0x.
+
+ERROR B -- normaliser. AND-messages are the wrong quantity to divide by. The zkboo session
+  profiled TOTAL backend operations:
+      ethereum address  and_msgs 368,123   total_ops 11,964,609   (32:1 -- field arithmetic is
+      hardened child    and_msgs   6,454   total_ops     45,651    overwhelmingly LINEAR)
+      ratio by AND-messages 57.0x   ratio by total ops 262.1x
+  (their caveat: total_ops excludes `cast`, and counts a `not` the same as a `bitand`.)
+
+WHAT THAT DOES TO MY READING: it reverses it. I wrote that the crude figure "leans FIXED COST".
+  It refutes fixed cost outright, and by arithmetic alone, needing no run:
+  a per-response fixed saving is the SAME ABSOLUTE amount for both statements, so the hardened
+  child would have to save 0.3479e9 instructions per response -- more than sixteen times its
+  ENTIRE marginal term of 21.66e6. Its marginal would go negative. Impossible.
+  Observed saving ratio 0.3479e9 / 1.773e6 = 196x, against predictions: fixed 1x (off 196x),
+  per-AND-word 57x (off 3.4x), per-operation 262x (off 1.34x). Per-operation wins.
+  This SHARPENS the recorders hypothesis: the SSA wire-id bus assigned an id on every write to a
+  storage bit and looked one up on every read -- per OPERATION, not per AND gate, which is why
+  the AND-normalised numbers looked incoherent.
+
+REVISED PREDICTIONS, written before the run, as the NEW hardened-child marginal term:
+  fixed-cost model     REFUTED by arithmetic above; no run needed.
+  per-AND-word (57.0x) delta 0.3479e9/57.0  = 6.10e6  => new marginal ~15.56e6
+  per-operation (262x) delta 0.3479e9/262.1 = 1.33e6  => new marginal ~20.33e6
+  crude "fixed term unchanged" back-of-envelope from the n=219 totals: delta 1.773e6 => ~19.89e6
+    (this ASSUMES an unmoved fixed term; the refit exists to measure it, not assume it)
+  The two live models are ~4.8e6 apart in the marginal term, so the refit separates them cleanly.
+  Old law for reference: 3.147e7 + 21.66e6 x n (derived from the recorded 4.775013465e9 at n=219).
+
+LESSON, and it is not the same as the one I recorded an hour ago: it was the NORMALISER that was
+  wrong first, not the mechanism. A ratio test is only as good as the quantity you divide by, and
+  here the obvious quantity -- the one the whole cost model is built around -- was not the
+  operative one. Keep this next to "refit, never scale".
+
+## split-probe 4 both (2026-09-07): PASS
+gate matrix n=24: nine refusals, control accepted.
+monolithic 4 responses 286.05 s | leaves 59.71/59.02/58.43/57.40 s | root over 4 114.51 s
+split one machine 349.07 s (1.22x overhead) | critical path 174.22 s | 4 machines 1.64x
+root share of critical path 65.7%
+  cf. the old GPU-safe law root(N) = 102.0 + 2.55N => 112.2 s at N=4; measured 114.51 s.
+
+## THREE-UNIT MEASUREMENT (statement-units, 2026-09-07) -- my own figures, not relayed
+                        AND words   machine words   fingerprint B
+  hardened child             6,454          46,399       1,921,031
+  ethereum address         368,123      12,132,825     332,317,693
+  ratio                      57.0x          261.5x          173.0x
+  (machine words = every GateCounts field summed INCLUDING `cast`, which the zkboo session's
+   45,651 / 11,964,609 excluded; their ratio 262.1x vs my 261.5x -- agreement.)
+  (fingerprint bytes measured with a byte-counting Hasher passed to hash_circuit. NOTE this is
+   NOT a per-operation count: each op ingests a fixed header AND 16*N bytes per index operand,
+   so it is a blend. That is a correction to the "ingests per operation" model -- and it makes
+   the quantity better, not worse, because it is literally the work the fixed term performs.)
+
+## THE DISCRIMINATING TEST -- RESULT (cycle-probe 1 2 4 8 16, execute-only, quiet machine)
+REFITTED hardened-child law: instructions = 3.027e7 + 1.989e7 x n
+  cross-check: 3.027e7 + 1.989e7 x 219 = 4.386e9, against the independently measured
+  4,386,739,693 from s1-acceptance's n=219 run. Two separate runs agree.
+NEW MARGINAL 19.89e6, against the predictions written down beforehand:
+  per-AND-word (57.0x)      predicted 15.56e6   -- OFF BY 27.9%.  REFUTED.
+  per-machine-word (261.5x) predicted 20.33e6   -- off by 2.2%.
+  "fixed term unchanged"    predicted 19.89e6   -- exact.
+    ^ 🪤 DO NOT read the child's fixed term as having MOVED (3.147e7 -> 3.027e7, -3.8%). The old
+      3.147e7 was DERIVED from a single n=219 point using an assumed marginal, so it was never a
+      measurement. The fixed term is structural traversal, the child's circuit did not change, and
+      the elephant's own fixed term held to -0.035% across the same release. The right reading is
+      that the derived value was ~3.8% off and this five-point refit corrected it. Written this
+      way round deliberately: otherwise someone later reads a moved fixed term into a circuit that
+      never changed.
+  per-response fixed cost                       -- REFUTED by arithmetic, before the run.
+ACTUAL saving ratio: elephant 0.3479e9 / child 1.77e6 = 196.6x, against
+  AND words 57.0x (off 3.45x) | fingerprint B 173.0x (off 1.13x) | machine words 261.5x (off 1.33x)
+CONCLUSION: the saving is ON THE GATE PATH and scales with MACHINE WORDS, not AND messages.
+  It lands between the fingerprint-byte and machine-word units, which is what you would expect
+  of removed instrumentation having BOTH a per-operation and a per-storage-bit component -- the
+  recorders had exactly that (per-gate Vec pushes plus an SSA wire-id bus touched per bit).
+  The mechanism is NOT nailed to a single unit and I am not claiming it is.
+
+## THE THREE TERMS, THREE UNITS -- all accounted for, nothing left over
+  guest FIXED term    ratio 5.0986e9 / 3.027e7 = 168.4x  vs fingerprint bytes 173.0x  (2.7%)
+    ^ both fixed terms now MEASURED by multi-point fit; the 162.0x quoted earlier used a DERIVED
+      old child value and is superseded, not contradicted.
+  guest MARGINAL term ratio                      196.6x  between 173.0x and 261.5x
+  proof BYTES         ratio 2,909,068 / 51,691 =  56.3x  vs AND words 57.0x            (1.2%)
+  => a FOURTH independent confirmation that the Ethereum-address gates did not move: the fixed
+     term is a pure structural traversal and it agrees with the byte count of that traversal.
+
+## forge negatives (2026-09-07): all three PASS -- forge-negatives-2026-09-07.log
+forge-vk    refused in 19.39 s BY THE ROOT GUEST's pinned-key assertion (program-root/src/main.rs:44)
+forge-count refused in 111.16 s at SP1's HOST-side deferred-proof bookkeeping
+forge-order refused at the same place
+The refusal LOCATIONS are unchanged from the 2.0.0 round, which is the point of re-running them:
+two of the three still stop short of the in-circuit deferred-proof binding, because a deferred
+proof is resolved by digest and no tampering through the stock SDK reaches it. Still a known
+structural gap, not a regression, and not evidence about the binding.
+
+## elephant-split 2 gate (2026-09-07): PASS
+24 elephant responses proved natively in 726.44 ms; nine refusals, control accepted.
+
+## PREDICTIONS for elephant-split 2 both, written BEFORE the run (2026-09-07)
+First, TWO WRONG MODELS, both caught before the run:
+  MINE: I said "leaf ~4.6% cheaper", got by evaluating the MONOLITHIC law 5.0986e9+2.1148e9n at
+    n=1 against 5.1004e9+2.4627e9n. Wrong: a LEAF PAYS NO FIXED TERM. program-leaf-elephant
+    deliberately computes no circuit fingerprint -- that is its whole design point, since a
+    per-leaf traversal would cost ~2 extra responses each. So the fixed term must not be in a
+    leaf estimate at all.
+  THE ZKBOO SESSION'S: they evaluated at n=24 and n=110 ("219 over two leaves"). Wrong the other
+    way: `elephant-split n` proves n leaves of ONE response each (responses[position], 0..n), so
+    a leaf is n=1 and `elephant-split 2` is 2 leaves x 1 response, not 2 leaves x 110.
+  Neither model was checked against the driver until now. The driver settles it.
+
+PREDICTIONS:
+  LEAF instructions: the previous round measured leaf = 0.973 x the monolithic marginal term.
+    old 0.973 x 2.4627e9 = 2.396e9  ->  new 0.973 x 2.1148e9 = 2.058e9, i.e. -14.1%
+    ...but LESS than 14.1% in practice, because a leaf also parses its frame and encodes a
+    journal, work that is not zkboo replay and did not get cheaper. Expect 12-14%.
+  ROOT: expect ESSENTIALLY UNCHANGED. The root's cost is the circuit-fingerprint traversal (the
+    fixed term, which held to -0.035%) plus SP1 recursion (not zkboo code at all) plus the
+    cross-leaf challenge re-derivation (negligible). None of that is touched by the -14.1%,
+    which is per-response REPLAY and lives in the leaves.
+  WALL CLOCK OVERALL: the root was 79% of the split's critical path, so an improvement confined
+    to the leaves should move the total by roughly 0.21 x 13% = ~3%. If the total moves much
+    more than that, something other than the replay path got cheaper and I have mis-modelled it.
+  A cheap discriminator exists and will be run FIRST: `elephant-split 2 execute` measures one
+  leaf's instruction count directly and prints its ratio to the marginal term. That converts the
+  leaf prediction into a measurement before ~6 hours of proving, rather than after.
+
+## PREDICTION CORRECTED AGAIN, before the run -- my hedge pointed the wrong way
+I wrote "expect 12-14%, LESS than 14.1%, because frame parsing and journal encoding did not get
+cheaper". Directionally wrong, and by my own rule: I reapplied the 0.973 RATIO -- measured under
+the old code -- to the NEW marginal term. That is scaling a thing whose parts moved separately.
+Decompose instead. `other` (frame parse, journal encode) is a CONSTANT, not a fraction:
+  leaf_old = replay_old + other = 2,395,132,641   (MEASURED, fixtures/elephant-execute-gate...)
+  leaf_new = leaf_old - (2.4627e9 - 2.1148e9) = 2,047,232,641  =>  -14.52%
+A constant `other` makes the BASE smaller while the absolute saving is unchanged, which pushes
+the percentage UP, not down: 0.3479e9 on 2.396e9 is 14.5%, on 2.4627e9 it is 14.1%.
+REVISED BAND: 13-15%, central 14.5%. A measured 14.5% would have fallen OUTSIDE my old band and
+read as a surprise when it is the central case.
+Two assumptions remain, and the execute run settles both: that a leaf replays one response
+identically to the monolith's per-response increment, and that the whole 0.3479e9 is replay
+rather than partly per-response loop overhead a leaf never had. If a slice is loop overhead, the
+leaf saving is smaller -- and then 12-14% is right for a reason I had not given.
+
+## STALE-MEASUREMENT AUDIT (2026-09-07) -- five instances of one pattern
+The tell: is a constant a DEFINITION (safe to embed) or a MEASUREMENT (a claim nothing
+re-checks)? Grepping for the latter found, in this repo:
+  elephant_split.rs `2.4627e9` hardcoded as "the marginal" -- silently became the OLD marginal,
+    in the very instrument meant to settle a before-and-after question. Fixed earlier today.
+  elephant_probe.rs HASH_MARGINAL_INSTR / HASH_FULL_INSTRUCTIONS / HASH_FULL_SECONDS -- three
+    2.0.0-era measurements driving a live days-at-full-scale headline. TWO of the replacements
+    I had measured MYSELF hours earlier without noticing they were also in a tool.
+Plus, outside this repo: zkboo's PROOF_FORMAT_VERSION, and the withdrawn-version cost table that
+leaked 7,417 into a live prediction of mine this afternoon.
+
+THE CURE IS PLACEMENT OF THE CHECK, not avoidance of the constant. zkboo's PROOF_FORMAT_ID is a
+measurement, in src, exported -- and safe only because a test recomputes it every run. Remedies
+in order of strength: (1) re-derive at test time and FAIL on drift; (2) do not embed at all, have
+the instrument measure its own baseline; (3) provenance only -- the fallback, which tells a
+reader when to be suspicious and never when to be correct.
+
+APPLIED to elephant_probe.rs:
+  HASH_MARGINAL_INSTR    -> DELETED. hardened_child_law() executes the guest at n=1,2,4 and
+                            refits on every run (~2 s inside a driver that runs for minutes).
+  HASH_FULL_INSTRUCTIONS -> DELETED. Derived from that law at n=219.
+  HASH_FULL_SECONDS      -> kept, and marked IN THOSE WORDS as the only one that can carry
+                            provenance alone, because re-deriving it means re-running lift 219.
+  THREE points, not two: two determine the law exactly and leave NO residual, so a two-point fit
+  cannot report its own model breaking. The residual is ASSERTED at 0.05% (the five-point fit
+  came in under 0.0032%), not printed -- a threshold that only warns is annotation again.
+  🪤 HASH_FULL_SECONDS is currently the undefined identifier PENDING_LIFT_219, so the crate does
+  NOT BUILD until the measured value replaces it. A placeholder is this disease at its purest -- a
+  measurement-shaped constant with no measurement behind it -- so it is made impossible to ship.
+
+================================================================================
+`lift 219` — COMPLETE, PASS.  2026-09-07 13:07:13 → 16:52:48.
+================================================================================
+Command:  RAYON_NUM_THREADS=12 GOMAXPROCS=12 SP1_METAL_MERKLE=0 lift 219 groth16
+Log:      fixtures/lift-219-2026-09-07.log (273 MB)
+zkboo:    10 crates at 1.2.0 from local paths, zkboo=4d443d4ec412 (clean)
+
+  zkVM groth16 proving      9,927.49 s   (2 h 45 m 27 s)
+  process wall clock        9,936.12 s   real, 113,281.26 user, 4,800.73 sys
+  cores delivered          (user+sys)/real = 11.88 of 12 requested  → QUIET MACHINE
+  peak RSS                     76.52 GB
+  native ZKBoo prove of 219 responses:  82.42 ms
+  proof verified + journal gate passed in 152.65 ms
+
+  Previous (zkboo 2.0.0, GPU-safe, 2026-08-28):  10,296.11 s.
+  Delta: −368.62 s, −3.58%.  ⚠️ NOT attributed.  Two things changed at once — the
+  zkboo release and the circuit — and no control separates them.  Recorded as an
+  observation, not as a saving.
+
+ARTEFACTS
+  fixtures/lift-219.groth16-proof.bin          1,913 B on disk
+  verifier/fixtures/lift-219.onchain.json      proof 356 B, public values 219 B
+
+  vkey            0x00f1810f73350bbfed0d27effd830f5aab8f6e9ad669eaff50bbfb55ba656189
+                  (was 0x004290a12d1ecd14ebd8d11a441cc25a80c311e84246ff5df1c023d5885c1b88)
+  fingerprint     0xbd121f6f7aa11c76705c717779c1a7c45aff1e2fa6680183a84e62fa0ae46ebb
+                  — matches the `vkeys` print from earlier today, independently taken.
+  format id       0x4be5d4e64c11ba4d40e78977f68d45ad8bf01fe31aa27507e8ddca20223a7370
+                  — equals REQUIRED_PROOF_FORMAT_ID byte for byte.
+  journal length  188 B → 219 B, +31 B, which is exactly the format field growing from a
+                  one-byte varint to a bare 32-byte array.  Nothing else moved.
+  proof length    356 B, unchanged (Groth16, fixed).
+
+SOLIDITY — all three pins updated in the SAME edit as the artefact, then `forge test`.
+  EXPECTED_VKEY, EXPECTED_FINGERPRINT re-anchored.
+  EXPECTED_PROOF_FORMAT_VERSION (uint8, last byte) → EXPECTED_PROOF_FORMAT_ID (bytes32,
+    last 32 bytes).  N_EPS varint moved from [len-3],[len-2] to [len-34],[len-33].
+    🪤 This is the ported-clause-by-clause trap: reading the old offset gets a byte of
+    the digest and calls it a version, then fails on a neighbouring clause.
+  Minimum-length guard 34 → 66.
+
+  forge test:  18 passed, 0 failed, 0 skipped (11 gate + 7 groth16).
+
+  ON-CHAIN GAS, re-measured:
+    pairing verify (verifyProof)   272,635   (was 270,441; +2,194, +0.81%)
+    journal gate (LiftJournalGate)  89,325   (was  85,287; +4,038, +4.74%)
+    total for a relying contract   361,960
+
+  ⚠️ Neither gas delta is attributed.  Both correlate with the journal growing 31 bytes,
+  and the gate additionally now compares 32 bytes where it compared one — but that is a
+  plausible story, not a measurement, and a sha256 word count only accounts for ~12 gas
+  of the 2,194.  Stated as measured totals; the mechanism is open.
+
+================================================================================
+`elephant-split 2 execute` — the cheap discriminator.  🔴 MY PREDICTION WAS WRONG.
+================================================================================
+  leaf instructions   2,114,787,163      (was 2,395,132,641 on the 2.0.0 stack)
+  executor wall             15.71 s
+  saving                   −11.70%
+
+PREDICTED BEFORE THE RUN: −14.5%, band 13–15%.  MEASURED −11.70%, outside the band.
+
+What I did wrong, precisely.  I had refitted the monolithic elephant law and then
+*derived* the leaf from it instead of measuring it — while a 15-second `execute` was
+available the whole time.  The derivation assumed the leaf-to-marginal gap is a constant
+across the release:
+    leaf_old − marginal_old = 2,395,132,641 − 2.4627e9 = −67,567,359
+    ⇒ leaf_new = 2.1148e9 − 67,567,359 = 2,047,232,641   (−14.5%)
+The other natural hypothesis, a constant *ratio* (0.97255 × 2.1148e9 = 2,056,750,940),
+predicts −14.1%.  BOTH are wrong and both err the same way.  I stated only one of them
+and gave it a two-point band, which made a guess look like a bracket.
+
+This is "refit, never divide" one level further in than I applied it: I refitted the law
+and then scaled something else by it.  A quantity is only measured where it is measured.
+
+WHAT IS ACTUALLY TRUE, and it is a sharper fact than the prediction was:
+  leaf_new / marginal_new = 0.999994 — they coincide to 6 parts per million.
+  leaf_old / marginal_old = 0.97255.
+The two are different ELFs (`program-leaf-elephant` vs `program-elephant`) and the
+marginal term is fitted from the monolithic one at n=1,2,4, so this is not an artefact of
+shared arithmetic.  Restated as the difference: the monolithic per-response path shed
+347.9M instructions (−14.13%) and the leaf shed 280.3M (−11.70%); the 67.6M between them
+is exactly the old gap.  So ~67.6M instructions per response left the monolithic
+program's per-response path without leaving the leaf's.
+
+🔎 OPEN, NOT CHASED.  That is a specific, findable 3%-of-a-leaf difference and it is out
+of scope for bringing the stack up to date.  Recorded with its number so it can be picked
+up deliberately rather than rediscovered.
+
+⚠️ Note against the time figures: the monolithic marginal fell 14.13% in INSTRUCTIONS
+while `lift 219` fell 3.58% in SECONDS.  Those are the hardened-child and elephant
+programs respectively, so they are not the same quantity and must not be compared — but
+it is a standing reminder that an instruction count is not a proving time, because a
+release can change the instruction MIX (precompile calls vs ALU) as well as the count.
+
+================================================================================
+CONTROL: does proving TIME track instruction COUNT across this release?  NO.
+================================================================================
+Recovered from `git show HEAD:host/src/bin/elephant_probe.rs` — the two embedded
+constants deleted earlier today, which are the only surviving record of the 2.0.0-era
+hardened-child cost:
+    HASH_FULL_INSTRUCTIONS = 4.775013465e9      HASH_FULL_SECONDS = 10,296.11
+
+Against today's measured pair (child law refitted on this run, 3.0274e7 + 1.9889e7·n
+⇒ 4.3861e9 at 219; `lift 219` proving 9,927.49 s):
+
+    instructions at 219   4.775013465e9 → 4.3861e9      −8.14%
+    proving seconds          10,296.11  → 9,927.49      −3.58%
+    effective rate          463,769/s   → 441,791/s     −4.74%  ← got WORSE
+
+So the release removed 8.1% of the guest's instructions and recovered only 3.6% of the
+wall clock, because it also changed the instruction MIX.  **An instruction saving must
+not be quoted as a time saving on this stack** — it is measurably less than half of one.
+
+⚠️ One input is not independently verifiable.  HASH_FULL_SECONDS is confirmed against
+fixtures/lift-219-gpusafe.summary.log:18; HASH_FULL_INSTRUCTIONS is an embedded constant
+whose ELF no longer exists, so it cannot be re-derived.  Two things support it: it is
+co-provenanced with the seconds figure in the same commit, and it is internally
+consistent with a law — implied old fixed 31.47e6 / marginal 21.66e6 against today's
+30.27e6 / 19.89e6, both moving by small sane amounts (−3.8%, −8.2%).  Supporting, not
+proof.  The −8.14% carries that one caveat; the −3.58% does not.
+
+🪤 Do not conflate the two marginals: the hardened child's fell 8.18%, the elephant's
+14.13%.  They are different statements and neither predicts the other.
+
+================================================================================
+PREDICTIONS for `elephant-split 2 both`, written BEFORE the run.  ~6.5 h expected.
+================================================================================
+Baseline (2.0.0 stack): leaf 4,207.74 s / 73.4 GB; root over 2 leaves 15,589.86 s /
+74.4 GB; two leaves plus a root = 24,005 s = 6.67 h.
+
+LEAF, point estimate 3,890 s.  Chain: measured −11.70% in instructions (above), times
+the +4.74% rate degradation just measured on the child.  🚨 That second factor is
+borrowed from a DIFFERENT STATEMENT, which is the exact move this project has a standing
+rule against.  It is used because it is the only measurement of the release's effect on
+time that exists, and it is declared rather than hidden.
+  Band: 3,700 s (instructions alone, no degradation) to 4,050 s (degradation twice the
+  child's).  Anything outside that band is a finding, not noise.
+
+ROOT, point estimate 15,300 s, band 15,100–15,600 s, i.e. essentially unchanged.
+Reasoning: the root is ~79% the one-off secp256k1 fingerprint traversal, and that
+traversal is the elephant law's FIXED term, which moved 5.1004e9 → 5.0986e9 = −0.035%.
+A root that moves materially would mean the fixed term does not describe it.
+
+TOTAL, point estimate 23,100 s ≈ 6.4 h.  Peak RSS predicted unchanged at ~74 GB: nothing
+in this release changes how much proof data crosses the guest (frame size is measured
+identical at 3.451 MB/response, and 0.64 GB at 219).
+
+Also predicted: the nine-case gate green with the control accepting, and the root journal
+through the relying-party gate.

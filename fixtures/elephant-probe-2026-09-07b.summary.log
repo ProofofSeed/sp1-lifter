@@ -1,0 +1,29 @@
+── elephant probe (Ethereum address = Keccak256(x_be ‖ y_be)[12:]) ──
+  zkboo: 10 crates at 1.2.0 from local paths: zkboo=4d443d4ec412 zkboo-sha2=f6a9338d9798 zkboo-hmac=cfd1b99b6ce8 zkboo-modular=5dd32865f05e zkboo-ecc=181341018c11 zkboo-circuit-hash=f5a522d3eafd zkboo-profiling=c6ce1c1c21ba zkboo-bip32=3c6a48a0431d zkboo-keccak=a503af3c5eb4 zkboo-ripemd160=8ce2561c6572
+  circuit profile in 83.30ms
+    nonlinear AND-messages: 368123
+    predicted response size: 2909068 bytes (2.909 MB)
+    predicted proof size at 219: 0.637 GB
+  executed in 63.90ms → address 0x3e9003153d9a39d3f57b126b0c38513d5e289c3e
+
+  n=1   instructions=     7213627229  frame=   3450973 B (3.451 MB/response)  prove=302.55ms  verify=115.29ms  guest=50.08s
+  n=2   instructions=     9327957488  frame=   6904114 B (3.452 MB/response)  prove=315.91ms  verify=235.82ms  guest=63.68s
+  n=4   instructions=    13558009884  frame=  13805647 B (3.451 MB/response)  prove=342.67ms  verify=472.80ms  guest=91.14s
+
+  ── fitted law ──
+    instructions = 5.0986e9 + 2.1148e9 × n
+    n=1   measured      7213627229  fitted      7213428389  error +0.0028%
+    n=2   measured      9327957488  fitted      9328255748  error -0.0032%
+    n=4   measured     13558009884  fitted     13557910464  error +0.0007%
+    fixed term is 71% of the n=1 run; taking that run's per-response figure as marginal would overstate it by 3.41x
+
+  ── extrapolation to a full classical-128 lift (219 responses) ──
+    hardened-child law, measured on this run: 3.0274e7 + 1.9889e7 × n ⇒ 4.3861e9 at 219
+    vs hardened child: 106x the instructions per response
+    instructions at 219: 4.6825e11
+    proof data through the guest: 0.64 GB
+    at this machine's measured rate (442k instr/s): 12.3 days
+
+  ⚠️  The rate above is the hardened-child statement's, assumed to carry over. It has
+      not been measured on an elephant workload, and no elephant response has ever been
+      proved — only executed. Treat the days figure as an order of magnitude.

@@ -1,0 +1,41 @@
+── split-and-aggregate probe (n=4, mode=both) ──
+  prover config: backend=cpu/metal-built[SP1_METAL_MERKLE=0] shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  zkboo: 10 crates at 1.2.0 from local paths: zkboo=4d443d4ec412 zkboo-sha2=f6a9338d9798 zkboo-hmac=cfd1b99b6ce8 zkboo-modular=5dd32865f05e zkboo-ecc=181341018c11 zkboo-circuit-hash=f5a522d3eafd zkboo-profiling=c6ce1c1c21ba zkboo-bip32=3c6a48a0431d zkboo-keccak=a503af3c5eb4 zkboo-ripemd160=8ce2561c6572
+  proved 4 ZKBoo responses natively in 4.88ms
+  wire: lift frame 245378 B for 4 responses ⇒ 59.9 KiB/response; leaf frame ≤ 61530 B (statement overhead ~224 B)
+  (the gate matrix runs at 24 leaves, not 4: below 24 a tampered set passes by chance with probability 3^-k)
+── cross-leaf gate matrix (n=24, no proving) ──
+  control (all 24 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 0: challenge 2 != 0) ✓
+  G2 substituted response: refused (leaf 0: challenge 2 != 1) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 0: challenge 2 != 1) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 1: challenge 2 != 0) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+
+── monolithic baseline (one program, all 4 responses) ──
+  monolithic compressed proving: 286.05s (gate green)
+
+── 4 leaf proofs ──
+  leaf 0: 59.71s, 352 bytes of public values → fixtures/leaves/n4/leaf-0.compressed.bin
+  leaf 1: 59.02s, 354 bytes of public values → fixtures/leaves/n4/leaf-1.compressed.bin
+  leaf 2: 58.43s, 354 bytes of public values → fixtures/leaves/n4/leaf-2.compressed.bin
+  leaf 3: 57.40s, 356 bytes of public values → fixtures/leaves/n4/leaf-3.compressed.bin
+
+── root over 4 leaves ──
+  root: 114.51s (gate green, 4 responses, 255 bytes of public values)
+
+── result (n=4) ──
+  monolithic, one machine           286.05s
+  root                              114.51s
+  leaves, summed (4 × ~59.71s)       234.56s
+  split, one machine                349.07s
+  split, critical path              174.22s  (slowest leaf + root)
+  split overhead on one machine        1.22×
+  speedup with 4 machines              1.64×
+  root share of critical path          65.7%
+split-and-aggregate probe: PASS
