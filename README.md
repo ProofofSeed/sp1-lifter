@@ -5,7 +5,7 @@ This trades the post-quantum guarantees of the companion STARK lifter for immedi
 See `knowledge/milestones.md` for what is established so far, including the recorded stack history (an initial RISC Zero implementation, superseded the same day for measured reasons).
 The repository is named for its proof system because other back ends are expected alongside it, not because SP1 is the only way to lift these proofs.
 
-🚨 **Every measured figure in `knowledge/` is superseded**, and nothing in this tree has been built or proved since. The zkboo ecosystem was re-architected as 1.2.0 on 2026-09-04, changing every proof, every circuit fingerprint and every guest verifying key, and a second breaking change followed on 2026-09-06. The ported code has not yet been run. `knowledge/zkboo-1.2.0-migration.md` and `knowledge/zkboo-next-delta.md` are the authority on what changed and what remains to do.
+The zkboo ecosystem was re-architected as 1.2.0 on 2026-09-04, changing every proof, every circuit fingerprint and every guest verifying key, with a second breaking change on 2026-09-06. The port is complete and the stack has been rebuilt, re-proved and re-measured: the current figures are in `knowledge/performance-table.md` under "Re-measured on zkboo 1.2.0", and `knowledge/zkboo-1.2.0-migration.md` with `knowledge/zkboo-next-delta.md` record what changed and what it cost. Figures elsewhere in `knowledge/` belong to the previous round and say so; none of them may be rescaled into a current one, for a reason this project measured rather than assumed (`knowledge/instructions-are-not-seconds.md`).
 
 ## Usage
 
@@ -33,7 +33,7 @@ cargo build --release -p sp1-lifter-host --features metal   # once; the binaries
 ```
 
 The Foundry suite reads a fixture that `lift` generates; without one it **skips**, and a fully skipped suite still prints `Suite result: ok`, so check for `5 passed` rather than `ok`.
-⚠️ The fixture currently in `verifier/fixtures/` was produced by the withdrawn 2.0.0 stack and is internally consistent, so the suite passes on it. Regenerate it before reading a green suite as evidence about this tree.
+The fixture in `verifier/fixtures/` was regenerated from a full-soundness run on 2026-09-07, and the three pins that describe it — verifying key, circuit fingerprint and proof-format identifier — were re-anchored in the same change. That matters more than it sounds: a fixture is internally consistent whatever produced it, so a stale one passes the suite silently, and a pin taken from an artefact only fails on the run *after* the artefact is replaced.
 
 `lift` performs one proving pass: in the default `groth16` mode the single SP1 call runs core → compress → shrink → wrap, so the on-chain fixture costs one pass rather than two.
 `compressed` mode is for throughput probes at small repetition counts; it is not a stage to run before `groth16`.
@@ -52,4 +52,4 @@ Proving cost is tunable from the environment without a rebuild — `SHARD_SIZE`,
 - `program-leaf-elephant/`, `program-root-elephant/` — the same split over the secp256k1 Ethereum-address statement, which has no public parameters and a different journal shape, so it needs its own pair of guests. Driven by `elephant-split`.
 - `pinned-keys/` — the leaf verifying keys, compiled into the roots so that a root's own key says which leaf program it will admit. 🚨 **Run `vkeys` after editing any crate a guest links — a comment-only change has been measured moving a guest key** (`knowledge/guest-keys-move-on-comments.md`). **It has no dependencies on purpose:** a crate the leaf programs link would move their keys whenever it changed, and the pin would never converge. `vkeys` re-derives every key from the built ELFs and fails if a pinned constant has drifted.
 - `host/src/orchestrator.rs` — the streaming orchestrator: a leaf proof is dispatched as each response arrives rather than after the last one, so leaf proving overlaps response generation. Driven by `stream-lift`; see `knowledge/streaming-orchestrator.md`.
-- `knowledge/` — design record, milestone plan, and measured numbers, including `gpu-proving.md` for what the Metal backend does to this workload, `gpu-corruption.md` for the defect that bounds it, and `zkboo-1.2.0-migration.md` with `zkboo-next-delta.md` for the dependency re-architecture that superseded every number in the rest.
+- `knowledge/` — design record, milestone plan, and measured numbers, including `gpu-proving.md` for what the Metal backend does to this workload, `gpu-corruption.md` for the defect that bounds it, and `zkboo-1.2.0-migration.md` with `zkboo-next-delta.md` for the dependency re-architecture, and `performance-table.md` for the current cost of everything.

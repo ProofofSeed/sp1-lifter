@@ -135,10 +135,22 @@ contract LiftJournalGateTest is Test {
         this.gate(bad, expectation);
     }
 
+    /// Gas for the gate itself.
+    ///
+    /// 🪤 Same trap as `LiftGroth16.t.sol`: `pv` and `expectation` are storage fields, and reading
+    /// them inside the measured region charges a cold SLOAD per word — about 34,700 gas here,
+    /// nearly two fifths of the figure, all of it the test harness. A relying contract takes the
+    /// journal from calldata and has its expectation pinned. Both are copied to memory before the
+    /// clock starts. The storage-resident figure is NOT re-measured here: a second call in the
+    /// same test is warm and reproduces nothing, so it is recorded below instead.
+    ///
+    /// Measured 2026-09-07: memory-resident 54,610, storage-resident 89,322.
     function test_gas() public view {
+        bytes memory values = pv;
+        G.Expectation memory e = expectation;
         uint256 before = gasleft();
-        G.check(pv, expectation);
-        console2.log("journal gate gas:", before - gasleft());
+        G.check(values, e);
+        console2.log("journal gate gas (memory-resident, what a caller pays):", before - gasleft());
     }
 
     /// External so `vm.expectRevert` catches reverts from the library call.

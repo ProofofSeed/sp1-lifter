@@ -4382,6 +4382,7 @@ dependencies = [
  "sp1-lifter-statement",
  "sp1-prover",
  "sp1-sdk",
+ "zeroize",
  "zkboo",
  "zkboo-bip32",
  "zkboo-circuit-hash",

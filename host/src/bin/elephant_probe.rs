@@ -27,7 +27,10 @@ use std::time::Instant;
 
 use sp1_sdk::blocking::{Prover, ProverClient};
 use sp1_lifter_elephant::{ELEPHANT_FRAME_VERSION, ElephantInput, EthereumAddressCircuit};
-use sp1_lifter_host::{ELEPHANT_ELF, WP, WTP, n_eps};
+use sp1_lifter_host::{
+    ELEPHANT_ELF, HARDENED_OFFSET, WP, WTP, bip32_vector_1, execute_lift, lift_input_for, n_eps,
+    vector_1_proof,
+};
 use sp1_lifter_statement::{H, PS, PV, S};
 use zkboo::{
     executor::{ExecOptions, exec},
@@ -47,19 +50,80 @@ const PRIV_KEY: [u8; 32] = [
     0xe7, 0x74, 0xe7, 0xf9, 0xa4, 0x7e, 0x2c, 0x20, 0x35, 0xdb, 0x29, 0xa2, 0x06, 0x32, 0x17, 0x25,
 ];
 
-/// The hardened-child statement's measured full-scale figures, for comparison.
+/// The wall clock of the full-scale hardened-child proving run that produced the on-chain
+/// fixture.
 ///
-/// Whole-program instructions for a 219-response guest run, and the wall clock of the
-/// full-scale proving run that produced the on-chain fixture. Both are measured on this
-/// machine against the withdrawn zkboo 2.0.0; see `knowledge/iteration.md`. They have not been
-/// re-taken since the move to 1.2.0, which changed the circuits and every proof. The proving
-/// *rate* implied by
-/// their ratio is what the days-at-full-scale figure below rests on, and it is the
-/// hardened-child statement's rate, assumed to carry to a workload with an entirely
-/// different instruction mix.
-const HASH_MARGINAL_INSTR: f64 = 21.66e6;
-const HASH_FULL_INSTRUCTIONS: f64 = 4.775013465e9;
-const HASH_FULL_SECONDS: f64 = 10_296.11;
+/// 🚨 **This is the one constant here that can only ever carry provenance**, and knowing which of
+/// them that is matters more than the value. It is a full-scale proving wall clock: re-deriving
+/// it means re-running `lift 219`, hours of it, which no instrument can do on demand. So it is
+/// annotated and trusted, and annotation tells a reader when to be *suspicious*, never when to be
+/// *correct*.
+///
+/// Everything else the extrapolation below needs — the hardened child's marginal cost and its
+/// whole-program total — used to sit beside it as constants of the same shape, and both went
+/// stale across a dependency release while continuing to drive a headline figure. They are now
+/// measured on every run by [`hardened_child_law`] instead. A measurement embedded where nothing
+/// re-checks it is a claim about the world that rots; the cure is not to annotate it but to put
+/// it somewhere that fails.
+///
+/// It is the binary's own `zkVM groth16 proving` figure, not the process wall clock: the run also
+/// proves 219 ZKBoo responses natively and writes two artefacts, and charging the guest for those
+/// would inflate the rate's denominator with work the guest does not do.
+///
+/// PROVENANCE: `lift 219`, this machine, 2026-09-07, zkboo 1.2.0 (local trees), `fixtures/
+/// lift-219-2026-09-07.log`, quiet machine — 9,936.12 s of process wall clock delivering
+/// (user+sys)/real = 11.88 of 12 requested threads. Superseding a 2.0.0-era 10,296.11 s.
+/// Update this and its date together, or neither.
+const HASH_FULL_SECONDS: f64 = 9927.49;
+
+/// Refits the hardened-child instruction law on this run, and fails if it is not linear.
+///
+/// Three points, not two, deliberately. Two points determine `fixed + marginal × n` exactly and
+/// leave no residual, so a two-point fit cannot report that its own model has stopped holding: it
+/// would draw a straight line through whatever it was given and print a confident law. The third
+/// point buys one residual, and the residual is enforced rather than printed — a threshold that
+/// only warns is annotation again.
+///
+/// The guest executions cost about two seconds in total, inside a driver that runs for minutes.
+fn hardened_child_law() -> (f64, f64) {
+    /// Largest relative fit error tolerated before the law is treated as no longer linear.
+    ///
+    /// Instruction counts are deterministic, so this bounds model error and nothing else. The
+    /// five-point fit of 2026-09-07 came in under 0.0032%, so this leaves fifteenfold headroom
+    /// while still failing on any real change of shape.
+    const MAX_RESIDUAL: f64 = 0.0005;
+
+    let client = ProverClient::from_env();
+    let (_, chain_code) = bip32_vector_1();
+    let points: Vec<(f64, f64)> = [1usize, 2, 4]
+        .into_iter()
+        .map(|n| {
+            let (_, output, proof) = vector_1_proof(n, SEED_ENTROPY, b"");
+            let input = lift_input_for(chain_code.clone(), HARDENED_OFFSET, output, b"", proof);
+            let (_, report) = execute_lift(&client, &input).expect("hardened-child execution");
+            (n as f64, report.total_instruction_count() as f64)
+        })
+        .collect();
+    let k = points.len() as f64;
+    let sx: f64 = points.iter().map(|p| p.0).sum();
+    let sy: f64 = points.iter().map(|p| p.1).sum();
+    let sxx: f64 = points.iter().map(|p| p.0 * p.0).sum();
+    let sxy: f64 = points.iter().map(|p| p.0 * p.1).sum();
+    let marginal = (k * sxy - sx * sy) / (k * sxx - sx * sx);
+    let fixed = (sy - marginal * sx) / k;
+    for (n, measured) in &points {
+        let residual = (measured - (fixed + marginal * n)).abs() / measured;
+        assert!(
+            residual <= MAX_RESIDUAL,
+            "the hardened-child instruction law is no longer linear: at n={n} the fit is off by \
+             {:.4}%, above the {:.4}% threshold. The extrapolation below rests on this law, so it \
+             is refused rather than reported.",
+            residual * 100.0,
+            MAX_RESIDUAL * 100.0,
+        );
+    }
+    return (fixed, marginal);
+}
 
 /// One point of the sweep: everything measured at a given response count.
 struct Point {
@@ -184,9 +248,15 @@ fn main() {
 
     let n_full = n_eps(64);
     let full = fixed + marginal * n_full as f64;
-    let rate = HASH_FULL_INSTRUCTIONS / HASH_FULL_SECONDS;
+    let (hash_fixed, hash_marginal) = hardened_child_law();
+    let hash_full = hash_fixed + hash_marginal * n_full as f64;
+    let rate = hash_full / HASH_FULL_SECONDS;
     println!("  ── extrapolation to a full classical-128 lift ({n_full} responses) ──");
-    println!("    vs hardened child: {:.0}x the instructions per response", marginal / HASH_MARGINAL_INSTR);
+    println!(
+        "    hardened-child law, measured on this run: {hash_fixed:.4e} + {hash_marginal:.4e} × n \
+         ⇒ {hash_full:.4e} at {n_full}"
+    );
+    println!("    vs hardened child: {:.0}x the instructions per response", marginal / hash_marginal);
     println!("    instructions at {n_full}: {full:.4e}");
     println!("    proof data through the guest: {:.2} GB", predicted_response as f64 * n_full as f64 / 1e9);
     println!("    at this machine's measured rate ({:.0}k instr/s): {:.1} days", rate / 1e3, full / rate / 86400.0);

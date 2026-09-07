@@ -1,10 +1,141 @@
 # What everything costs, on this machine
 
-> 🚨 **Every figure below was measured against the withdrawn ZKBoo 2.0.0 and is superseded.**
-> The move to zkboo 1.2.0 on 2026-09-04 changed every proof, every circuit fingerprint and
-> every guest verifying key; nothing here has been re-taken. Kept for the method and the
-> shape of the results, not for the numbers. Do not quote them, and do not rescale them by a
-> factor seen elsewhere. See `zkboo-1.2.0-migration.md`.
+Two rounds sit in this file. The **1.2.0 round** below is current. Everything under "The 2.0.0
+round" was measured against the withdrawn ZKBoo 2.0.0 and is kept for the rows the 1.2.0 round has
+not re-taken — read those for the method and the shape of the results, never for the numbers, and
+never rescale one by a factor observed elsewhere. `instructions-are-not-seconds.md` is this
+project's shortest illustration of why that last rule exists.
+
+## Re-measured on zkboo 1.2.0 — 2026-09-07
+
+Same machine (M4 Max, 16 cores / 137 GB), same discipline: `RAYON_NUM_THREADS=12 GOMAXPROCS=12`,
+`SP1_METAL_MERKLE=0`, one run at a time on a quiet machine. The full-soundness lift delivered
+`(user+sys)/real = 11.88` of 12 requested threads, which is what "quiet" means here — a contended
+run reads about 9 and its timings are retracted on sight.
+
+### On-chain
+
+🔴 **The figures this project published before 2026-09-07 measured the test harness as well as
+the verifier**, and are corrected here. The Foundry suites hold the fixture in `bytes internal`
+fields; Forge resets the EVM access list per test, so reading them inside the measured region
+charges a cold SLOAD per 32-byte word of journal and proof. That is ~46,700 gas on the pairing
+path and ~34,700 on the gate — a fifth and two fifths of the respective figures — and a relying
+contract, which receives both in calldata, pays none of it.
+
+What a relying contract pays for the call:
+
+| step | gas |
+| ------------------------------------------------------------- | ------: |
+| `SP1VerifierGroth16.verifyProof` (the pairing check) | 225,975 |
+| `LiftJournalGate.check` (decode + the full relying-party gate) | 54,615 |
+| **together** | **280,590** |
+
+⚠️ The transaction additionally pays intrinsic calldata for the 219-byte journal and 356-byte
+proof — about 9,000 gas at 16/byte — plus the 21,000 base. That is outside both figures.
+
+The gate is 24% on top of the proof verification, and it is not optional: `verifyProof` alone
+establishes only that some program committed some public values.
+
+For continuity with what was published before, the same calls measured the old way, with the
+values read from the test contract's cold storage:
+
+| arrangement | 188-byte journal (2.0.0) | 219-byte journal (1.2.0) | delta |
+| ---------------------- | -----------------------: | -----------------------: | -----: |
+| memory-resident | 225,838 | 225,917 | +79 |
+| warm storage | 228,388 | 228,576 | +188 |
+| **cold storage (as published)** | **270,441** | **272,635** | +2,194 |
+
+Both published figures reproduce to the gas in the cold-storage arrangement, which is what
+identifies it. The memory-resident row reads 225,917 here and 225,975 in the fixed suite: the two
+harnesses reach the call with different memory already allocated, and 58 gas is that difference,
+not a discrepancy. Quote the suite's figure — it is the one an unchanged `forge test` prints. The whole 2,194-gas "increase across the release" is one extra cold storage slot:
+the journal crossed from six 32-byte words to seven. On the values a caller actually holds, those
+31 bytes cost 79 gas. 🔑 An instrument that must hold its own fixture will charge the subject for
+holding it — ask where the data lives before believing the meter.
+
+### SP1 zkVM proving, GPU-safe arm
+
+| workload | 2.0.0 | 1.2.0 | change |
+| ---------------------------------------- | ------------------: | ------------------: | -----: |
+| **lift, 219 responses, groth16** | 10,296.1 s / 77.5 GB | **9,927.5 s / 76.5 GB** | −3.58% |
+| split: 4 leaves, summed | — | 234.6 s | — |
+| split: root over 4 leaves | 112.2 s | 114.5 s | +2.1% |
+| split: monolithic 4-response baseline | — | 286.1 s | — |
+
+The root over four leaves is unchanged within noise, which is the prediction the elephant law's
+fixed term makes: the root is dominated by the one-off secp256k1 fingerprint traversal, and that
+term moved 5.1004e9 → 5.0986e9, i.e. −0.035%. RSS was not taken for the split runs.
+
+### The elephant statement, split
+
+| | 2.0.0 | 1.2.0 | change |
+| ------------------- | -----------: | -----------: | -----: |
+| one leaf | 4,207.74 s | 3,919.77 s | −6.84% |
+| root over two leaves | 15,589.86 s | 15,476.43 s | −0.73% |
+| two leaves + root | 24,005.34 s | 23,315.97 s | −2.87% |
+
+The root is unchanged, as its fixed term predicts. Two 2.0.0-era root runs differ from each other
+by 0.62%, so the 0.73% is inside the noise floor the baseline itself sets. The leaf saved 6.84% of
+seconds for 11.70% of instructions — the elephant leaf got 5.50% slower per instruction across the
+release where the hardened child got 4.74%.
+
+🪤 **RSS is not comparable and is deliberately absent.** The 2.0.0 figures (73.4 GB leaf, 74.4 GB
+root) are per-phase peaks from separate processes; the 1.2.0 run measured 81.46 GB as one process's
+maximum across both phases. Different quantity — "not measured" is the honest entry, not "+10%".
+
+At full classical-128 soundness, from the measured leaf:
+
+| | 2.0.0 | 1.2.0 |
+| ----------------------------------- | -------: | -------: |
+| 219 leaves + root, one machine | 11.07 d | **10.12 d** |
+| critical path, one machine per leaf | 5.65 h | **5.39 h** |
+| root's share of the critical path | 79% | 79.8% |
+
+🔑 The root is still four fifths of the wall clock, so more machines is not the lever — the one-off
+fingerprint traversal is. 🔴 And the root has been measured at **N = 2 only**: one point cannot
+separate a fixed term from a marginal one, so its cost at N = 219 is an assumption. The 2.0.0
+round's 5.65 h borrowed the *hardened child's* root marginal for the elephant; that borrow is not
+repeated here.
+
+Split arithmetic at n = 4: split on one machine 349.1 s against a 286.1 s monolith — an overhead of
+1.22× — with a critical path of 174.2 s, a 1.64× speedup given four machines, and the root at 65.7%
+of that path. 🔑 The root's share is why more machines is not the next lever.
+
+### Guest instruction laws, refitted
+
+| statement | law | marginal change | fixed change |
+| ---------------- | -------------------------- | --------------: | -----------: |
+| Ethereum address | `5.0986e9 + 2.1148e9 × n` | −14.13% | −0.035% |
+| hardened child | `3.0274e7 + 1.9889e7 × n` | −8.18% | −3.8% |
+| elephant leaf | 2,114,787,163 (measured) | −11.70% | n/a |
+
+🪤 Three savings for three things, and none predicts another. In particular the elephant leaf was
+*predicted* at −14.5% by deriving it from the refitted monolithic law, and that was wrong by more
+than the width of the band given; it is measured here, in fifteen seconds, instead. And none of
+them is a time saving — see `instructions-are-not-seconds.md`.
+
+At the hardened child's measured rate of 441,791 instructions/second, a monolithic elephant lift at
+219 responses is 4.6825e11 instructions ⇒ **12.3 days**. ⚠️ That rate is the hardened child's,
+carried across statements, which this project has measured to be wrong by 1.23× in one direction
+before. Order of magnitude only.
+
+### Artefacts
+
+| | 2.0.0 | 1.2.0 |
+| ----------------------- | ----: | ----: |
+| Groth16 proof | 356 B | 356 B |
+| journal (public values) | 188 B | 219 B |
+| proof file on disk | 1,882 B | 1,913 B |
+
+vkey `0x00f1810f…`, circuit fingerprint `0xbd121f6f…`, proof format id `0x4be5d4e6…`. Evidence:
+`fixtures/lift-219-2026-09-07.summary.log`, `fixtures/split-probe-2026-09-07.summary.log`,
+`fixtures/elephant-probe-2026-09-07b.summary.log`, `fixtures/relaunch-2026-09-07.summary.log`.
+
+## The 2.0.0 round
+
+> 🚨 **Every figure below was measured against the withdrawn ZKBoo 2.0.0.** Where the section
+> above re-takes a row, that row is the one to quote. The rest is the previous round, kept because
+> re-taking it costs hours and its method and shape carry.
 
 Every figure measured 2026-08-28 unless a row says otherwise, on an M4 Max (16 cores / 137 GB) at
 `RAYON_NUM_THREADS=12 GOMAXPROCS=12`, one run at a time, against the released ZKBoo 2.0.0.
