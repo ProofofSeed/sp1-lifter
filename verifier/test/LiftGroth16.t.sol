@@ -246,11 +246,32 @@ contract LiftGroth16Test is Test {
         require(_assertionWord(pv) == 1, "journal's assertion word is not set: the proof attests nothing");
     }
 
+    /// Gas for the proof-verification call a relying contract would make.
+    ///
+    /// 🪤 The fixture has to live somewhere, and this contract keeps it in `bytes internal`
+    /// fields. Forge resets the EVM access list per test, so reading those fields inside the
+    /// measured region charges the call a **cold SLOAD per 32-byte word** of journal and proof —
+    /// about 46,700 gas for this fixture, which is a fifth of the figure and belongs to the test
+    /// harness rather than to the verifier. A relying contract receives both in calldata and
+    /// pays no such thing.
+    ///
+    /// So the values are copied into memory BEFORE the clock starts. The storage-resident figure
+    /// is NOT re-measured here — a second call in the same test finds everything warm and
+    /// reproduces nothing, which is the same trap one level down. Measured 2026-09-07 by running
+    /// each arrangement as its own test: memory-resident 225,917, storage-resident 272,635, and
+    /// the 2.0.0 round's published 270,441 was the storage-resident form of the same
+    /// 188-byte-journal measurement, reproduced to the gas.
+    /// The whole 2,194-gas "increase" across the release is one extra cold storage slot: the
+    /// journal crossed from six 32-byte words to seven. On memory-resident values the same
+    /// change costs **79 gas**.
     function test_lift_verifies_and_measures_gas() public view {
+        bytes memory values = publicValues;
+        bytes memory proof = proofBytes;
+        bytes32 k = vkey;
         uint256 before = gasleft();
-        verifier.verifyProof(vkey, publicValues, proofBytes);
+        verifier.verifyProof(k, values, proof);
         uint256 used = before - gasleft();
-        console2.log("lift verify gas:", used);
+        console2.log("lift verify gas (memory-resident, what a caller pays):", used);
     }
 
     function test_rejects_corrupted_proof() public {

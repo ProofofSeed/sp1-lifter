@@ -415,3 +415,60 @@ identical at 3.451 MB/response, and 0.64 GB at 219).
 
 Also predicted: the nine-case gate green with the control accepting, and the root journal
 through the relying-party gate.
+
+================================================================================
+🔴 CORRECTION — the on-chain gas figures were measuring the TEST HARNESS.
+   This retracts the attribution recorded above AND corrects a headline number
+   this project has been publishing since 2026-08-28.
+================================================================================
+An hour ago I recorded the pairing check at 272,635 gas (was 270,441) and wrote
+"⚠️ Neither gas delta is attributed... both correlate with the journal growing 31 bytes".
+Correlation is not attribution, so I tested it, and the story is wrong in an
+interesting way: the bytes ARE the cause, but not through the verifier.
+
+METHOD.  Both fixtures are internally consistent and carry their own verifying key, so
+the SAME deployed verifier accepts both and does the same pairing work on each.  The only
+variable is where the bytes live.  One call per test function — two calls in one test are
+not comparable, because the second finds everything warm.  🪤 My FIRST attempt did exactly
+that and reported the 219-byte journal as CHEAPER than the 188-byte one.  That is not a
+result, it is a warm-access artefact, and it is the same class of mistake as the ones
+already recorded above.
+
+  `SP1VerifierGroth16.verifyProof`      188-byte journal   219-byte journal   delta
+    values memory-resident                     225,838            225,917       +79
+    values in warm storage                     228,388            228,576      +188
+    values in COLD storage                     270,441            272,635    +2,194
+                                               ^^^^^^^            ^^^^^^^
+    ← both reproduced TO THE GAS, which is what identifies the arrangement the suite
+      was using.  The published 270,441 is the cold-storage form.
+
+  `LiftJournalGate.check`                (the old gate cannot decode a 188-byte journal —
+    values memory-resident                      54,610       it refuses with JournalTruncated,
+    values in COLD storage                      89,322       correctly, so no cross-version row)
+
+WHAT WAS ACTUALLY HAPPENING.  The test contract holds the fixture in `bytes internal`
+fields.  Forge resets the EVM access list per test, so reading them inside the measured
+region charges a COLD SLOAD (2,100) per 32-byte word — journal plus proof, about 46,700
+gas on the pairing path and about 34,700 on the gate.  A relying contract receives both
+in calldata and pays none of it.
+
+So the +2,194 is one extra cold storage slot: the journal crossed from six 32-byte words
+to seven (188 → 219 bytes).  Byte length was the cause; the mechanism was the test's own
+storage layout, not the verifier.  On memory-resident values those 31 bytes cost 79 gas.
+
+CORRECTED HEADLINE, for what a relying contract actually pays in the call:
+    pairing check   225,975
+    journal gate     54,615
+    together        280,590        (was published as ~356,000, then ~361,960)
+The published figures overstate by ~81,000 gas, about 23%.
+⚠️ The transaction ALSO pays intrinsic calldata for 219 + 356 = 575 bytes, roughly 9,000
+gas at 16/byte, plus the 21,000 base.  That is outside the call and outside both figures.
+
+FIXED, not just noted.  Both `test_gas` functions now copy to memory before starting the
+clock, so the instruments report what a caller pays.  The storage figure is recorded in
+their doc comments with its provenance rather than re-measured in-suite — because a
+second call in the same test is warm, which is the same trap one level down.
+
+🔑 The general shape, and it is the third instance today: an instrument that has to hold
+its own fixture will charge the subject for holding it.  Ask where the data lives before
+believing what the meter says.

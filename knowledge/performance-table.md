@@ -15,16 +15,41 @@ run reads about 9 and its timings are retracted on sight.
 
 ### On-chain
 
-| step | 2.0.0 | 1.2.0 | change |
-| ------------------------------------------------------------- | ----------: | ----------: | -----: |
-| `SP1VerifierGroth16.verifyProof` (the pairing check) | 270,441 | 272,635 | +0.81% |
-| `LiftJournalGate.check` (decode + the full relying-party gate) | 85,287 | **89,325** | +4.74% |
-| **together** | ~356,000 | **361,960** | +1.75% |
+🔴 **The figures this project published before 2026-09-07 measured the test harness as well as
+the verifier**, and are corrected here. The Foundry suites hold the fixture in `bytes internal`
+fields; Forge resets the EVM access list per test, so reading them inside the measured region
+charges a cold SLOAD per 32-byte word of journal and proof. That is ~46,700 gas on the pairing
+path and ~34,700 on the gate — a fifth and two fifths of the respective figures — and a relying
+contract, which receives both in calldata, pays none of it.
 
-Both moved with the journal, which grew 188 → 219 bytes when the proof-format field became a bare
-32-byte digest instead of a one-byte counter. 🔴 That is a correlation, not an attribution: the
-sha256 word count accounts for about 12 gas of the pairing path's 2,194, so most of it is
-unexplained. `verifier/test/`, 18 tests green.
+What a relying contract pays for the call:
+
+| step | gas |
+| ------------------------------------------------------------- | ------: |
+| `SP1VerifierGroth16.verifyProof` (the pairing check) | 225,975 |
+| `LiftJournalGate.check` (decode + the full relying-party gate) | 54,615 |
+| **together** | **280,590** |
+
+⚠️ The transaction additionally pays intrinsic calldata for the 219-byte journal and 356-byte
+proof — about 9,000 gas at 16/byte — plus the 21,000 base. That is outside both figures.
+
+The gate is 24% on top of the proof verification, and it is not optional: `verifyProof` alone
+establishes only that some program committed some public values.
+
+For continuity with what was published before, the same calls measured the old way, with the
+values read from the test contract's cold storage:
+
+| arrangement | 188-byte journal (2.0.0) | 219-byte journal (1.2.0) | delta |
+| ---------------------- | -----------------------: | -----------------------: | -----: |
+| memory-resident | 225,838 | 225,917 | +79 |
+| warm storage | 228,388 | 228,576 | +188 |
+| **cold storage (as published)** | **270,441** | **272,635** | +2,194 |
+
+Both published figures reproduce to the gas in the cold-storage arrangement, which is what
+identifies it. The whole 2,194-gas "increase across the release" is one extra cold storage slot:
+the journal crossed from six 32-byte words to seven. On the values a caller actually holds, those
+31 bytes cost 79 gas. 🔑 An instrument that must hold its own fixture will charge the subject for
+holding it — ask where the data lives before believing the meter.
 
 ### SP1 zkVM proving, GPU-safe arm
 

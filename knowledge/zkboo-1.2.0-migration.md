@@ -124,12 +124,16 @@ than left to fail once first.
 | `lift 219` peak RSS | 77.49 GB | 76.52 GB | −1.25% |
 | Journal length | 188 B | 219 B | +31 B |
 | Groth16 proof | 356 B | 356 B | — |
-| On-chain pairing verify | 270,441 gas | 272,635 gas | +0.81% |
-| On-chain journal gate | 85,287 gas | 89,325 gas | +4.74% |
+| On-chain pairing verify ⁽ᵍ⁾ | 270,441 gas | 272,635 gas | +0.81% |
+| On-chain journal gate ⁽ᵍ⁾ | 85,287 gas | 89,325 gas | +4.74% |
 
-The +31 journal bytes are exactly the format field growing from a varint to a bare 32-byte array,
-and both gas figures move with it. 🔴 That correlation is *not* an attribution: a sha256 word count
-accounts for about 12 gas of the pairing path's 2,194, so the mechanism there is open.
+⁽ᵍ⁾ 🔴 **Both gas rows measure the test harness as well as the subject, and are superseded within
+the day they were taken.** The suites hold the fixture in contract storage, so the measured region
+pays a cold SLOAD per 32-byte word. What a relying contract pays is **225,975** and **54,615**, and
+the entire +2,194 is one extra cold storage slot — the journal crossing from six words to seven.
+The instruments are fixed and the full three-arrangement measurement is in `performance-table.md`.
+The +31 journal bytes are exactly the format field growing from a varint to a bare 32-byte array;
+on memory-resident values they cost 79 gas.
 
 Instruction laws, both refitted rather than scaled (see `instructions-are-not-seconds.md`):
 
