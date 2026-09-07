@@ -46,7 +46,9 @@ values read from the test contract's cold storage:
 | **cold storage (as published)** | **270,441** | **272,635** | +2,194 |
 
 Both published figures reproduce to the gas in the cold-storage arrangement, which is what
-identifies it. The whole 2,194-gas "increase across the release" is one extra cold storage slot:
+identifies it. The memory-resident row reads 225,917 here and 225,975 in the fixed suite: the two
+harnesses reach the call with different memory already allocated, and 58 gas is that difference,
+not a discrepancy. Quote the suite's figure — it is the one an unchanged `forge test` prints. The whole 2,194-gas "increase across the release" is one extra cold storage slot:
 the journal crossed from six 32-byte words to seven. On the values a caller actually holds, those
 31 bytes cost 79 gas. 🔑 An instrument that must hold its own fixture will charge the subject for
 holding it — ask where the data lives before believing the meter.
