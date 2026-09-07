@@ -32,21 +32,16 @@
 //! drifted, printing the correct value. Run it after anything that touches a leaf program or
 //! what it links.
 
-// 🚨 BOTH VALUES BELOW ARE STALE, KNOWINGLY, as of the move to zkboo 1.2.0.
-//
-// That release changes the circuits both leaves link — assertions became ordinary gates, and the
-// affine comb's advice became ordinary inputs — so both keys have moved and neither has been
-// recomputed yet, because doing so means building the guests. `cargo run --bin vkeys` refuses
-// while they disagree and prints the values to put here; nothing else in the workspace will
-// produce a proof that verifies until it does. The staleness is loud rather than silent, which
-// is the arrangement this crate exists to keep.
+// Re-derived 2026-09-07 against zkboo 1.2.0 at the tip of the local trees, after the assertion,
+// advice and proof-format rework. Both moved; the previous values belonged to the withdrawn 2.0.0
+// line. `vkeys` is what produced them and what refuses if they drift again.
 
 /// The verifying key of `program-leaf`, the hardened-child leaf.
 pub const LEAF_VK: [u32; 8] = [
-    0x55123cc9, 0x7c91e427, 0x63539ee8, 0x2f975740, 0x076e89c9, 0x0aac5262, 0x1b87f9ea, 0x0c92a711,
+    0x0c330b47, 0x0a902c06, 0x48f18375, 0x50840bde, 0x337caee5, 0x4aa137a4, 0x4a166ba0, 0x36104263,
 ];
 
 /// The verifying key of `program-leaf-elephant`, the Ethereum-address leaf.
 pub const LEAF_ELEPHANT_VK: [u32; 8] = [
-    0x18cefb20, 0x21e2d458, 0x5c534b80, 0x20fea17f, 0x1823fa72, 0x24cad652, 0x2f91acb8, 0x13cc4763,
+    0x2e310e62, 0x0159baa0, 0x108edcdb, 0x62577359, 0x5263c7b0, 0x43fddafc, 0x4b14891b, 0x2ed1c162,
 ];

@@ -9,12 +9,22 @@
 //!
 //! It also checks the leaf keys the root programs have compiled in, and prints the correct
 //! constant when one has drifted, so the fix is a copy rather than an investigation.
+//!
+//! And it prints each statement's **circuit fingerprint**, which answers a different question
+//! from the keys and is easy to conflate with them. A fingerprint is semantic — the structure of
+//! the gates — and a verifying key is a build artefact over an ELF. An upstream release can move
+//! every key here while every gate stays identical, so the two must be read separately: a moved
+//! key says a dependency changed, a moved fingerprint says the *statement* changed. The
+//! fingerprints are printed before the pin check, because the pin check aborts on drift and the
+//! fingerprints are the more informative half.
 
 use sp1_sdk::{HashableKey, ProvingKey, blocking::Prover};
+use sp1_lifter_elephant::EthereumAddressCircuit;
 use sp1_lifter_host::{
-    ELEPHANT_ELF, LEAF_ELEPHANT_ELF, LEAF_ELF, LIFT_ELF, ROOT_ELEPHANT_ELF, ROOT_ELF,
-    prover_client,
+    ELEPHANT_ELF, HARDENED_OFFSET, LEAF_ELEPHANT_ELF, LEAF_ELF, LIFT_ELF, ROOT_ELEPHANT_ELF,
+    ROOT_ELF, bip32_vector_1, prover_client,
 };
+use sp1_lifter_statement::{H, HardenedChildCircuit};
 
 fn u32_array(v: [u32; 8]) -> String {
     return format!(
@@ -47,6 +57,18 @@ fn main() {
             leaf_digests.push((name, vk.hash_u32()));
         }
     }
+    println!();
+    println!("── statement circuit fingerprints ──");
+    // Over the public-only circuits, which is what a relying party's expectation is built from.
+    // The hardened child's fingerprint depends on its public parameters, so this is the
+    // development statement's — vector 1 at m/0H — and not a property of the circuit alone.
+    let (_, chain_code) = bip32_vector_1();
+    let child = HardenedChildCircuit::public_only(chain_code, HARDENED_OFFSET);
+    let child_fp = zkboo_circuit_hash::hash_circuit::<_, H>(&child);
+    let elephant_fp =
+        zkboo_circuit_hash::hash_circuit::<_, H>(&EthereumAddressCircuit::public_only());
+    println!("  hardened child (vector 1, m/0H)  {}", hex::encode(child_fp));
+    println!("  ethereum address                 {}", hex::encode(elephant_fp));
     println!();
     println!("── the leaf keys the roots have compiled in ──");
     for (name, digest, pinned) in [
