@@ -111,3 +111,43 @@ fingerprint print, not as an established fact about this tree.
 `zkboo-1.2.0-migration.md`: build, `vkeys`, re-pin, re-prove the caches, re-run acceptance,
 regenerate the on-chain fixture. The fixture is now stale for a second reason as well as the
 first: its journal declares layout version 2 and carries the format field as a varint.
+
+## Addendum, 2026-09-07: four further upstream changes, none of which touch this tree
+
+Checked against the trees rather than inferred, after a peer session reported them.
+
+1. **The affine conversion is asserted rather than computed.** The in-circuit modular inverse lost
+   its hint when the hint gate went, adding ~90,000 AND messages to every statement that converts a
+   point out of projective coordinates. Restored by advising the affine coordinates and asserting
+   they scale back — `x·Z² == X`, `y·Z³ == Y`, `Z ≠ 0`. It reaches **Taproot and Ed25519 only**,
+   and the advised forms now reject the point at infinity by making the assertion false rather
+   than emitting a sentinel. `taproot_tweak_scalar` is replaced by `TaprootWitness::compute`, and
+   Ed25519 derivations take an accumulator for the first time.
+2. **`Montgomery<W, N>`**, separating a field element's stored form from its canonical residue;
+   `MontgomeryWord::value` renamed `canonical`. Worth knowing even though it misses us: under a
+   pseudo-Mersenne modulus, which is what secp256k1 uses, the two forms are *the same word*, so
+   passing one for the other is invisible on secp256k1 and makes every assertion silently false on
+   Ed25519 — no error, no panic, the flag simply comes out `0`. A test passed only because it was
+   written for the pseudo-Mersenne field.
+3. `MontgomeryFrontendIO::montgomery_output_inner`, additive.
+4. `ExecOptions` is `Copy` whatever the hook, additive.
+
+**Why none of them reach us, verified.** This repository has exactly two `Circuit` impls,
+`EthereumAddressCircuit` and `HardenedChildCircuit`. The Ethereum address never leaves affine
+coordinates — the comb emits `(x, y)` directly — so change 1 misses it, and a grep of every tracked
+`.rs` file finds no `.canonical()`/`.value()`, no `montgomery_output`, no `MontgomeryWord`, no
+`taproot_tweak_scalar` and no Ed25519 or Solana call site, so 2 and 3 miss it too. `cargo check` on
+the three `no_std` crates against the current trees is clean.
+
+**The format pin is still correct**, compared byte for byte: `REQUIRED_PROOF_FORMAT_ID` equals
+`zkboo::PROOF_FORMAT_ID` today, and `git log` on `response.rs` and `test_proof_format.rs` shows
+nothing has touched either since the commit this pin was taken from. Nothing to re-anchor.
+
+🔴 **"Current on code" is not "keys unchanged".** `zkboo-ecc`, `zkboo-modular` and `zkboo-bip32`
+all moved, and a guest verifying key moves on any dependency edit at all — a doc comment has been
+enough. The six guest keys were already stale; they are stale again for a further reason. That
+changes nothing about the outstanding work, but it is not a conclusion the code check licenses.
+
+🪤 **Taproot, Solana and `pubkey_hash160` are not statements of this repository.** They appear here
+only as a line in a superseded plan. Cost rows for them live in `<zkboo>/succinct-lifter`, a
+separate research repo this session has never written to.
