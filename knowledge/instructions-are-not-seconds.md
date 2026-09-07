@@ -18,6 +18,12 @@ So: an instruction count is a proxy for proving time only while the program's co
 still, which is precisely what a dependency release does not do. Quote instruction deltas as
 instruction deltas.
 
+**Confirmed on a second statement the same day.** The elephant leaf gave back 11.70% of its
+instructions and 6.84% of its seconds, a degradation of 5.50% against the child's 4.74%. Same
+direction, same order, not the same number — so the effect is real and general, and its size is
+still statement-specific. A degradation factor may be borrowed across statements only into a band
+wide enough to survive being wrong, never into a point estimate.
+
 ## The other half: derive nothing from a law you have just refitted
 
 The same day, the elephant leaf was predicted at −14.5% by refitting the monolithic elephant law and

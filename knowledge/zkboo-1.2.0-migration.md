@@ -102,7 +102,8 @@ All four steps this file left outstanding are done, on this machine, on a quiet 
 1. ✅ Workspace and all six guests built; `vkeys` run and both leaf keys re-pinned
    (`LEAF_VK` `0x0c330b47…`, `LEAF_ELEPHANT_VK` `0x2e310e62…`).
 2. ✅ Cached leaf fixtures re-proved: `fixtures/leaves/n4` via `split-probe 4 both`;
-   `fixtures/elephant-leaves/n2` via `elephant-split 2 both`.
+   `fixtures/elephant-leaves/n2` via `elephant-split 2 both` — 6 h 28 m, leaf 3,919.77 s, root
+   15,476.43 s, gate green.
 3. ✅ Acceptance re-run green — `s1-acceptance` (seven-case reject matrix plus a full-scale
    positive at 219), the nine-case cross-leaf gate with the control accepting, and the three
    forge negatives (which still refuse at SP1's host bookkeeping rather than at the in-circuit
@@ -142,4 +143,7 @@ Instruction laws, both refitted rather than scaled (see `instructions-are-not-se
 - Elephant leaf, measured not derived: 2,114,787,163 instructions, −11.70%.
 
 🪤 Three different savings for three different things. None of them predicts another, and none of
-them is a time saving — the release recovered less than half of its instruction saving in seconds.
+them is a time saving. Measured on both statements now: the hardened child gave back 8.14% of its
+instructions and 3.58% of its seconds; the elephant leaf gave back 11.70% and 6.84%. Both got
+slower per instruction — 4.74% and 5.50% — because the release changed the instruction mix as well
+as the count. See `instructions-are-not-seconds.md`.
