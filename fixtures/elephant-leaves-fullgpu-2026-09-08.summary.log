@@ -1,0 +1,28 @@
+── elephant split (n=2, mode=leaves) ──
+  prover config: backend=cpu/metal-built-all-phases-default shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  zkboo: 10 crates at 1.2.0 from local paths: zkboo=4d443d4ec412 zkboo-sha2=f6a9338d9798 zkboo-hmac=cfd1b99b6ce8 zkboo-modular=5dd32865f05e zkboo-ecc=181341018c11 zkboo-circuit-hash=f5a522d3eafd zkboo-profiling=c6ce1c1c21ba zkboo-bip32=3c6a48a0431d zkboo-keccak=a503af3c5eb4 zkboo-ripemd160=8ce2561c6572
+  zkboo: 10 crates at 1.2.0 from local paths: zkboo=4d443d4ec412 zkboo-sha2=f6a9338d9798 zkboo-hmac=cfd1b99b6ce8 zkboo-modular=5dd32865f05e zkboo-ecc=181341018c11 zkboo-circuit-hash=f5a522d3eafd zkboo-profiling=c6ce1c1c21ba zkboo-bip32=3c6a48a0431d zkboo-keccak=a503af3c5eb4 zkboo-ripemd160=8ce2561c6572
+  proved 2 elephant responses natively in 309.56ms
+── 2 elephant leaf proofs ──
+  leaf 0: 1333.58s, 203 bytes of public values
+  leaf 1: 1334.06s, 203 bytes of public values
+
+elephant split: PASS
+     2671.75 real     16328.71 user      4005.66 sys
+         57403080704  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+           713868440  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   9  voluntary context switches
+            55492087  involuntary context switches
+     315450721775616  instructions retired
+      76920969758569  cycles elapsed
+         61246175624  peak memory footprint

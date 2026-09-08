@@ -718,3 +718,63 @@ REVISED PROJECTION (still on the SAFE-GPU anchor; the full-GPU runs follow)
   −3.58% seconds), which is a different claim, but the caveat is worth carrying: the root at
   219 has never been proved, and shard-boundary effects could add a step the law cannot see.
   The instruction law is measured; the 15,557 s is derived.
+
+ELEPHANT LEAVES ON THE FULL GPU PATH — 2 leaves, defaults, no check mode.
+  leaf 0  1,333.58 s     leaf 1  1,334.06 s     mean 1,333.82 s
+  2,671.75 real, peak RSS 57.40 GB, cores (user+sys)/real = 7.61
+  fixtures/elephant-leaves-fullgpu-2026-09-08.summary.log
+
+  vs the safe setting on the same code: 3,919.77 s → **2.939x**.
+  🪤 That is NOT the hardened child's 2.53x.  The speedup is workload-specific and the two
+  statements differ by 16%; do not carry one to the other, which is the same rule that has
+  now caught this project three times.
+
+  RSS 57.40 GB against 76.05 GB for the 2.0.0 safe-GPU leaves-only run.  🔴 **Two variables
+  moved** — the release and the backend configuration — so that pair attributes nothing.
+  Item 3 is what isolates it.
+
+PREDICTION for the root on the full GPU, written before the run:
+  root(2) safe = 15,476.43 s.  Point estimate 5,337 s at the leaf's 2.939x.
+  Band 5,159–6,190 s (2.5x–3.0x), stated wide BECAUSE the speedup is workload-specific and
+  the root is a different workload from a leaf: it is one enormous fingerprint traversal
+  rather than a replay, and nothing says the Merkle tree is the same share of it.
+
+ELEPHANT ROOT ON THE FULL GPU PATH — over 2 leaves, gate green, fingerprint a64f0f8a…
+  root 5,911.38 s   (5,915.73 real, peak RSS 53.03 GB, cores 8.91)
+  fixtures/elephant-root-fullgpu-2026-09-08.summary.log
+
+  PREDICTED 5,337 s point, band 5,159–6,190.  ✅ In band; ❌ point off by +10.8%.
+  The band was widened on the stated grounds that the root is a different workload from a
+  leaf, and that is exactly what happened.  A point estimate carried across workloads was
+  wrong again; the band drawn because of that risk was right again.
+
+THREE WORKLOADS, THREE SPEEDUPS — measured, same machine, same binary, same release:
+    hardened-child leaf   58.35 s → 23.13 s     2.523x
+    elephant leaf      3,919.77 s → 1,333.82 s  2.939x
+    elephant root     15,476.43 s → 5,911.38 s  2.618x
+  🪤 A 16% spread. **A backend speedup belongs to a workload, not to a machine** — the same
+  law as a proving rate, and this project has now been caught by it four times.
+
+################################################################################
+THE ELEPHANT, END TO END, ON THE CURRENT STACK — every term measured or fitted.
+################################################################################
+  leaf (measured)                       1,333.82 s
+  root at 219 (measured at n=2, scaled by the FITTED law, +0.523%)   5,942.3 s
+  ─────────────────────────────────────────────────────────────────────────────
+  one machine        298,049 s = **3.450 days**       (was 10.12 d, and ≈130 d before that)
+  critical path        7,276 s = **2.021 h**          (was 5.41 h)
+  root's share of the critical path  **81.7%**
+
+  🔑 The root is now FOUR FIFTHS of the critical path and its growth in n is measured at
+  +0.5% over the whole range to 219.  More machines buys nothing; the one-off secp256k1
+  fingerprint traversal is the only lever left on this statement.
+
+  Every term's provenance: leaf = measured, 2 proofs.  Root at n=2 = measured, 1 proof.
+  Root's scaling = fitted over 8 executor points, worst residual 0.000011%.  The only thing
+  never run is a root over more than 2 leaves at proving scale.
+
+  🟡 Per-phase peak RSS on the full path: leaves-only 57.40 GB, root-only 53.03 GB.  Both are
+  well under yesterday's 81.46 GB combined-process figure, which is consistent with that
+  figure being a different quantity — as recorded.  ⚠️ NOT yet a like-for-like comparison with
+  the 2.0.0 numbers (73.4 / 74.4 GB), which are safe-GPU per-phase: the backend configuration
+  differs as well as the release.  Item 3 isolates it.
