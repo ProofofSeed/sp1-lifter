@@ -9,7 +9,13 @@ project's shortest illustration of why that last rule exists.
 ## Re-measured on zkboo 1.2.0 — 2026-09-07
 
 Same machine (M4 Max, 16 cores / 137 GB), same discipline: `RAYON_NUM_THREADS=12 GOMAXPROCS=12`,
-`SP1_METAL_MERKLE=0`, one run at a time on a quiet machine. The full-soundness lift delivered
+one run at a time on a quiet machine.
+
+⚠️ **Two backend configurations appear below and every row says which.** Runs up to 2026-09-07
+used `SP1_METAL_MERKLE=0`, the workaround for a defect in the Metal backend. That defect is fixed
+upstream and the workaround was retired on 2026-09-08, so later rows are on the **full** path and
+are roughly 2.5–2.9× faster. A figure from one configuration must never be compared with one from
+the other without saying so. The full-soundness lift delivered
 `(user+sys)/real = 11.88` of 12 requested threads, which is what "quiet" means here — a contended
 run reads about 9 and its timings are retracted on sight.
 
@@ -55,6 +61,8 @@ holding it — ask where the data lives before believing the meter.
 
 ### SP1 zkVM proving, GPU-safe arm
 
+All four rows here are on the **safe** path, both columns, so the comparison is like for like:
+
 | workload | 2.0.0 | 1.2.0 | change |
 | ---------------------------------------- | ------------------: | ------------------: | -----: |
 | **lift, 219 responses, groth16** | 10,296.1 s / 77.5 GB | **9,927.5 s / 76.5 GB** | −3.58% |
@@ -68,6 +76,8 @@ term moved 5.1004e9 → 5.0986e9, i.e. −0.035%. RSS was not taken for the spli
 
 ### The elephant statement, split
 
+On the **safe** path (`SP1_METAL_MERKLE=0`), which is what both rounds below were measured on:
+
 | | 2.0.0 | 1.2.0 | change |
 | ------------------- | -----------: | -----------: | -----: |
 | one leaf | 4,207.74 s | 3,919.77 s | −6.84% |
@@ -79,23 +89,47 @@ by 0.62%, so the 0.73% is inside the noise floor the baseline itself sets. The l
 seconds for 11.70% of instructions — the elephant leaf got 5.50% slower per instruction across the
 release where the hardened child got 4.74%.
 
+On the **full** path, 2026-09-08, which is what this stack now runs:
+
+| | safe | full | speedup |
+| ------------------- | -----------: | ----------: | ------: |
+| one leaf | 3,919.77 s | **1,333.82 s** | 2.939× |
+| root over two leaves | 15,476.43 s | **5,911.38 s** | 2.618× |
+| (hardened-child leaf, for contrast) | 58.35 s | 23.13 s | 2.523× |
+
+🪤 **Three workloads, three speedups, a 16% spread** — one machine, one binary, one release. A
+backend speedup belongs to a workload, not to a machine, exactly as a proving rate does.
+
+### The root's cost law — measured, not assumed
+
+**`root instructions = 5.099954e9 + 122,869 × n`**, fitted over eight counts from n=2 to n=24 by
+executing the root guest over natively-replayed leaf outputs. Worst residual **0.000011%**.
+
+The marginal is **0.0024% of the fixed term**: at n=219 the root's guest work is +0.523% over n=2.
+So the root is a constant to within half a per cent, which is what the projection had been
+assuming on an analogy rather than a measurement. 🪤 The 2.0.0 round instead borrowed the
+*hardened child's* root marginal (2.55 s per leaf) for the elephant; against the measured law that
+was wrong by an order of magnitude.
+
 🪤 **RSS is not comparable and is deliberately absent.** The 2.0.0 figures (73.4 GB leaf, 74.4 GB
 root) are per-phase peaks from separate processes; the 1.2.0 run measured 81.46 GB as one process's
 maximum across both phases. Different quantity — "not measured" is the honest entry, not "+10%".
 
-At full classical-128 soundness, from the measured leaf:
+At full classical-128 soundness:
 
-| | 2.0.0 | 1.2.0 |
-| ----------------------------------- | -------: | -------: |
-| 219 leaves + root, one machine | 11.07 d | **10.12 d** |
-| critical path, one machine per leaf | 5.65 h | **5.39 h** |
-| root's share of the critical path | 79% | 79.8% |
+| | 2.0.0 (safe) | 1.2.0 (safe) | 1.2.0 (full) |
+| ----------------------------------- | -------: | -------: | -------: |
+| 219 leaves + root, one machine | 11.07 d | 10.12 d | **3.450 d** |
+| critical path, one machine per leaf | 5.65 h | 5.41 h | **2.021 h** |
+| root's share of the critical path | 79% | 79.8% | **81.7%** |
 
-🔑 The root is still four fifths of the wall clock, so more machines is not the lever — the one-off
-fingerprint traversal is. 🔴 And the root has been measured at **N = 2 only**: one point cannot
-separate a fixed term from a marginal one, so its cost at N = 219 is an assumption. The 2.0.0
-round's 5.65 h borrowed the *hardened child's* root marginal for the elephant; that borrow is not
-repeated here.
+Every term of the last column is measured or fitted: the leaf from two proofs, the root at n=2
+from one, and the root's growth from the eight-point fit above. The only thing never run is a root
+over more than two leaves at proving scale.
+
+🔑 The root is still four fifths of the critical path — more so than before, at 81.7% — so more
+machines buys nothing. The one-off secp256k1 fingerprint traversal is the only lever left on this
+statement, and that is now a measured statement rather than an inferred one.
 
 Split arithmetic at n = 4: split on one machine 349.1 s against a 286.1 s monolith — an overhead of
 1.22× — with a critical path of 174.2 s, a 1.64× speedup given four machines, and the root at 65.7%
