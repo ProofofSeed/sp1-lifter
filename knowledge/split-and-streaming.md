@@ -340,8 +340,8 @@ same place**:
 | | refused by | prove wall |
 |---|---|---:|
 | `forge-vk` | **the root guest's pinned-key assertion** | 19.0 s |
-| `forge-count` | SP1's host-side deferred-proof lookup | 105.3 s |
-| `forge-order` | SP1's host-side deferred-proof lookup | 105.4 s |
+| `forge-count` | 🔴 **undetermined — somewhere in the recursion layer** | 105.3 s |
+| `forge-order` | 🔴 **undetermined — somewhere in the recursion layer** | 105.4 s |
 
 `forge-vk`'s guest runs, reaches `input.leaf_vk != LEAF_VK`, and panics — visible in the run's stderr
 as `claimed leaf key is not the pinned one` at `program-root/src/main.rs:44`. The prove-time error
@@ -350,6 +350,24 @@ still reads `artifact not found`, but that is downstream wreckage of the failed 
 **The first reading classified on that error string and got it backwards.** The tell was in the
 timings and was tabulated without being questioned: 19 s against 105 s, a 5.7× gap between cases
 supposedly refused by the same mechanism. Nothing else in the run was 5.7× different.
+
+🔴 **And the second reading was wrong too, corrected 2026-09-08.** The bottom two rows said "SP1's
+host-side deferred-proof lookup", which was an inference from *the guest accepted* — and "not the
+guest" does not name a refuser. Two things retire it:
+
+- **The observable does not discriminate.** All three modes end with the same recursion-VM fatal,
+  `attempted to perform base field division N/0` in a `DivF` instruction inside a Reduction task,
+  then the same `artifact not found`. `forge-vk` produces it as well, and there the guest is known
+  to be the refuser. An error that appears when the guest **is** the refuser cannot show it was not.
+- **The host performs no such lookup.** `DeferredInputs::new` (SP1 6.4.0) walks `stdin.proofs` in
+  order and folds them with `hash_deferred_proofs`; it never compares them with the guest's claims.
+  That comparison is the compress circuit's, against the digest the guest committed.
+
+So the rows now say what is established and no more. The timing gap remains real and remains
+attributable: 19 s is the guest refusing early. What 105 s means is open — it could be the
+in-circuit deferred-digest constraint firing and being reported as a division, or a degenerate
+witness crashing the executor before any constraint has a verdict. **Neither reading is licensed,
+and the harness has no way to separate them.**
 
 The probe no longer guesses. Each forge mode now also **executes** the same frame and asks the guest
 directly, which is decisive and costs seconds: `forge-vk` must be refused by the guest, and

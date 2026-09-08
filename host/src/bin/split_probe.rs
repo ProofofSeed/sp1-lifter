@@ -42,14 +42,34 @@
 //!   any deferred proof is looked up. Its prove-time error still says "artifact not found" —
 //!   downstream wreckage of the failed run, not the refuser.
 //! - `forge-count` and `forge-order` are **invisible to the guest** by construction: they
-//!   change only which proofs are supplied alongside unchanged claims, and SP1 resolves a
-//!   deferred proof by digest at the host before a recursion circuit exists. They are refused
-//!   by that host bookkeeping.
+//!   change only which proofs are supplied alongside unchanged claims. Something downstream of
+//!   the guest refuses them, and **this harness cannot say what.**
 //!
-//! So **the in-circuit deferred-proof binding is not reachable through the stock SDK** and is
-//! not demonstrated here; the evidence for it is a reading of the 6.4.0 sources. An adversarial
-//! prover would not run the host layer at all, which is precisely why the in-circuit check
-//! exists — and why a deployment must not read these passes as evidence about it.
+//! 🔴 **Corrected 2026-09-08, and the correction is the point.** These two cases were reported
+//! as "refused by SP1's host-side deferred-proof bookkeeping". That was an inference from "the
+//! guest accepted", and it does not follow — "not the guest" does not name a refuser. Two facts
+//! killed it:
+//!
+//! - **The observable is identical in a case where the refuser is known.** All three modes end
+//!   with the same recursion-VM fatal, `attempted to perform base field division N/0` in a
+//!   `DivF` instruction inside a Reduction task, followed by the same `artifact not found`.
+//!   `forge-vk` produces it too — and there the guest demonstrably panics first. An error that
+//!   appears when the guest is the refuser cannot be evidence that the guest was not.
+//! - **The host does not do the bookkeeping it was credited with.** In 6.4.0,
+//!   `sp1_prover::worker::controller::deferred::DeferredInputs::new` walks `stdin.proofs` in
+//!   order and folds them with `hash_deferred_proofs`; it never matches them against the
+//!   guest's claims. The matching is the compress circuit's, against the digest the guest
+//!   committed.
+//!
+//! So the honest statement is: **the guest is not the refuser, the refusal happens inside the
+//! recursion layer, and which mechanism inside it — the deferred-digest constraint, or a
+//! degenerate witness crashing the executor before any constraint has a verdict — is not
+//! distinguished by anything this harness can see.** It may well be exercising the in-circuit
+//! binding; it may equally be crashing short of it. Neither reading is licensed.
+//!
+//! A deployment must therefore not read these passes as evidence about the in-circuit binding.
+//! The evidence for that binding is a reading of the 6.4.0 sources, and separating the two
+//! would need SP1 to report a constraint verdict where it currently reports a division.
 
 use std::time::{Duration, Instant};
 
@@ -446,9 +466,11 @@ fn main() {
                     ),
                     (_, None) => println!(
                         "{mode}: PASS — the guest accepts this frame (the tamper is invisible to \
-                         it, as expected) and SP1's host-side deferred-proof bookkeeping is what \
-                         refuses. This does NOT exercise the in-circuit deferred-proof digest; \
-                         see the comment above."
+                         it, as expected) and something inside SP1's recursion layer refuses it. \
+                         🔴 WHICH mechanism is NOT established: the prove-time observable is the \
+                         same base-field division by zero that `forge-vk` produces, and there the \
+                         guest is the refuser. So this neither demonstrates the in-circuit \
+                         deferred-proof digest nor rules it out. See the module comment."
                     ),
                 }
                 return;
