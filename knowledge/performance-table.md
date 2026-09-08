@@ -145,8 +145,9 @@ Three arms appear throughout:
 
 - **CPU** — the same binary with every `SP1_METAL_*` switch forced off (`fixtures/cpu-arm-switches.txt`).
   It measures within 0.8% of the published SP1 6.4.0 prover, which was checked separately.
-- **GPU safe** — the Metal backend with `SP1_METAL_MERKLE=0`. **The only setting fit for an
-  unattended run**; see `gpu-corruption.md`.
+- **GPU safe** — the Metal backend with `SP1_METAL_MERKLE=0`. It *was* the only setting fit for an
+  unattended run; the defect that made it so is ✅ fixed upstream and the setting was retired on
+  2026-09-08. See `gpu-corruption.md` and `gpu-proving.md`.
 - **GPU all** — every phase accelerated. Faster, and produces a proof that fails its own
   verification about once every twenty-eight, then parks the run for ever.
 

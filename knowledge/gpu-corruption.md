@@ -104,7 +104,9 @@ existing comparison modes could not have looked.
 | speedup | 1.00× | 1.92× | 4.72× |
 | survives a long run | yes | yes, 115 proofs | **no** |
 
-Every long run in this repository uses `SP1_METAL_MERKLE=0` until this is fixed upstream.
+~~Every long run in this repository uses `SP1_METAL_MERKLE=0` until this is fixed upstream.~~
+**Retired 2026-09-08.** It is fixed upstream, this repository now builds the fix, and 64 leaves
+under `SP1_METAL_MERKLE=check` found no disagreement. Long runs use the full path again.
 
 ## What a fix would need, and what to hand over
 
