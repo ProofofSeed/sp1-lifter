@@ -1,0 +1,16 @@
+  n=2  root instructions: 5100200478
+  executor wall: 35.28s
+  n=3  root instructions: 5100322557
+  executor wall: 35.54s
+  n=4  root instructions: 5100446200
+  executor wall: 35.56s
+  n=6  root instructions: 5100691756
+  executor wall: 35.50s
+  n=8  root instructions: 5100937488
+  executor wall: 35.55s
+  n=12  root instructions: 5101428949
+  executor wall: 35.49s
+  n=16  root instructions: 5101920373
+  executor wall: 35.28s
+  n=24  root instructions: 5102903343
+  executor wall: 35.41s

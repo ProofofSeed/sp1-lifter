@@ -537,3 +537,184 @@ from a marginal one, so the root's cost at N=219 is an assumption, not a measure
 The previous round's 5.65 h borrowed the HARDENED CHILD's root marginal (2.55 s/leaf)
 for the elephant; that is exactly the cross-statement borrowing this file has now caught
 twice in a day, and it is not repeated here.
+
+################################################################################
+2026-09-08 — GPU: the defect is FIXED UPSTREAM, and we were pinned behind the fix.
+################################################################################
+`<sp1-metal>` main is **32 commits past the `v0.1.0` tag this repository
+was patched to**, and those commits contain the fix for the very defect we reported and
+worked around.  We have been paying SP1_METAL_MERKLE=0 (1.92x instead of 4.72x) for a bug
+that no longer exists in the code we could have been building.
+
+UPSTREAM'S ACCOUNT (knowledge/2026-08-28-defect-wrong-proof.md), verified by reading it:
+  - Reproduced under a `SP1_METAL_MERKLE=check` mode they added: 93 proofs verified, the
+    94th disagreed at **layer 0, digest 0** — the leaves.  So the tree was built over the
+    wrong BYTES, not built wrongly; a kernel that hashes wrongly is wrong every time.
+  - Root cause: `sp1_metal_core::handoff`, a thread-local table keyed on `(address, length)`
+    that hands the encode's codeword buffer to the Merkle kernels WITHOUT keeping the
+    allocation alive.  An orphaned entry sits for up to sixteen hand-offs; if the allocator
+    hands that address out again the device reads whatever those pages now hold.
+  - Fixed: producers replace their own key, lookups take the newest, a commitment drops
+    whatever is left, and the counters are reported.  **400 of 400 proofs clean in 3 h 03 m**
+    (the unfixed build failed at 94 in the same soak).  108 orphans were still produced and
+    dropped harmlessly — the supply is unchanged, the reachability is gone.
+  - `SP1_METAL_REUSE` now **defaults off**, so the hazard class is removed, not bounded.
+
+DONE HERE
+  - Patch moved from `tag = "v0.1.0"` to `rev = cab9ba36db31` (upstream's manifest says
+    1.0.0 but no v1.0.0 tag has been cut; a rev is more precise anyway and makes no release
+    decision on their behalf).  Rebuilt clean.
+  - 🔑 **All six guest verifying keys are byte-identical**, and both statement fingerprints
+    with them.  So yesterday's fixture, its three Solidity pins and every figure still stand
+    — the patch replaces host-side prover crates, not the guest toolchain.  Checked rather
+    than assumed, because this project has measured a doc comment moving a key.
+
+WHAT IS OPEN, AND IS OURS TO CLOSE
+Upstream's own remaining item is *"Run it on the consumer's statement.  That is the workload
+the rate was measured on, and it is the only one that can retire the workaround for them."*
+That consumer is this repository.
+
+PREDICTIONS, WRITTEN BEFORE THE RUNS
+  Run 1 — defaults (REUSE off) + `SP1_METAL_MERKLE=check`, 64 leaves.
+    Predict 0 disagreements.  With the hand-off off the fault has no supply at all, so a
+    disagreement here would mean the root cause is not only the hand-off.  This is the run
+    that retires OUR workaround.
+  Run 2 — `SP1_METAL_REUSE=1` + `SP1_METAL_MERKLE=check`, 64 leaves.
+    Predict 0 disagreements.  This is the one that can actually fire, and it tests the FIX
+    rather than its avoidance.
+    ⚠️ Power is modest and stated in advance: at the old 1-in-28 rate 64 proofs predict 2.3
+    failures, so seeing none has probability ~10% if the fix did nothing.  A clean 64 is
+    evidence at the ten-percent level, NOT a demonstration.  Upstream's 400-proof soak is
+    far stronger but on a different workload.  If run 2 is clean and the cost allows, extend
+    rather than claim.
+  Cost: unknown — check mode builds both trees.  Sized from run 1's first leaves, not
+  guessed.
+
+RUN 1 RESULT — defaults (SP1_METAL_REUSE off) + SP1_METAL_MERKLE=check, 64 leaves.
+  **64 of 64 leaves, 0 tree disagreements.**  3,839.86 s real, mean 59.53 s/leaf,
+  peak RSS 56.17 GB.  Cores (user+sys)/real = 9.58 — lower than a proving run's 11.9
+  because check mode serialises a CPU tree against a GPU one; not contention.
+  fixtures/gpu-soak-default-2026-09-08.summary.log
+  ✅ Prediction (0 disagreements) CONFIRMED.
+
+  🪤 What this does and does not establish.  With `SP1_METAL_REUSE` off — the new default —
+  the buffer hand-off never happens, so the fault has no supply and could not have fired.
+  This run therefore says **the shipping configuration is safe on our statement**, which is
+  what retires OUR workaround.  It does NOT test upstream's repair of the hand-off, because
+  it never exercises it.  Run 2 does, and is the one worth sending them.
+
+  🔑 A number worth noticing: 59.53 s per leaf under check mode, against 57.0–59.7 s for the
+  same leaf under SP1_METAL_MERKLE=0.  Check mode builds BOTH trees; the safe setting builds
+  only the CPU one.  Their being equal says the GPU tree costs approximately nothing on top —
+  i.e. the 2.5x the workaround was costing us is almost entirely the CPU tree it forced.
+  ⚠️ Stated as an implication of two measurements taken under different modes, not as a
+  measurement.  The plain full-GPU timing run below is what settles it.
+
+FULL-GPU TIMING, plain (no check mode), 8 hardened-child leaves — the settling measurement.
+  mean 23.13 s/leaf (22.66–23.98), 185.02 s for 8, peak RSS 35.38 GB.
+  fixtures/gpu-timing-full-2026-09-08.summary.log
+
+  vs SP1_METAL_MERKLE=0 on the same statement, same machine: 57.0–59.7 s and ~59 GB.
+  **2.53x faster and 40% less memory.**  That is what the workaround has been costing since
+  2026-08-28, and it is now retired for the shipping default.
+
+  🔑 It also settles the implication left open above: check mode (both trees) costs 59.53 s and
+  the safe setting (CPU tree only) costs 57–60 s, while the GPU tree alone costs 23.13 s.  So
+  the CPU Merkle tree was essentially the whole of the 2.5x, exactly as the phase attribution
+  predicted.
+
+################################################################################
+ITEM 4 — the 67.6M-instruction gap.  ANSWERED, and the answer is that the question
+cannot be answered at that resolution.  Closed with a measurement, not a shrug.
+################################################################################
+GOAL: ~67.6M instructions per response left the monolithic elephant's per-response path
+without leaving the leaf's, across the 2.0.0 → 1.2.0 release.  Find what.
+
+METHOD: ablation.  Strip the leaf guest of everything it does besides parsing its frame and
+replaying the response — the well-formed check, the journal construction, the postcard
+encoding — and diff the instruction count.  Executor only.
+
+RESULT, and it is not the one I was looking for:
+
+  leaf, as it ships                      2,114,787,163
+  leaf, with two cycle-tracker markers   2,114,786,257   (−906; markers are free)
+  leaf, with its non-replay work DELETED 2,159,702,156   ← +44,915,899, +2.12%
+  leaf, restored                         2,114,787,163   ← exactly, to the instruction
+
+**Deleting work made the guest 44.9M instructions MORE expensive**, reproducibly and
+deterministically: the restore returns the original count to the digit, so this is the edit
+and not build nondeterminism.  Removing three lines changed inlining and layout across a
+2.1e9-instruction program, and the replay is where nearly all of it lives.
+
+🔑 **THE FINDING.**  Recompiling one program with a small semantic deletion moves its
+instruction count by 44.9M — two thirds of the 67.6M I set out to attribute.  So a 67.6M
+difference between TWO DIFFERENT PROGRAMS across a DEPENDENCY RELEASE, which recompiles
+everything, carries no reliable semantic signal.  It is inside the range that codegen alone
+produces.  There may be nothing there to find.
+
+🪤 Note what the ablation method promised and what it delivered.  It is supposed to isolate a
+region by removing it; in a guest this size it perturbs code generation globally instead, and
+the perturbation is larger than most regions worth measuring.  **An ablation whose artefact
+exceeds its signal is not a measurement of the thing removed.**  Same shape as the harness
+storage reads in the gas figure earlier today: the instrument charged the subject for the act
+of instrumenting.
+
+WHAT WAS ALSO TRUE AND IS NOW RETIRED
+  The historical half was unanswerable in any case: 67.6M is a difference of differences
+  across a release, and one of its four terms needs the withdrawn 2.0.0 build — history
+  force-pushed away, all 32 versions yanked.  That build cannot be reconstructed.
+
+WHAT IS ESTABLISHED, POSITIVELY
+  leaf / monolithic-marginal = 0.999994 today, against 0.97255 before.  That is a real,
+  reproducible pair of measurements.  Its *cause* is not established and, on the evidence
+  above, may not be establishable.  Recorded as an observation, and the "something worth
+  67.6M left one path and not the other" reading is withdrawn as unsupported.
+
+⚠️ Along the way: SP1's cycle tracker needs the `-report-` marker spelling AND the
+`profiling` feature on `sp1-core-executor`; the plain `cycle-tracker-start:` spelling only
+prints, and `ExecutionReport::cycle_tracker` then stays empty — which reads exactly like a
+region that cost nothing.  The feature is left enabled in `host/Cargo.toml` with that note;
+the markers were reverted and **all six guest verifying keys verified byte-identical after**.
+
+################################################################################
+ITEM 2 — the elephant ROOT's cost law.  CLOSED.  The last assumption inside the
+headline projection is now a measurement over eight counts.
+################################################################################
+Instrument: a new `root-law` mode.  The root guest never verifies a deferred proof while it
+is being EXECUTED — SP1 checks those in the recursion layer, which execution does not reach —
+so the leaf public values can be replayed natively (~0.3 s each) instead of proved.  The whole
+law comes from the executor: eight counts in five minutes, where proving them would have been
+about twenty hours.
+
+  n=2   5,100,200,478      n=8   5,100,937,488
+  n=3   5,100,322,557      n=12  5,101,428,949
+  n=4   5,100,446,200      n=16  5,101,920,373
+  n=6   5,100,691,756      n=24  5,102,903,343
+
+  **root instructions = 5.099954e9 + 122,869 × n**
+  Worst residual over the eight points, spanning 12x: **0.000011%**.
+
+  🔑 The marginal is **0.0024% of the fixed term**.  At n=219 the root's guest work is
+  5,126,862,807 instructions — **+0.52% over n=2**.  So the root really is, to within half a
+  percent, a constant: the one-off secp256k1 fingerprint traversal and nothing else that
+  matters.
+
+WHAT THIS REPLACES
+  The projection said "5.39 h critical path" on the assumption that the root barely grows in
+  n, justified by analogy to the monolithic law's fixed term.  It was right, and it is no
+  longer an assumption.  The previous round did worse: it borrowed the HARDENED CHILD's root
+  marginal (2.55 s per leaf) for the elephant.  Against the measured law that borrow was wrong
+  by orders of magnitude — 2.55 s of proving per leaf against 122,869 instructions, which at
+  the n=2 anchor's rate is about 0.37 s.  Cross-statement borrowing, wrong again.
+
+REVISED PROJECTION (still on the SAFE-GPU anchor; the full-GPU runs follow)
+  root at 219, from the n=2 proving anchor (15,476.43 s) scaled by the instruction law:
+    15,557.3 s  (+0.52%)
+  critical path = slowest leaf + root = 3,927.63 + 15,557.3 = 19,484.9 s = **5.41 h**
+  one machine   = 219 × 3,919.77 + 15,557.3 = **10.12 days**
+
+  ⚠️ The seconds conversion assumes instructions map to time WITHIN one configuration and one
+  build.  This session measured them diverging ACROSS a release (−8.14% instructions for
+  −3.58% seconds), which is a different claim, but the caveat is worth carrying: the root at
+  219 has never been proved, and shard-boundary effects could add a step the law cannot see.
+  The instruction law is measured; the 15,557 s is derived.
