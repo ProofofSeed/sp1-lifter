@@ -778,3 +778,27 @@ THE ELEPHANT, END TO END, ON THE CURRENT STACK — every term measured or fitted
   figure being a different quantity — as recorded.  ⚠️ NOT yet a like-for-like comparison with
   the 2.0.0 numbers (73.4 / 74.4 GB), which are safe-GPU per-phase: the backend configuration
   differs as well as the release.  Item 3 isolates it.
+
+RUN 2 RESULT — SP1_METAL_REUSE=1 + SP1_METAL_MERKLE=check, 64 leaves.
+  **64 of 64, 0 tree disagreements.**  3,783.80 s real, mean 58.66 s/leaf, peak RSS 56.82 GB.
+  fixtures/gpu-soak-reuse-2026-09-08.summary.log
+  ✅ Prediction (0 disagreements) CONFIRMED.
+
+  This is the run that exercises upstream's repair rather than avoiding it: with the hand-off
+  ON, the table that could hand out a freed address is in the path, and the checking mode
+  compares every digest of every layer against a CPU tree.
+
+  ⚠️ POWER, stated as predicted rather than discovered.  At the 1-in-28 rate this workload
+  measured under the unfixed build, 64 proofs predict 2.29 failures and seeing none has
+  probability **10.1%**.  So this is evidence at about the ten-percent level — NOT a
+  demonstration.  Reaching 5% would need ~84 proofs and 1% ~129.  Upstream's own 400-proof
+  soak is far stronger, but on a different workload; this one is on the workload the rate was
+  measured on, which is what they asked for and what neither of us had.
+
+  🔑 Run 1 (REUSE off) does NOT add to this power.  With the hand-off disabled the fault has
+  no supply, so a clean run there is not evidence about the repair — only about the default.
+  The two runs answer two different questions and must not be pooled.
+
+  Cost of the hand-off, incidentally: 58.66 s/leaf with it against 59.53 s without, both under
+  check mode.  Within run-to-run scatter, which agrees with upstream's measurement that it
+  pays nothing — the reason it now defaults off.
