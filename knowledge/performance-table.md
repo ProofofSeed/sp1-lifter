@@ -137,6 +137,14 @@ The hardened-child root's own guest marginal is not separately measured, so the 
 Taking it between zero and twice the elephant's puts the elephant root between **6,099 s and 6,161 s**, a band of ±0.5%.
 Against the instruction law alone, which gives 5,942 s, the omitted term is **188 s**: that law captures 14% of the root's growth to full soundness.
 
+The uniform shape is measured, not assumed.
+A compressed leaf proof is 1,272,772 B on the Ethereum-address statement and 1,272,921 B on the hardened child, a difference of 149 B, and the two journals differ by 352 − 203 = 149 B.
+The recursion payload is therefore identical in size across two leaf programs whose guest instruction counts differ by a factor of a hundred, which is what makes a per-deferred-proof cost transferable between them.
+
+An elephant root at an intermediate count cannot test the carry.
+The predicted marginal signal is 0.37% at n=24 and 1.05% at n=64, against a run-to-run noise floor of 1.47%, so the first count that could return a negative is near 150.
+Either the carry is accepted or the full campaign is run; no cheaper run is also informative.
+
 **The 2.0.0 round's borrowed 2.55 s per leaf is reinstated, and the verdict against it is retracted.**
 It was called wrong by an order of magnitude on the strength of the guest instruction law, which is the one instrument that cannot see the quantity it names.
 It is a safe-path figure; the difference from the 1.0073 s measured here is 2.53×, which sits in the same band as the root's other measured safe-to-full ratios (2.34× at n=4, 2.41× on the intercept), though that band is consistency rather than proof.
