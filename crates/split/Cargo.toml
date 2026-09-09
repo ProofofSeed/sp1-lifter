@@ -1,0 +1,12 @@
+[package]
+name = "pofseed-sp1-lift-split"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Split-and-aggregate probe: per-response leaf statements and the cross-leaf global Fiat-Shamir gate."
+publish = false
+
+[dependencies]
+serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
+zkboo = { version = "=1.2.0", features = ["u32", "u64"] }
+pofseed-sp1-lift-statement = { path = "../../crates/statement" }

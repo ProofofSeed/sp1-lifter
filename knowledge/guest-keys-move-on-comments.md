@@ -4,7 +4,7 @@ Established 2026-08-29 by experiment, after an adversarial review prompted a rou
 
 ## What happened
 
-Three crates that the zkVM guests link — `statement/`, `split/`, `elephant/` — were edited to fix stale and missing security documentation.
+Three crates that the zkVM guests link — `crates/statement/`, `crates/split/`, `crates/elephant/` — were edited to fix stale and missing security documentation.
 **Every changed line began with `///`.**
 No code, no constant, no dependency, no feature.
 
@@ -47,10 +47,33 @@ Consequences when a leaf key moves, all of which happened here:
 2. Every **cached leaf proof** becomes stale.
    The drivers catch this — `client.verify` against the current key refuses them — but the cost is real: `fixtures/leaves/n4` had to be re-proved (227.96 s) and every negative that consumes it re-run.
 3. Anything pinned on-chain would have to be re-deployed.
-   **It was not affected here** — the monolithic `lift` key, the one the Foundry suite pins, did not move — but that was luck rather than design, and a comment edit to `statement/` is exactly the change that could move it.
+   **It was not affected here** — the monolithic `lift` key, the one the Foundry suite pins, did not move — but that was luck rather than design, and a comment edit to `crates/statement/` is exactly the change that could move it.
 
 ## Why the guard held
 
 Nothing silently accepted a stale artefact.
 `vkeys` failed loudly and printed the correct constant; the drivers now also assert pin freshness at startup, so a stale pin names itself immediately instead of surfacing minutes later as a root refusing a claimed key.
 That is the difference between this and [[patch-table-silently-disengages]], where the failure was silent and cost a round of proofs.
+
+## Package names and paths move them too
+
+Measured 2026-09-09, each independently, on the monolithic lift guest:
+
+| change                                                             | lift verifying key |
+| ------------------------------------------------------------------ | ------------------ |
+| baseline                                                           | `0x00f1810f…`      |
+| package renamed `sp1-lifter-program` → `pofseed-sp1-lift-program`  | `0x00b1555b…`      |
+| folder moved `program/` → `programs/program/`, package name intact | `0x00c556ba…`      |
+
+Both are sufficient on their own, and they produce different keys, so neither subsumes the other.
+The guest ELF carries its own package name and its source paths, and the verifying key is a digest of that ELF.
+
+Circuit fingerprints do **not** move under either change: they are computed from circuit structure, which a rename does not touch.
+So a restructure invalidates the verifying keys and everything pinned to them, and leaves the fingerprints and the proof-format identifier alone.
+
+The consequence is that reorganising the workspace is not a free operation.
+It costs a re-pin of `pinned-keys`, a regeneration of the on-chain fixture with its verifying-key pin, and a re-proving of every cached leaf proof, because a cached leaf verifies only under the key it was proved with.
+
+Trap: after a rename or a move, the Foundry suite goes **green** on the stale fixture, because the fixture and the pin are both stale and therefore consistent with each other.
+Nothing in the suite can tell that the program it attests no longer exists.
+`vkeys` is what catches this, and it must be run after any structural change, not only after an edit to a crate's contents.

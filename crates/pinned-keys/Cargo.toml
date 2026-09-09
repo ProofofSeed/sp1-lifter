@@ -1,0 +1,12 @@
+[package]
+name = "pofseed-sp1-lift-pinned-keys"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "The leaf verifying keys the root programs compile in, so that a root's own key binds which leaves it will admit."
+publish = false
+
+# No dependencies, deliberately. This crate exists to be linked by the root programs and the
+# host and NOT by the leaf programs: a leaf that linked it would change its own verifying key
+# every time that key was recorded here, which does not converge.
+[dependencies]

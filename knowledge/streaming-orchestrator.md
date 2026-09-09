@@ -5,11 +5,11 @@
 > Kept for the method and the shape of the results, not for the numbers.
 > Do not quote them, and do not rescale them by a factor seen elsewhere.
 >
-> **Current figures: `performance-table.md`, the "Re-measured on zkboo 1.2.0" section**, taken 2026-09-07.
+> **Current figures: `performance-table.md`, the "Current figures" section.**
 > What the port cost and what is now closed: `zkboo-1.2.0-migration.md`.
 > Why a superseded number may not be rescaled into a current one, measured rather than asserted: `instructions-are-not-seconds.md`.
 
-`host/src/orchestrator.rs` and the `stream-lift` driver.
+`crates/host/src/orchestrator.rs` and the `stream-lift` driver.
 Built 2026-08-28.
 
 The monolithic lifter cannot start until the last response exists, so device time and proving time **add**.

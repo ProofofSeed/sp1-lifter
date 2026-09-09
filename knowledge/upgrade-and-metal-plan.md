@@ -77,7 +77,7 @@ Phases 0–2 are prerequisites and are not timed measurements; phases 3–5 are,
 
 The assertion word reaches `expected_output` on its own, because that comes from `exec`; what does not follow on its own is every version tag and every pinned artefact.
 
-- `REQUIRED_PROOF_FORMAT_VERSION` 2 → 3; bump `LIFT_FRAME_VERSION`, `LIFT_JOURNAL_VERSION`, and the leaf and root frame and journal versions in `split/`.
+- `REQUIRED_PROOF_FORMAT_VERSION` 2 → 3; bump `LIFT_FRAME_VERSION`, `LIFT_JOURNAL_VERSION`, and the leaf and root frame and journal versions in `crates/split/`.
 - Delete every fixture.
   A fixture from an older program stays internally consistent, `verifyProof` accepts it, and the Foundry suite goes green against a program that no longer exists — this has happened here once already.
 

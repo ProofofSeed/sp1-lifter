@@ -1,0 +1,40 @@
+── lift run (n=219, mode=groth16) ──
+  prover config: backend=cpu/metal-built-all-phases-default shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  zkboo: 10 crates at 1.2.0 from local paths: zkboo=4d443d4ec412 zkboo-sha2=f6a9338d9798 zkboo-hmac=cfd1b99b6ce8 zkboo-modular=5dd32865f05e zkboo-ecc=181341018c11 zkboo-circuit-hash=f5a522d3eafd zkboo-profiling=c6ce1c1c21ba zkboo-bip32=3c6a48a0431d zkboo-keccak=a503af3c5eb4 zkboo-ripemd160=8ce2561c6572
+  proved 219 ZKBoo responses natively in 84.47ms
+Setting environment variables took 33.166µs
+Reading R1CS took 8.122156875s
+Reading proving key took 1.021472542s
+Reading witness file took 196.25µs
+Deserializing JSON data took 10.844208ms
+Generating witness took 299.9905ms
+13:48:38 DBG constraint system solver done nbConstraints=15972262 took=1819.629375
+13:48:53 DBG prover done acceleration=none backend=groth16 curve=bn254 nbConstraints=15972262 took=14376.768792
+Generating proof took 16.196709417s
+13:48:53 WRN ignoring uninitialized slice slice name=Vars slice type=[]frontend.Variable
+13:48:53 WRN ignoring uninitialized slice slice name=Vars slice type=[]frontend.Variable
+13:48:53 WRN ignoring uninitialized slice slice name=Vars slice type=[]frontend.Variable
+13:48:53 DBG verifier done backend=groth16 curve=bn254 took=0.673042
+  zkVM groth16 proving: 3613.03s
+  proof verified + journal gate passed in 147.97ms (219 responses)
+  proof → fixtures/lift-219.groth16-proof.bin (1913 bytes on disk)
+  Foundry fixture → verifier/fixtures/lift-219.onchain.json (proof 356 bytes, public values 219 bytes)
+lift run: PASS
+     3617.57 real     25604.20 user      4646.51 sys
+         48387375104  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+           853912993  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                6712  signals received
+                4776  voluntary context switches
+            60104781  involuntary context switches
+     478833131409071  instructions retired
+     114704174342152  cycles elapsed
+         59307385776  peak memory footprint

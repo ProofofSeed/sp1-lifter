@@ -5,7 +5,7 @@ The **1.2.0 round** below is current.
 Everything under "The 2.0.0 round" was measured against the withdrawn ZKBoo 2.0.0 and is kept for the rows the 1.2.0 round has not re-taken — read those for the method and the shape of the results, never for the numbers, and never rescale one by a factor observed elsewhere.
 `instructions-are-not-seconds.md` is this project's shortest illustration of why that last rule exists.
 
-## Re-measured on zkboo 1.2.0 — 2026-09-07
+## Current figures
 
 Same machine (M4 Max, 16 cores / 137 GB), same discipline: `RAYON_NUM_THREADS=12 GOMAXPROCS=12`, one run at a time on a quiet machine.
 
@@ -49,6 +49,19 @@ The 2,194-gas difference is one additional cold storage slot: the journal crosse
 On the values a caller actually holds, those 31 bytes cost 79 gas.
 A measurement harness that stores its own fixture charges the subject for the storage.
 Establish where the data resides before interpreting the figure.
+
+### The full-soundness lift on the repaired backend
+
+`lift 219 groth16`, measured 2026-09-09 on the full accelerated path, against the same run on the safe path:
+
+| arrangement                      |        proving |     peak RSS |
+| -------------------------------- | -------------: | -----------: |
+| safe path (`SP1_METAL_MERKLE=0`) |     9,927.49 s |     76.52 GB |
+| full path                        | **3,613.03 s** | **48.39 GB** |
+| ratio                            |         2.748x |       0.632x |
+
+The headline lift is therefore **1 h 00 m**, not 2 h 45 m, in two thirds of the memory.
+That is a fourth workload speedup and a fourth distinct value: 2.52x, 2.62x, 2.75x and 2.94x for the hardened-child leaf, the elephant root, the monolithic lift and the elephant leaf.
 
 ### SP1 zkVM proving, GPU-safe arm
 
@@ -184,7 +197,7 @@ Three arms appear throughout:
 - **GPU all** — every phase accelerated.
   Faster, and produces a proof that fails its own verification about once every twenty-eight, then parks the run for ever.
 
-## On-chain
+### On-chain
 
 | step                                                           |          gas |
 | -------------------------------------------------------------- | -----------: |
@@ -195,7 +208,7 @@ Three arms appear throughout:
 The gate is 32% on top of the proof verification, and it is not optional: `verifyProof` alone establishes only that some program committed some public values.
 Measured 2026-08-29, `verifier/test/LiftJournalGate.t.sol`.
 
-## SP1 zkVM proving
+### SP1 zkVM proving
 
 | workload                         | CPU                           | GPU safe                 | GPU all               |
 | -------------------------------- | ----------------------------- | ------------------------ | --------------------- |
@@ -230,7 +243,7 @@ That third arm is why the GPU ratios mean anything: without it a slowed CPU path
 **The safe setting costs about 2.4× of the 4.7×.**
 The Merkle tree is where most of the GPU advantage lived, and it is the phase that corrupts.
 
-## Two things the table says that no single row does
+### Two things the table says that no single row does
 
 **Memory tracks the arm, not the workload.**
 The GPU arm peaks at roughly half the CPU arm's figure everywhere.
@@ -245,12 +258,12 @@ Two points per arm is a line through two measurements, not a fit: it has no resi
 The supporting evidence is that a third, discarded point (the loaded-machine n=8 campaign) had a slope within 1.3% — which is corroboration, not a degree of freedom.
 Anywhere this note or another says "fitted over 4 to 64", read "the line joining N=4 and N=64".
 
-## Streaming orchestrator (safe GPU)
+### Streaming orchestrator (safe GPU)
 
 8 responses at a modelled 30 s device cadence, one prover: leaves 555.6 s (69.5 s each), root 184.9 s, **end to end 770.7 s against 980.5 s** for producing everything and then lifting it — 1.27×, at 69.9 GB ( **unsourced** — `stream-lift-n8-cadence30.summary.log` records no maximum resident set size at all, so this figure cannot be traced to a log and must be re-measured before it is quoted).
 Proving is the bottleneck at that cadence, so a deployment needs two to three machines.
 
-## Native verification, no zkVM (all CPU)
+### Native verification, no zkVM (all CPU)
 
 The streamed verifier, at the paper's `N_ε = 438`.
 This is the ZKBoo layer alone — no SP1 anywhere — and its memory is in **megabytes**, not gigabytes.
@@ -264,7 +277,7 @@ This is the ZKBoo layer alone — no SP1 anywhere — and its memory is in **meg
 
 Memory grows with responses in flight, not with proof size: 3.5 MB at one, 6.6–8.0 MB at twelve, across a 58× range of proof size.
 
-## The elephant in the zkVM executor (execution only, nothing proved)
+### The elephant in the zkVM executor (execution only, nothing proved)
 
 | responses |   instructions | executor wall |
 | --------: | -------------: | ------------: |

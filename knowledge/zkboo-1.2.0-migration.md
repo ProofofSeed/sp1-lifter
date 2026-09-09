@@ -41,15 +41,15 @@ See `zkboo-next-delta.md` for what absorbing it changed here.
 Every manifest asked for `=2.0.0` from crates.io with no path patch, because a patch that silently disengages once cost this project a round of proofs.
 1.2.0 is unpublished and every published version is yanked, so there is no registry copy to build against and the crates are now patched to `../../zkboo/*`.
 The guard that enforced a registry source now enforces a path source, and the old failure is caught by the requirement itself: no `1.2.0` exists on crates.io, so a disengaged patch fails to resolve loudly rather than resolving to something else quietly.
-`host/build.rs` also records each checkout's git revision and dirty state into the binary, where it used to record a lockfile checksum.
+`crates/host/build.rs` also records each checkout's git revision and dirty state into the binary, where it used to record a lockfile checksum.
 Restore the registry arrangement when 1.2.0 is published.
 
 **The Keccak-256 hasher, vendored.**
 `zkboo` ships no concrete `Hasher` at all now; the implementation moved to `zkboo-harness`, which is `publish = false` and needs `std`.
-It is copied verbatim into `statement/src/hasher.rs`, forty lines, still patched to SP1's accelerated `tiny-keccak` so a guest still drives the Keccak precompile.
+It is copied verbatim into `crates/statement/src/hasher.rs`, forty lines, still patched to SP1's accelerated `tiny-keccak` so a guest still drives the Keccak precompile.
 No digest changes: the hasher moved, the transcript did not.
 
-**`n_eps`, vendored** into `sp1_lifter_host` from the same harness, for the same publishability reason.
+**`n_eps`, vendored** into `pofseed_sp1_lift_host` from the same harness, for the same publishability reason.
 The arithmetic is unchanged.
 
 **Entry points.**
@@ -86,6 +86,10 @@ The warning this section used to carry — that `forge test` goes green against 
 It is why the pins were updated in the same commit as the artefact rather than left to fail once first.
 
 ### Re-measured figures
+
+Both columns are on the safe backend path, so the comparison isolates the release.
+Neither is the current cost: the backend defect that forced that path was fixed on 2026-09-08, and the lift now runs in 3,613.03 s.
+See `performance-table.md`.
 
 | Quantity                    | 2.0.0 stack | 1.2.0 stack | Change |
 | --------------------------- | ----------: | ----------: | -----: |

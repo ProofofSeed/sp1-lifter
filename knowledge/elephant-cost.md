@@ -5,7 +5,7 @@
 > Kept for the method and the shape of the results, not for the numbers.
 > Do not quote them, and do not rescale them by a factor seen elsewhere.
 >
-> **Current figures: `performance-table.md`, the "Re-measured on zkboo 1.2.0" section**, taken 2026-09-07.
+> **Current figures: `performance-table.md`, the "Current figures" section.**
 > What the port cost and what is now closed: `zkboo-1.2.0-migration.md`.
 > Why a superseded number may not be rescaled into a current one, measured rather than asserted: `instructions-are-not-seconds.md`.
 
@@ -35,7 +35,7 @@ A lift of the hardened-child statement demonstrates the machinery end to end; it
 
 ## What was measured
 
-The probe lives in `elephant/` (the circuit and its wire format) and `program-elephant/` (its zkVM guest), deliberately outside the production statement crate: that crate's shape determines the guest ELF and hence the verifying key pinned by the on-chain suite, and a probe must not move it.
+The probe lives in `crates/elephant/` (the circuit and its wire format) and `programs/program-elephant/` (its zkVM guest), deliberately outside the production statement crate: that crate's shape determines the guest ELF and hence the verifying key pinned by the on-chain suite, and a probe must not move it.
 The suite was re-run after building and still passes 5/5 at the same key.
 
 ### At the circuit
@@ -277,7 +277,7 @@ So distributing the work cannot mean distributing the proof.
 Any division must preserve a **global** challenge check across all 219 responses while splitting the replay between provers — a design in its own right, and the same global-Fiat-Shamir gate the STARK track identified as the correctness condition for any lifter.
 
 **That gate is built.**
-`split/`, `program-leaf/` and `program-root/` implement it: a leaf proof per response and a root that re-derives the challenge sequence over the commitments of every response present and requires it to match what each response declared.
+`crates/split/`, `programs/program-leaf/` and `programs/program-root/` implement it: a leaf proof per response and a root that re-derives the challenge sequence over the commitments of every response present and requires it to match what each response declared.
 Nine refusal cases, each check validated by deleting it, and the control accepting — which is what says the gate reproduces zkboo's own derivation byte for byte.
 See `split-and-streaming.md`.
 This paragraph's "cannot" is about the naive division and remains true of it; it is no longer true of the problem.

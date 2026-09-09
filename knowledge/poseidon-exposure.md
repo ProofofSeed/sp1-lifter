@@ -13,7 +13,7 @@ The ZKBoo crates use **Keccak-256** throughout — commitments, PRGs, challenge 
 **Nothing on the device touches Poseidon.**
 
 **Our lifter code is clean.**
-One match across `statement/`, `program/`, `program-leaf/`, `program-root/`, `split/`, `elephant/`, `host/` and `verifier/`, and it is a comment describing what SP1 does.
+One match across `crates/statement/`, `programs/program/`, `programs/program-leaf/`, `programs/program-root/`, `crates/split/`, `crates/elephant/`, `crates/host/` and `verifier/`, and it is a comment describing what SP1 does.
 
 **It is entirely SP1's**, through `p3-poseidon2` and `slop-poseidon2`, in four roles:
 
