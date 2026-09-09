@@ -6,7 +6,7 @@ See `knowledge/milestones.md` for what is established so far, including the reco
 The repository is named for its proof system because other back ends are expected alongside it, not because SP1 is the only way to lift these proofs.
 
 The zkboo ecosystem was re-architected as 1.2.0 on 2026-09-04, changing every proof, every circuit fingerprint and every guest verifying key, with a second breaking change on 2026-09-06.
-The port is complete and the stack has been rebuilt, re-proved and re-measured: the current figures are in `knowledge/performance-table.md` under "Re-measured on zkboo 1.2.0", and `knowledge/zkboo-1.2.0-migration.md` with `knowledge/zkboo-next-delta.md` record what changed and what it cost.
+The port is complete and the stack has been rebuilt, re-proved and re-measured: the current figures are in `knowledge/performance-table.md` under "Current figures", and `knowledge/zkboo-1.2.0-migration.md` with `knowledge/zkboo-next-delta.md` record what changed and what it cost.
 Figures elsewhere in `knowledge/` belong to the previous round and say so; none of them may be rescaled into a current one, for a reason this project measured rather than assumed (`knowledge/instructions-are-not-seconds.md`).
 
 ## Usage
