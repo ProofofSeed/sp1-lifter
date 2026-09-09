@@ -61,7 +61,7 @@ pub fn main() {
         panic!("aggregate gate refused");
     }
     // 3. The circuit fingerprint, computed once for the whole proof rather than once per
-    //    response — the hoisting that makes the split worth doing at all.
+    //    response: the hoisting the split depends on.
     let circuit = HardenedChildCircuit::public_only(input.chain_code.clone(), input.index);
     let fingerprint = hash_circuit::<_, H>(&circuit);
     let journal = RootJournal {

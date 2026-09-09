@@ -159,7 +159,7 @@ pub struct ElephantRootJournal {
     pub lift: ElephantJournal,
     /// The verifying key every admitted leaf proof carried.
     ///
-    /// ✅ **Compiled into the root** since 2026-08-28: it refuses any claimed key disagreeing
+    /// **Compiled into the root** since 2026-08-28: it refuses any claimed key disagreeing
     /// with `sp1_lifter_pinned_keys::LEAF_ELEPHANT_VK` before admitting a proof, so the
     /// root's own verifying key says which leaf program it admits and this field is a
     /// self-description rather than a load-bearing input. (This doc previously said it was

@@ -143,7 +143,7 @@ impl Circuit for HardenedChildCircuit {
 /// must bump this constant.
 pub const LIFT_FRAME_VERSION: u32 = 1;
 
-// zkboo 1.2.0 did not move this, and the reason is worth stating because it looks as though it
+// zkboo 1.2.0 did not move this, although it looks as though it
 // should have. That release invalidated every proof made against its predecessors — the challenge
 // transcript, the view commitments and the PRG are now domain-separated, so every commitment and
 // every Fiat-Shamir challenge differs. But this constant guards the *layout* of the frame, not the
@@ -185,7 +185,7 @@ pub const LIFT_JOURNAL_VERSION: u32 = 3;
 /// *requiring* the older format rather than refusing it. Pinning it means a format change is a
 /// decision someone makes here, and until they do, proofs carrying another format are refused.
 ///
-/// ✅ **This replaces a counter that could not do the job.** `PROOF_FORMAT_VERSION` was `3` on
+/// **This replaces a counter that could not do the job.** `PROOF_FORMAT_VERSION` was `3` on
 /// both sides of an incompatible change — 1.2.0's domain separation moved every commitment and
 /// every challenge while the constant stayed put — so this clause accepted a proof from a format
 /// it was written to refuse, and no value it could have held would have separated two formats

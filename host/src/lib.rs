@@ -513,7 +513,7 @@ pub fn decode_root_journal(
     // The outer version was committed by every root and checked by nobody. Postcard is not
     // self-describing, so on the first layout change an unchecked version is a silent misparse
     // rather than an error: the fields would decode into the wrong shape and the gate would run
-    // on nonsense. Only version 1 exists today, which is exactly when this is free to add.
+    // on nonsense. Only version 1 exists, so the check costs nothing to add now.
     if journal.version != sp1_lifter_split::ROOT_JOURNAL_VERSION {
         return Err(format!(
             "root journal version is {}, not {}",

@@ -316,7 +316,7 @@ fn main() {
     // in `n` is the last assumption inside the headline projection, and it was being carried by
     // an analogy to the monolithic law's fixed term rather than by a measurement.
     //
-    // 🔑 What makes this cheap is that the root guest never verifies a deferred proof while it
+    // What makes this cheap is that the root guest never verifies a deferred proof while it
     // is being *executed* — SP1 checks those in the recursion layer, which execution does not
     // reach. Everything the root guest actually does with `n` is driven by the leaf public
     // values, and those can be replayed natively in about 0.3 s each. So the whole law comes

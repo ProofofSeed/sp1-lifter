@@ -44,8 +44,7 @@ fn patched_paths() -> Vec<(String, PathBuf)> {
 /// A one-line description of a checkout: its short revision, and whether it has local edits.
 ///
 /// ⚠️ A dirty tree is reported, not refused. Refusing would make the crates unusable for the
-/// development they exist for; the point is that a measurement taken against uncommitted work
-/// says so on its face.
+/// development they exist for. A measurement taken against uncommitted work says so on its face.
 fn checkout_provenance(name: &str, path: &Path) -> String {
     let head = path.join(".git/HEAD");
     if head.exists() {

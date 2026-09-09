@@ -118,7 +118,7 @@ fn main() {
     );
     // The root's proving key is built AFTER the leaves are proved, deliberately. Setting it
     // up first cost 55% on every leaf — 88.6 s against 57.0 s for the identical proof in
-    // `split-probe` — which is a big enough regression to be worth the awkward ordering.
+    // `split-probe`, a regression large enough to justify the ordering.
 
     let (mut r, leaf_proofs) = stream_lift(
         &client, &circuit, &statement, n, SEED_ENTROPY, pool, arrival_interval, &leaf_pk, &leaf_vk,
