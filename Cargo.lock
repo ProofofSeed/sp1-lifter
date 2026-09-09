@@ -872,6 +872,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "debugid"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bef552e6f588e446098f6ba40d89ac146c8c7b64aade83c051ee00bb5d2bc18d"
+dependencies = [
+ "uuid",
+]
+
+[[package]]
 name = "deepsize2"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1372,6 +1381,17 @@ name = "gcd"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d758ba1b47b00caf47f24925c0074ecb20d6dfcffe7f6d53395c0465674841a"
+
+[[package]]
+name = "gecko_profile"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "890852c7e1e02bc6758e325d6b1e0236e4fbf21b492f585ce4d4715be54b4c6a"
+dependencies = [
+ "debugid",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "gen_ops"
@@ -2655,7 +2675,7 @@ dependencies = [
 [[package]]
 name = "p3-uni-stark"
 version = "0.4.3-succinct"
-source = "git+https://github.com/hashberg-io/sp1-metal?tag=v0.1.0#b6b89a706ed4840a17928ef365104a57b954a7aa"
+source = "git+https://github.com/hashberg-io/sp1-metal?rev=cab9ba36db3103a71341d2fd07f00c96710f2e87#cab9ba36db3103a71341d2fd07f00c96710f2e87"
 dependencies = [
  "itertools 0.12.1",
  "p3-air",
@@ -3690,7 +3710,7 @@ dependencies = [
 [[package]]
 name = "slop-basefold-prover"
 version = "6.4.0"
-source = "git+https://github.com/hashberg-io/sp1-metal?tag=v0.1.0#b6b89a706ed4840a17928ef365104a57b954a7aa"
+source = "git+https://github.com/hashberg-io/sp1-metal?rev=cab9ba36db3103a71341d2fd07f00c96710f2e87#cab9ba36db3103a71341d2fd07f00c96710f2e87"
 dependencies = [
  "derive-where",
  "itertools 0.14.0",
@@ -3757,7 +3777,7 @@ dependencies = [
 [[package]]
 name = "slop-dft"
 version = "6.4.0"
-source = "git+https://github.com/hashberg-io/sp1-metal?tag=v0.1.0#b6b89a706ed4840a17928ef365104a57b954a7aa"
+source = "git+https://github.com/hashberg-io/sp1-metal?rev=cab9ba36db3103a71341d2fd07f00c96710f2e87#cab9ba36db3103a71341d2fd07f00c96710f2e87"
 dependencies = [
  "metal",
  "p3-dft",
@@ -3797,7 +3817,7 @@ dependencies = [
 [[package]]
 name = "slop-jagged"
 version = "6.4.0"
-source = "git+https://github.com/hashberg-io/sp1-metal?tag=v0.1.0#b6b89a706ed4840a17928ef365104a57b954a7aa"
+source = "git+https://github.com/hashberg-io/sp1-metal?rev=cab9ba36db3103a71341d2fd07f00c96710f2e87#cab9ba36db3103a71341d2fd07f00c96710f2e87"
 dependencies = [
  "derive-where",
  "futures",
@@ -3902,7 +3922,7 @@ dependencies = [
 [[package]]
 name = "slop-multilinear"
 version = "6.4.0"
-source = "git+https://github.com/hashberg-io/sp1-metal?tag=v0.1.0#b6b89a706ed4840a17928ef365104a57b954a7aa"
+source = "git+https://github.com/hashberg-io/sp1-metal?rev=cab9ba36db3103a71341d2fd07f00c96710f2e87#cab9ba36db3103a71341d2fd07f00c96710f2e87"
 dependencies = [
  "derive-where",
  "futures",
@@ -4127,13 +4147,16 @@ dependencies = [
  "elf",
  "enum-map",
  "eyre",
+ "gecko_profile",
  "hashbrown 0.14.5",
  "hex",
+ "indicatif",
  "itertools 0.14.0",
  "memmap2",
  "num",
  "object",
  "rrs-succinct",
+ "rustc-demangle",
  "serde",
  "serde_arrays",
  "serde_json",
@@ -4275,7 +4298,7 @@ dependencies = [
 [[package]]
 name = "sp1-hypercube"
 version = "6.4.0"
-source = "git+https://github.com/hashberg-io/sp1-metal?tag=v0.1.0#b6b89a706ed4840a17928ef365104a57b954a7aa"
+source = "git+https://github.com/hashberg-io/sp1-metal?rev=cab9ba36db3103a71341d2fd07f00c96710f2e87#cab9ba36db3103a71341d2fd07f00c96710f2e87"
 dependencies = [
  "arrayref",
  "deepsize2",
@@ -4487,16 +4510,16 @@ dependencies = [
 
 [[package]]
 name = "sp1-metal-core"
-version = "0.1.0"
-source = "git+https://github.com/hashberg-io/sp1-metal?tag=v0.1.0#b6b89a706ed4840a17928ef365104a57b954a7aa"
+version = "1.0.0"
+source = "git+https://github.com/hashberg-io/sp1-metal?rev=cab9ba36db3103a71341d2fd07f00c96710f2e87#cab9ba36db3103a71341d2fd07f00c96710f2e87"
 dependencies = [
  "metal",
 ]
 
 [[package]]
 name = "sp1-metal-probes"
-version = "0.1.0"
-source = "git+https://github.com/hashberg-io/sp1-metal?tag=v0.1.0#b6b89a706ed4840a17928ef365104a57b954a7aa"
+version = "1.0.0"
+source = "git+https://github.com/hashberg-io/sp1-metal?rev=cab9ba36db3103a71341d2fd07f00c96710f2e87#cab9ba36db3103a71341d2fd07f00c96710f2e87"
 dependencies = [
  "metal",
  "rand 0.8.7",

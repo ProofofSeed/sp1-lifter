@@ -77,26 +77,49 @@ accelerated phase that has no comparison mode.
 
 ## 🚨 The fast configuration is not usable, and that is the headline
 
-Everything above is measured with every phase accelerated, and that configuration **corrupts a proof
-about once every twenty-eight**: an intermittent Merkle root mismatch that fails SP1's own shard
-verification and then parks the run forever. Full account in `gpu-corruption.md`.
+Everything above was measured with every phase accelerated, in a configuration that at the time
+**corrupted a proof about once every twenty-eight**: an intermittent Merkle root mismatch that fails
+SP1's own shard verification and then parks the run forever. Full account in `gpu-corruption.md`.
 
-No invalid proof is accepted — the failure is a proof being refused, not one getting through — so the
-risk is availability rather than soundness. But an unattended run of any length does not finish.
+No invalid proof was ever accepted — the failure is a proof being refused, not one getting through —
+so the risk was availability rather than soundness. But an unattended run of any length did not
+finish, and the workaround (`SP1_METAL_MERKLE=0`, the Merkle tree left on the CPU) cost most of the
+advantage.
 
-Leaving the Merkle tree on the CPU (`SP1_METAL_MERKLE=0`) has run 115 consecutive proofs without a
-failure, and **that is the configuration every long run here uses**. It costs most of the advantage:
+## ✅ Fixed upstream, and the workaround is retired — 2026-09-08
+
+The defect was found, root-caused and repaired in `sp1-metal` weeks ago, on a revision this
+repository was not building; the patch now points at `rev = cab9ba36db31`. It was never the Merkle
+kernel — it was a buffer hand-off table keyed on an address whose allocation it did not keep alive,
+on the route into that kernel. `SP1_METAL_REUSE` now defaults off, removing the hazard class.
+
+**64 leaf proofs under `SP1_METAL_MERKLE=check`, which builds both trees and compares every digest
+of every layer: no disagreement.** Then the plain timing, on this machine, on the real programs:
 
 | | CPU | GPU, Merkle off | GPU, all on |
-|---|---:|---:|---:|
-| leaf (one response) | 109.72 s | 57.00 s | 23.26 s |
-| speedup over CPU | 1.00× | **1.92×** | 4.72× |
+| ------------------------------- | ------: | --------------: | ------: |
+| hardened-child leaf | 109.72 s | 57.00–59.71 s | **23.13 s** |
+| speedup over CPU | 1.00× | 1.92× | **4.74×** |
+| peak RSS, 8 leaves in a process | — | ~59 GB | **35.38 GB** |
+| elephant leaf | — | 3,919.77 s | **1,333.82 s** |
+| speedup over the safe setting | — | 1.00× | **2.939×** |
 
-So the number to plan against on this machine is **1.9×**, not 4.7×, until the defect is fixed
-upstream. The 4.7× stands as what the backend is worth once it is.
+**So the number to plan against on this machine is 4.7× again**, and the safe setting is no longer
+the configuration long runs use.
+
+🪤 **The two statements do not share a speedup.** The hardened child gains 2.53× over the safe
+setting and the elephant 2.94× — a 16% difference between two workloads on one machine, one
+release, one binary. A backend speedup belongs to a workload, not to a machine, exactly as a
+proving *rate* does. Neither figure may be carried to a third statement.
+
+🔑 And the mechanism is legible in the numbers: check mode builds **both** trees and costs 59.53 s,
+the safe setting builds only the CPU tree and costs 57–60 s, and the GPU tree alone costs 23.13 s.
+The CPU Merkle tree was essentially the entire 2.5× the workaround was charging.
 
 ## Why this matters here beyond the clock
 
 The split-and-aggregate architecture makes device streaming and proving a *max* rather than a *sum*, and its balance condition is whether one leaf keeps pace with one response arriving.
 The device delivers a response every ~29–30 s of measured work.
 Until now the leaf time on the fast arm was an estimate; this is the first arm-to-arm ratio measured on the real program.
+With the defect fixed, the fast arm is the one that runs: a leaf at 23.13 s against a response
+arriving every ~29–30 s means one leaf keeps pace with one response, with room to spare.

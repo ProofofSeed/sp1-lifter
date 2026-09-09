@@ -14,7 +14,12 @@
 //!   `root`   — a root over the cached leaves, with the relying-party gate.
 //!   `both`   — all three.
 //!
-//! Usage: `elephant-split [n] [gate|leaves|root|both]` (default: 2, both).
+//! Usage: `elephant-split [n] [gate|leaves|root|both|execute|execute-root|root-law]`
+//! (default: 2, both).
+//!
+//! `root-law` is the cheap one: it executes the root over `n` leaves whose public values are
+//! replayed natively rather than proved, so the root's cost in `n` can be fitted over as many
+//! counts as one likes without an hour of proving per point.
 //!
 //! ⚠️ A leaf is projected at ~1.5 h and the root's fingerprint pass at ~3 h, so `both` at
 //! n=2 is a six-hour run. Start with `gate`, which costs seconds.
@@ -160,7 +165,8 @@ fn main() {
     let n: usize = args.next().map(|a| a.parse().expect("n must be a positive integer")).unwrap_or(2);
     let mode = args.next().unwrap_or_else(|| "both".to_string());
     assert!(
-        matches!(mode.as_str(), "gate" | "leaves" | "root" | "both" | "execute" | "execute-root"),
+        matches!(mode.as_str(), "gate" | "leaves" | "root" | "both" | "execute" | "execute-root"
+            | "root-law"),
         "bad mode `{mode}`"
     );
     if std::env::var_os("RUST_LOG").is_none() {
@@ -213,6 +219,14 @@ fn main() {
         assert_eq!(report.exit_code, 0, "leaf guest execution failed");
         let instructions = report.total_instruction_count();
         println!("  leaf instructions: {instructions}");
+        // Named regions the guest declared, if the executor recognised them. Printed rather
+        // than asserted: this is a decomposition instrument, and an empty map means the guest
+        // carries no markers, not that a region cost nothing.
+        let mut regions: Vec<_> = report.cycle_tracker.iter().collect();
+        regions.sort_by_key(|(k, _)| k.clone());
+        for (name, cycles) in regions {
+            println!("    region {name:<14} {cycles:>14}");
+        }
         println!("  executor wall: {:.2?}", t.elapsed());
         // Reported against BOTH marginal terms, and against the previous measured leaf, because
         // a single ratio to a superseded constant is how a stale figure gets read as a current
@@ -292,6 +306,54 @@ fn main() {
             println!("elephant split: PASS");
             return;
         }
+    }
+
+    // The root's cost law, without proving a single leaf.
+    //
+    // `execute-root` measures the root's guest work at whatever count a leaf cache happens to
+    // hold, which has been 2 and only 2 — and one point cannot separate a fixed term from a
+    // marginal one. The root is four fifths of this statement's critical path, so its behaviour
+    // in `n` is the last assumption inside the headline projection, and it was being carried by
+    // an analogy to the monolithic law's fixed term rather than by a measurement.
+    //
+    // 🔑 What makes this cheap is that the root guest never verifies a deferred proof while it
+    // is being *executed* — SP1 checks those in the recursion layer, which execution does not
+    // reach. Everything the root guest actually does with `n` is driven by the leaf public
+    // values, and those can be replayed natively in about 0.3 s each. So the whole law comes
+    // from the executor.
+    //
+    // ⚠️ This measures INSTRUCTIONS, not seconds, and this project has measured the two moving
+    // apart. The law fitted here says how the root's guest work scales; converting it to wall
+    // clock needs a proving anchor, and there is exactly one (n=2).
+    if mode == "root-law" {
+        println!("── executing the elephant root over {n} natively-replayed leaves ──");
+        let leaf_public_values: Vec<Vec<u8>> = (0..n)
+            .map(|position| {
+                let journal =
+                    leaf_journal_native(&expected_output, BINDING, position, &responses[position]);
+                postcard::to_allocvec(&journal).expect("encode leaf journal")
+            })
+            .collect();
+        let root_input = ElephantRootInput {
+            version: ELEPHANT_SPLIT_FRAME_VERSION,
+            expected_output: expected_output.clone(),
+            binding: BINDING.to_vec(),
+            leaf_vk: leaf_vk.hash_u32(),
+            leaf_public_values,
+        };
+        let mut root_stdin = SP1Stdin::new();
+        root_stdin.write_vec(postcard::to_allocvec(&root_input).expect("serialize root frame"));
+        let t = Instant::now();
+        let (_, report) =
+            client.execute(ROOT_ELEPHANT_ELF, root_stdin).run().expect("elephant root execute");
+        assert_eq!(
+            report.exit_code, 0,
+            "root guest refused a set of leaves built from an honest proof — the frame is wrong, \
+             not the guest"
+        );
+        println!("  n={n}  root instructions: {}", report.total_instruction_count());
+        println!("  executor wall: {:.2?}", t.elapsed());
+        return;
     }
 
     if mode != "execute-root" {

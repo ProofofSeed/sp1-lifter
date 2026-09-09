@@ -1,5 +1,32 @@
 # An intermittent wrong proof on the GPU path
 
+> ✅ **FIXED UPSTREAM, and this repository was pinned behind the fix until 2026-09-08.**
+> `hashberg-io/sp1-metal` reproduced it, root-caused it, repaired it and held 400 proofs clean
+> — all on `main`, 32 commits past the `v0.1.0` tag this repository patched to. So the
+> `SP1_METAL_MERKLE=0` workaround below, and the 2.5x it costs, was being paid for a defect that
+> no longer existed in code we could have been building. The patch now points at
+> `rev = cab9ba36db31`.
+>
+> **The cause was not the Merkle kernel.** It was `sp1_metal_core::handoff`, a thread-local table
+> keyed on `(address, length)` that hands the encode's codeword buffer to the Merkle kernels
+> *without keeping the allocation alive*. An orphaned entry could sit on an address the allocator
+> later handed out again, and the device then hashed whatever those pages had come to hold — a
+> tree built correctly over the wrong bytes. Upstream's `SP1_METAL_MERKLE=check` mode caught it
+> at **layer 0, digest 0**: the leaves, which is what distinguishes "built wrongly" from "built
+> over the wrong bytes". `SP1_METAL_REUSE` now defaults off, removing the hazard class rather
+> than bounding it.
+>
+> 🎯 **The suspicion recorded below was right about the phase and wrong about the reason.** It
+> named `MERKLE` because that was the one accelerated phase with no comparison mode — an
+> inference from exclusion, and it said so. The fault was on the phase's *input route*, not in
+> its kernel, which is exactly what "an inference from exclusion is not a localisation" buys you:
+> the right place to look, and no claim about what is there.
+>
+> Everything below is kept as it was written on 2026-08-28, so the reasoning can be read against
+> the answer. Its figures are v0.1.0 figures. Upstream's account is
+> `<sp1-metal>/knowledge/2026-08-28-defect-wrong-proof.md`.
+
+
 Found 2026-08-28 while proving leaf after leaf on the Metal backend (`sp1-metal` v0.1.0, SP1 6.4.0).
 This is a defect in that backend, not in the lifter, and it is recorded here because it is what the lifter has to plan around.
 
@@ -77,7 +104,9 @@ existing comparison modes could not have looked.
 | speedup | 1.00× | 1.92× | 4.72× |
 | survives a long run | yes | yes, 115 proofs | **no** |
 
-Every long run in this repository uses `SP1_METAL_MERKLE=0` until this is fixed upstream.
+~~Every long run in this repository uses `SP1_METAL_MERKLE=0` until this is fixed upstream.~~
+**Retired 2026-09-08.** It is fixed upstream, this repository now builds the fix, and 64 leaves
+under `SP1_METAL_MERKLE=check` found no disagreement. Long runs use the full path again.
 
 ## What a fix would need, and what to hand over
 

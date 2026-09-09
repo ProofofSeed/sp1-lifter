@@ -28,7 +28,12 @@ metal = [
 sp1-sdk = { version = "=6.4.0", features = ["blocking", "native-gnark"] }
 # Prover tuning knobs (shard thresholds, trace chunk slots) live in `SP1CoreOpts`, which
 # the SDK does not re-export.
-sp1-core-executor = { version = "=6.4.0" }
+# `profiling` turns on the executor's cycle-tracker: it parses `cycle-tracker-start/end:`
+# lines out of the guest's stdout and totals the instructions between them, which is the only
+# way to decompose a guest's cost by region. Without it those lines pass through as ordinary
+# output and `ExecutionReport::cycle_tracker` stays empty — which reads exactly like a region
+# that cost nothing.
+sp1-core-executor = { version = "=6.4.0", features = ["profiling"] }
 hex = { version = "0.4" }
 zeroize = { version = "1.8.2" }
 postcard = { version = "1.1", features = ["alloc"] }
