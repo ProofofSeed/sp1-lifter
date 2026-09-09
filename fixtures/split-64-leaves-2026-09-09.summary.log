@@ -1,0 +1,102 @@
+── split-and-aggregate probe (n=64, mode=leaves) ──
+  prover config: backend=cpu/metal-built-all-phases-default shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  zkboo: 10 crates at 1.2.0 from local paths: zkboo=4d443d4ec412 zkboo-sha2=f6a9338d9798 zkboo-hmac=cfd1b99b6ce8 zkboo-modular=5dd32865f05e zkboo-ecc=181341018c11 zkboo-circuit-hash=f5a522d3eafd zkboo-profiling=c6ce1c1c21ba zkboo-bip32=3c6a48a0431d zkboo-keccak=a503af3c5eb4 zkboo-ripemd160=8ce2561c6572
+  proved 64 ZKBoo responses natively in 26.40ms
+  wire: lift frame 3924872 B for 64 responses ⇒ 59.9 KiB/response; leaf frame ≤ 61589 B (statement overhead ~266 B)
+── cross-leaf gate matrix (n=64, no proving) ──
+  control (all 64 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 0: challenge 1 != 2) ✓
+  G2 substituted response: refused (leaf 2: challenge 1 != 2) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 1: challenge 1 != 0) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 0: challenge 1 != 0) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+── 64 leaf proofs ──
+  leaf 0: 23.72s, 352 bytes of public values → fixtures/leaves/n64/leaf-0.compressed.bin
+  leaf 1: 23.53s, 354 bytes of public values → fixtures/leaves/n64/leaf-1.compressed.bin
+  leaf 2: 22.97s, 354 bytes of public values → fixtures/leaves/n64/leaf-2.compressed.bin
+  leaf 3: 23.11s, 356 bytes of public values → fixtures/leaves/n64/leaf-3.compressed.bin
+  leaf 4: 23.61s, 354 bytes of public values → fixtures/leaves/n64/leaf-4.compressed.bin
+  leaf 5: 23.10s, 352 bytes of public values → fixtures/leaves/n64/leaf-5.compressed.bin
+  leaf 6: 22.96s, 356 bytes of public values → fixtures/leaves/n64/leaf-6.compressed.bin
+  leaf 7: 22.81s, 352 bytes of public values → fixtures/leaves/n64/leaf-7.compressed.bin
+  leaf 8: 23.18s, 354 bytes of public values → fixtures/leaves/n64/leaf-8.compressed.bin
+  leaf 9: 23.56s, 354 bytes of public values → fixtures/leaves/n64/leaf-9.compressed.bin
+  leaf 10: 23.14s, 354 bytes of public values → fixtures/leaves/n64/leaf-10.compressed.bin
+  leaf 11: 22.93s, 354 bytes of public values → fixtures/leaves/n64/leaf-11.compressed.bin
+  leaf 12: 23.30s, 356 bytes of public values → fixtures/leaves/n64/leaf-12.compressed.bin
+  leaf 13: 22.59s, 352 bytes of public values → fixtures/leaves/n64/leaf-13.compressed.bin
+  leaf 14: 23.34s, 354 bytes of public values → fixtures/leaves/n64/leaf-14.compressed.bin
+  leaf 15: 22.89s, 352 bytes of public values → fixtures/leaves/n64/leaf-15.compressed.bin
+  leaf 16: 22.84s, 356 bytes of public values → fixtures/leaves/n64/leaf-16.compressed.bin
+  leaf 17: 22.64s, 351 bytes of public values → fixtures/leaves/n64/leaf-17.compressed.bin
+  leaf 18: 22.90s, 354 bytes of public values → fixtures/leaves/n64/leaf-18.compressed.bin
+  leaf 19: 23.34s, 350 bytes of public values → fixtures/leaves/n64/leaf-19.compressed.bin
+  leaf 20: 22.79s, 351 bytes of public values → fixtures/leaves/n64/leaf-20.compressed.bin
+  leaf 21: 22.80s, 352 bytes of public values → fixtures/leaves/n64/leaf-21.compressed.bin
+  leaf 22: 23.55s, 352 bytes of public values → fixtures/leaves/n64/leaf-22.compressed.bin
+  leaf 23: 22.69s, 353 bytes of public values → fixtures/leaves/n64/leaf-23.compressed.bin
+  leaf 24: 22.97s, 352 bytes of public values → fixtures/leaves/n64/leaf-24.compressed.bin
+  leaf 25: 23.32s, 350 bytes of public values → fixtures/leaves/n64/leaf-25.compressed.bin
+  leaf 26: 23.21s, 354 bytes of public values → fixtures/leaves/n64/leaf-26.compressed.bin
+  leaf 27: 23.41s, 352 bytes of public values → fixtures/leaves/n64/leaf-27.compressed.bin
+  leaf 28: 22.92s, 354 bytes of public values → fixtures/leaves/n64/leaf-28.compressed.bin
+  leaf 29: 23.26s, 354 bytes of public values → fixtures/leaves/n64/leaf-29.compressed.bin
+  leaf 30: 22.94s, 352 bytes of public values → fixtures/leaves/n64/leaf-30.compressed.bin
+  leaf 31: 22.88s, 352 bytes of public values → fixtures/leaves/n64/leaf-31.compressed.bin
+  leaf 32: 23.36s, 352 bytes of public values → fixtures/leaves/n64/leaf-32.compressed.bin
+  leaf 33: 23.22s, 352 bytes of public values → fixtures/leaves/n64/leaf-33.compressed.bin
+  leaf 34: 22.82s, 352 bytes of public values → fixtures/leaves/n64/leaf-34.compressed.bin
+  leaf 35: 23.22s, 358 bytes of public values → fixtures/leaves/n64/leaf-35.compressed.bin
+  leaf 36: 23.08s, 351 bytes of public values → fixtures/leaves/n64/leaf-36.compressed.bin
+  leaf 37: 22.73s, 352 bytes of public values → fixtures/leaves/n64/leaf-37.compressed.bin
+  leaf 38: 22.65s, 354 bytes of public values → fixtures/leaves/n64/leaf-38.compressed.bin
+  leaf 39: 23.53s, 354 bytes of public values → fixtures/leaves/n64/leaf-39.compressed.bin
+  leaf 40: 23.28s, 354 bytes of public values → fixtures/leaves/n64/leaf-40.compressed.bin
+  leaf 41: 22.81s, 356 bytes of public values → fixtures/leaves/n64/leaf-41.compressed.bin
+  leaf 42: 23.29s, 354 bytes of public values → fixtures/leaves/n64/leaf-42.compressed.bin
+  leaf 43: 22.66s, 352 bytes of public values → fixtures/leaves/n64/leaf-43.compressed.bin
+  leaf 44: 22.66s, 354 bytes of public values → fixtures/leaves/n64/leaf-44.compressed.bin
+  leaf 45: 23.40s, 354 bytes of public values → fixtures/leaves/n64/leaf-45.compressed.bin
+  leaf 46: 22.86s, 354 bytes of public values → fixtures/leaves/n64/leaf-46.compressed.bin
+  leaf 47: 23.50s, 352 bytes of public values → fixtures/leaves/n64/leaf-47.compressed.bin
+  leaf 48: 22.78s, 354 bytes of public values → fixtures/leaves/n64/leaf-48.compressed.bin
+  leaf 49: 23.70s, 352 bytes of public values → fixtures/leaves/n64/leaf-49.compressed.bin
+  leaf 50: 23.00s, 354 bytes of public values → fixtures/leaves/n64/leaf-50.compressed.bin
+  leaf 51: 23.54s, 354 bytes of public values → fixtures/leaves/n64/leaf-51.compressed.bin
+  leaf 52: 23.09s, 352 bytes of public values → fixtures/leaves/n64/leaf-52.compressed.bin
+  leaf 53: 23.22s, 352 bytes of public values → fixtures/leaves/n64/leaf-53.compressed.bin
+  leaf 54: 23.33s, 352 bytes of public values → fixtures/leaves/n64/leaf-54.compressed.bin
+  leaf 55: 23.26s, 354 bytes of public values → fixtures/leaves/n64/leaf-55.compressed.bin
+  leaf 56: 23.15s, 354 bytes of public values → fixtures/leaves/n64/leaf-56.compressed.bin
+  leaf 57: 23.14s, 350 bytes of public values → fixtures/leaves/n64/leaf-57.compressed.bin
+  leaf 58: 22.85s, 350 bytes of public values → fixtures/leaves/n64/leaf-58.compressed.bin
+  leaf 59: 23.22s, 354 bytes of public values → fixtures/leaves/n64/leaf-59.compressed.bin
+  leaf 60: 23.61s, 354 bytes of public values → fixtures/leaves/n64/leaf-60.compressed.bin
+  leaf 61: 23.82s, 351 bytes of public values → fixtures/leaves/n64/leaf-61.compressed.bin
+  leaf 62: 22.95s, 351 bytes of public values → fixtures/leaves/n64/leaf-62.compressed.bin
+  leaf 63: 22.61s, 352 bytes of public values → fixtures/leaves/n64/leaf-63.compressed.bin
+  64 leaves cached, 1479.54s total, 23.12s mean
+split-and-aggregate probe: PASS
+     1503.50 real      6606.34 user      1595.74 sys
+         36059201536  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+           287536723  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 213  voluntary context switches
+            28811555  involuntary context switches
+     135605469711652  instructions retired
+      31485281110348  cycles elapsed
+         39278900960  peak memory footprint

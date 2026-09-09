@@ -1,0 +1,40 @@
+── split-and-aggregate probe (n=219, mode=root) ──
+  prover config: backend=cpu/metal-built-all-phases-default shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  zkboo: 10 crates at 1.2.0 from local paths: zkboo=4d443d4ec412 zkboo-sha2=f6a9338d9798 zkboo-hmac=cfd1b99b6ce8 zkboo-modular=5dd32865f05e zkboo-ecc=181341018c11 zkboo-circuit-hash=f5a522d3eafd zkboo-profiling=c6ce1c1c21ba zkboo-bip32=3c6a48a0431d zkboo-keccak=a503af3c5eb4 zkboo-ripemd160=8ce2561c6572
+  proved 219 ZKBoo responses natively in 81.59ms
+  wire: lift frame 13430409 B for 219 responses ⇒ 59.9 KiB/response; leaf frame ≤ 61589 B (statement overhead ~264 B)
+── cross-leaf gate matrix (n=219, no proving) ──
+  control (all 219 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 0: challenge 0 != 2) ✓
+  G2 substituted response: refused (leaf 2: challenge 2 != 0) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 0: challenge 0 != 1) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 0: challenge 0 != 2) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+── root over 219 leaves ──
+  root: 263.43s (gate green, 219 responses, 257 bytes of public values)
+── result (n=219) ──
+  root                              263.43s
+split-and-aggregate probe: PASS
+      291.85 real       999.97 user       429.09 sys
+         46520467456  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            51746692  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  89  voluntary context switches
+             8576662  involuntary context switches
+      22814661559814  instructions retired
+       5485769917054  cycles elapsed
+         48092287864  peak memory footprint
