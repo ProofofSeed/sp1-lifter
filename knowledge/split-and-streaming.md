@@ -177,6 +177,9 @@ The leaf is extraordinarily stable: over 64 consecutive proofs, 56.27 s to 57.93
 
 **The marginal cost of admitting one more leaf proof is 2.55 s against a leaf of 57.00 s — 4.5%.**
 
+This law was re-taken at full scale on the current stack: `root seconds = 42.40 + 1.0073 × n` on the full GPU path, fitted at n = 4, 64 and 219, in `performance-table.md`.
+The 2.55 s above is the same quantity on the safe path, and the verdict once recorded against it — that borrowing it across statements was wrong by an order of magnitude — is retracted there.
+
 The previous, discarded fit was `204.8 + 5.43 × N`, taken at n = 4 and n = 8 on a loaded machine.
 Its slope was **right to 1.3%**.
 That is worth recording precisely because the caution attached to it was the correct one anyway: it was a 27× extrapolation and this repository had already been burned once by a small-n measurement that did not survive full scale, so it could not have been believed in advance.

@@ -107,9 +107,59 @@ A backend speedup is a property of the workload, not of the machine, as is a pro
 **`root instructions = 5.099954e9 + 122,869 × n`**, fitted over eight counts from n=2 to n=24 by executing the root guest over natively-replayed leaf outputs.
 Worst residual **0.000011%**.
 
-The marginal is **0.0024% of the fixed term**: at n=219 the root's guest work is +0.523% over n=2.
-So the root is a constant to within half a per cent, which is what the projection had been assuming on an analogy rather than a measurement.
-The 2.0.0 round instead borrowed the *hardened child's* root marginal (2.55 s per leaf) for the elephant; against the measured law that was wrong by an order of magnitude.
+The marginal is **0.0024% of the fixed term**: at n=219 the root's *guest* work is +0.523% over n=2.
+That is a statement about the guest and nothing else.
+The root guest never verifies a deferred proof — SP1 checks those in the recursion layer, which execution does not reach — so the cost of admitting one more leaf proof is absent from this law by construction, and was absent from every projection derived from it.
+
+### The root's per-leaf cost in seconds
+
+Measured 2026-09-09 on the hardened-child root, current stack, full GPU path, one run at a time, with the leaves proved fresh at each count.
+
+| n   | root, measured |   fitted | residual |
+| --- | -------------: | -------: | -------: |
+| 4   |        47.54 s |  46.43 s |   +2.34% |
+| 64  |       105.32 s | 106.87 s |   −1.47% |
+| 219 |       263.43 s | 263.00 s |   +0.16% |
+
+**`root seconds = 42.40 + 1.0073 × n`**, on the full path.
+The worst residual is 2.34%, at the count with the smallest base; the two larger counts sit at 1.47% and 0.16%, comparable to the 1.47% run-to-run scatter measured on the elephant root.
+The fit spans the count the soundness claim is made at rather than extrapolating to it.
+
+**The executor sees about a seventh of this.**
+The elephant root's guest marginal converts to 0.142 s per leaf at that root's own measured rate, against a total marginal of 1.007 s measured here.
+The remainder is recursion-layer work verifying one more deferred proof, which no instruction count can observe.
+
+Carried to the elephant root, whose deferred proofs are compressed proofs of uniform shape:
+
+    root_elephant(219) ≈ 5,911.38 + 217 × 1.007 = 6,130 s (1 h 42 m)
+
+The hardened-child root's own guest marginal is not separately measured, so the split between guest and recursion within the 1.007 s is bounded rather than known.
+Taking it between zero and twice the elephant's puts the elephant root between **6,099 s and 6,161 s**, a band of ±0.5%.
+Against the instruction law alone, which gives 5,942 s, the omitted term is **188 s**: that law captures 14% of the root's growth to full soundness.
+
+**The 2.0.0 round's borrowed 2.55 s per leaf is reinstated, and the verdict against it is retracted.**
+It was called wrong by an order of magnitude on the strength of the guest instruction law, which is the one instrument that cannot see the quantity it names.
+It is a safe-path figure; the difference from the 1.0073 s measured here is 2.53×, which sits in the same band as the root's other measured safe-to-full ratios (2.34× at n=4, 2.41× on the intercept), though that band is consistency rather than proof.
+A borrowed figure was closer to right than the measurement that displaced it, because the measurement was of something else.
+
+The 219 leaves behind the last row were proved in 5,105.6 s, mean 23.313 s: median 23.15 s, p90 24.01 s, six proofs above 25 s, maximum 29.65 s.
+The "spread under 2%" recorded over 64 consecutive proofs describes the body of the distribution and not its tail.
+
+`split-probe` runs the cross-leaf refusal matrix at whatever count it is given, so all nine cases and the accepting control have now run at n=219, where before they had run at 24 and 64.
+A tampered leaf set satisfies the challenge check by chance with probability 3^-k, so the matrix carries most weight at the count the claim is made at.
+
+### Root peak memory in the number of leaves
+
+| n   | root peak RSS |
+| --- | ------------: |
+| 4   |      41.64 GB |
+| 64  |      47.19 GB |
+| 219 |      46.52 GB |
+
+Non-monotonic across a 55× range in n, so no leaf-count term is resolvable: the root's peak is set by something other than the number of deferred proofs it admits.
+At n=219 the run reported zero swaps and system swap usage did not move.
+The 2.0.0 safe-path round recorded 68.8 GB at n=4 and 80.1 GB at n=64, and those figures cross both the release and the backend change from these, so the two sets may not be differenced.
+What these establish on their own is that 219 deferred proofs cost no measurable memory over 4, which removes the memory objection to the elephant root at full soundness.
 
 ### Peak memory, with the release separated from the backend
 
@@ -138,14 +188,16 @@ At full classical-128 soundness:
 
 |                                     | 2.0.0 (safe) | 1.2.0 (safe) | 1.2.0 (full) |
 | ----------------------------------- | -----------: | -----------: | -----------: |
-| 219 leaves + root, one machine      |      11.07 d |      10.12 d |  **3.450 d** |
-| critical path, one machine per leaf |       5.65 h |       5.41 h |  **2.021 h** |
-| root's share of the critical path   |          79% |        79.8% |    **81.7%** |
+| 219 leaves + root, one machine      |      11.07 d |      10.12 d |  **3.452 d** |
+| critical path, one machine per leaf |       5.65 h |       5.41 h |  **2.073 h** |
+| root's share of the critical path   |          79% |        79.8% |    **82.1%** |
 
-Every term of the last column is measured or fitted: the leaf from two proofs, the root at n=2 from one, and the root's growth from the eight-point fit above.
-The only thing never run is a root over more than two leaves at proving scale.
+Every term of the last column is measured or fitted: the leaf from two proofs, the root at n=2 from one, and the root's growth from the three-point seconds law above.
+The last column moved when that law replaced the instruction law's +0.523%; it read 3.450 d, 2.021 h and 81.7% while the recursion-layer marginal was missing.
+A root over more than two leaves has still never been proved *on this statement*.
+What is now measured at scale is the marginal, on the hardened child, at 4, 64 and 219.
 
-The root is still four fifths of the critical path — more so than before, at 81.7% — so more machines buys nothing.
+The root is still four fifths of the critical path — more so than before, at 82.1% — so more machines buys nothing.
 The one-off secp256k1 fingerprint traversal is the only lever left on this statement, and that is now a measured statement rather than an inferred one.
 
 Split arithmetic at n = 4: split on one machine 349.1 s against a 286.1 s monolith — an overhead of 1.22× — with a critical path of 174.2 s, a 1.64× speedup given four machines, and the root at 65.7% of that path.
