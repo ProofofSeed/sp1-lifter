@@ -5,7 +5,8 @@ A Keccak precompile call and an ALU operation each count as one instruction and 
 
 ## Measurements
 
-Hardened-child lift at 219 responses, this machine, 2026-09-07, across the move from the withdrawn zkboo 2.0.0 to 1.2.0:
+Hardened-child lift at 219 responses, this machine, 2026-09-07, across the move from the withdrawn zkboo 2.0.0 to 1.2.0.
+Both arms are on the safe backend path, so the comparison isolates the release; neither is the current cost.
 
 |                           |           2.0.0 |           1.2.0 | change |
 | ------------------------- | --------------: | --------------: | -----: |

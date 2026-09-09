@@ -868,3 +868,45 @@ ITEM 3 — CLOSED.  Peak RSS, both phases, both variables separated.
   🪤 And they would have flattered us.  A confounded comparison that favours your own change
   is the one least likely to be interrogated — which is the argument for having written "not
   measured" rather than a number, two days ago, when only the confounded pair existed.
+
+################################################################################
+2026-09-09 — WORKSPACE RESTRUCTURE, and what it cost.
+################################################################################
+Crates moved into `crates/` (host-side) and `programs/` (zkVM guests), and renamed
+`sp1-lifter-*` to `pofseed-sp1-lift-*`.  crates.io has no namespace mechanism and all eleven
+crates are `publish = false`, so the prefix is for local readability only.
+
+MEASURED FIRST, on the monolithic lift guest, each change independently:
+    baseline                                          lift vkey 0x00f1810f…
+    package renamed only                                        0x00b1555b…
+    folder moved only, package name intact                      0x00c556ba…
+Both are sufficient on their own and they give different keys, so neither subsumes the other:
+the guest ELF carries its package name AND its source paths.
+
+Circuit fingerprints did NOT move (bd121f6f… / a64f0f8a…), nor did the proof-format id.
+So the restructure invalidates exactly the key-pinned artefacts and nothing else.
+
+TRAP, confirmed rather than reasoned about: immediately after the rename `forge test` went
+GREEN.  The fixture and its pin were both stale and therefore agreed with each other, so the
+suite attested a program that no longer existed.  Only `vkeys` catches this.  The README now
+says to run it after moving or renaming a crate, not only after editing one.
+
+WHAT IT COST
+  re-pin `pinned-keys`: LEAF_VK, LEAF_ELEPHANT_VK — converged in one pass
+  regenerate the on-chain fixture: `lift 219 groth16`
+  re-pin EXPECTED_VKEY → 0x00883344bf73a83ef3c2122a542e1c9d01f06d7505ac8cbae77a3837a4bf0c6c
+  discard 142 MB of cached leaf proofs, all unverifiable under the new keys, and re-prove them
+
+A FIGURE THAT CAME FREE WITH THE REGENERATION — the first full-soundness lift on the repaired
+backend:
+    safe path   9,927.49 s / 76.52 GB
+    full path   3,613.03 s / 48.39 GB      **2.748x faster, 63% of the memory**
+  The headline lift is 1 h 00 m 13 s, not 2 h 45 m.
+  A fourth workload, a fourth distinct speedup: 2.52x (child leaf), 2.62x (elephant root),
+  2.748x (monolithic lift), 2.94x (elephant leaf).  The spread is now 17%.
+
+ACCEPTANCE AFTER THE RESTRUCTURE
+  vkeys PASS (both pins correct)          forge test 18/18
+  s1-acceptance: reject matrix PASS, full-scale positive PASS (4,386,739,693 instructions)
+  cross-leaf gate matrix PASS ×4; forge-vk, forge-count, forge-order all refuse
+  child leaves re-proved (22.81 s mean); elephant leaves re-proving

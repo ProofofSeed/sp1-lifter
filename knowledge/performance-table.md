@@ -50,6 +50,19 @@ On the values a caller actually holds, those 31 bytes cost 79 gas.
 A measurement harness that stores its own fixture charges the subject for the storage.
 Establish where the data resides before interpreting the figure.
 
+### The full-soundness lift on the repaired backend
+
+`lift 219 groth16`, measured 2026-09-09 on the full accelerated path, against the same run on the safe path:
+
+| arrangement                      |        proving |     peak RSS |
+| -------------------------------- | -------------: | -----------: |
+| safe path (`SP1_METAL_MERKLE=0`) |     9,927.49 s |     76.52 GB |
+| full path                        | **3,613.03 s** | **48.39 GB** |
+| ratio                            |         2.748x |       0.632x |
+
+The headline lift is therefore **1 h 00 m**, not 2 h 45 m, in two thirds of the memory.
+That is a fourth workload speedup and a fourth distinct value: 2.52x, 2.62x, 2.75x and 2.94x for the hardened-child leaf, the elephant root, the monolithic lift and the elephant leaf.
+
 ### SP1 zkVM proving, GPU-safe arm
 
 All four rows here are on the **safe** path, both columns, so the comparison is like for like:

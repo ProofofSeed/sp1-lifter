@@ -9,7 +9,7 @@
 > What the port cost and what is now closed: `zkboo-1.2.0-migration.md`.
 > Why a superseded number may not be rescaled into a current one, measured rather than asserted: `instructions-are-not-seconds.md`.
 
-`host/src/orchestrator.rs` and the `stream-lift` driver.
+`crates/host/src/orchestrator.rs` and the `stream-lift` driver.
 Built 2026-08-28.
 
 The monolithic lifter cannot start until the last response exists, so device time and proving time **add**.

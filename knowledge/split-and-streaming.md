@@ -39,7 +39,7 @@ The Fiat-Shamir entropy is a hash over the commitments of exactly the responses 
 A subset of leaves re-derives a different challenge sequence and therefore attests nothing about the whole — the same property that makes a truncated proof fail, and that makes zkboo's ranged proving safe.
 Split naively and you have 219 proofs of nothing.
 
-Everything that recovers the statement lives in one function, `sp1_lifter_split::aggregate`:
+Everything that recovers the statement lives in one function, `pofseed_sp1_lift_split::aggregate`:
 
 - the leaves are a **complete, in-order, duplicate-free** cover of the proof;
 - every leaf attests **the same statement**;
@@ -49,8 +49,8 @@ The last of these is the global Fiat-Shamir gate — the same correctness condit
 
 ## The probe
 
-`split/`, `program-leaf/`, `program-root/` and the `split-probe` driver.
-Deliberately separate from the production statement crate: nothing here links into `program/`, so probing cannot move the pinned verifying key.
+`crates/split/`, `programs/program-leaf/`, `programs/program-root/` and the `split-probe` driver.
+Deliberately separate from the production statement crate: nothing here links into `programs/program/`, so probing cannot move the pinned verifying key.
 
 - **Leaf** — replays ONE response and commits `(position, statement digest, declared party, the three view commitments)`.
   It attests nothing on its own: one response has soundness 2/3, and no leaf can know whether its party is the one Fiat-Shamir demands.
@@ -102,7 +102,7 @@ Nothing in the mathematics wants the proof in one piece.
 
 ### 2. The lift guest: yes, avoidably
 
-`program/src/main.rs` does a single `sp1_zkvm::io::read_vec()` and postcard-decodes the whole `LiftInput`, so all 219 responses are resident at once — a ~13 MB frame for the hardened child, and 2.47 GB for the address statement (**0.756 GB** under ZKBoo 2.0.0).
+`programs/program/src/main.rs` does a single `sp1_zkvm::io::read_vec()` and postcard-decodes the whole `LiftInput`, so all 219 responses are resident at once — a ~13 MB frame for the hardened child, and 2.47 GB for the address statement (**0.756 GB** under ZKBoo 2.0.0).
 Changing the frame to a header plus N response records and reading them one at a time makes guest memory O(1) in the response count, with no protocol change and a frame-version bump.
 
 **This buys memory, not latency.**
@@ -223,7 +223,7 @@ Both halves of that were estimates when this document was last written and both 
 
 Remaining work, in order:
 
-1. ~~A streaming orchestrator — per arriving response, build a `LeafInput` and dispatch a `prove` into a pool; fire the root when the last leaf lands.~~ **Done, 2026-08-28**: `host/src/orchestrator.rs` and the `stream-lift` driver.
+1. ~~A streaming orchestrator — per arriving response, build a `LeafInput` and dispatch a `prove` into a pool; fire the root when the last leaf lands.~~ **Done, 2026-08-28**: `crates/host/src/orchestrator.rs` and the `stream-lift` driver.
    No SP1, zkboo, or contract change, as expected.
 2. **Per-response delivery from the device** — responses delimited and handed over as they complete rather than as one blob.
    Plumbing; the harness's framed pipe is the model.
@@ -277,7 +277,7 @@ All three were re-run on 2026-08-28 against the pinned roots and all three refus
 | `forge-count` | 🔴 **undetermined — somewhere in the recursion layer** |    105.3 s |
 | `forge-order` | 🔴 **undetermined — somewhere in the recursion layer** |    105.4 s |
 
-`forge-vk`'s guest runs, reaches `input.leaf_vk != LEAF_VK`, and panics — visible in the run's stderr as `claimed leaf key is not the pinned one` at `program-root/src/main.rs:44`.
+`forge-vk`'s guest runs, reaches `input.leaf_vk != LEAF_VK`, and panics — visible in the run's stderr as `claimed leaf key is not the pinned one` at `programs/program-root/src/main.rs:44`.
 The prove-time error still reads `artifact not found`, but that is downstream wreckage of the failed run, not the refuser.
 
 **The first reading classified on that error string and got it backwards.**
@@ -319,7 +319,7 @@ The assertion added afterwards to catch that is what caught all three of these, 
 ### Still open
 
 **~~`leaf_vk` is prover-chosen.~~  Pinned, 2026-08-28.**
-The roots compile the leaf verifying key in (`pinned-keys/`), so a root's own verifying key now says which leaf program it will admit — there is no longer a field outside `check_journal` that a relying party can forget.
+The roots compile the leaf verifying key in (`crates/pinned-keys/`), so a root's own verifying key now says which leaf program it will admit — there is no longer a field outside `check_journal` that a relying party can forget.
 The frame still carries a claimed key and the journal still commits one, so a journal stays self-describing, and the root refuses any claim that disagrees with what it used.
 
 It cost nothing measurable: 112.29 s for a root over four leaves against 112.18 s unpinned.

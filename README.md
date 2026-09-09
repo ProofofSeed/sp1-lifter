@@ -26,7 +26,7 @@ Leaving the Merkle tree on the CPU has run 115 consecutive proofs clean, at 1.9�
 See `knowledge/gpu-corruption.md`.
 
 ```sh
-cargo build --release -p sp1-lifter-host --features metal   # once; the binaries below are in target/release
+cargo build --release -p pofseed-sp1-lift-host --features metal   # once; the binaries below are in target/release
 
 ./target/release/cycle-probe                # instruction-law sweep
 ./target/release/s1-acceptance              # reject matrix + full-scale 219
@@ -52,21 +52,36 @@ Proving cost is tunable from the environment without a rebuild — `SHARD_SIZE`,
 
 ## Structure
 
-- `statement/` — shared host/program definitions: the proof-of-seed circuits, the fixed Keccak-256 crypto suite, the postcard wire format, and the reference journal gate.
-- `program/` — the SP1 program: a thin shim around `zkboo::verifier::verify`.
-- `elephant/`, `program-elephant/` — the secp256k1 Ethereum-address statement and its guest, kept separate so that probing it cannot move the production verifying key.
+Every root-level folder is a grouping: `crates/` for host-side Rust, `programs/` for the zkVM guests, `verifier/` for the Solidity, `knowledge/` for the design record and the measurements, `fixtures/` for the evidence they cite.
+
+All crates are named `pofseed-sp1-lift-*`, after the project and the proof system, since other SNARK back ends are expected alongside this one.
+None is published: crates.io has no namespace mechanism, so the prefix is what distinguishes them in local tooling, and every manifest carries `publish = false`.
+
+### `crates/` — host-side
+
+- `statement/` — shared host and guest definitions: the proof-of-seed circuits, the fixed Keccak-256 crypto suite, the postcard wire format, and the reference journal gate.
+- `elephant/` — the secp256k1 Ethereum-address statement, kept separate so that probing it cannot move the production verifying key.
   See `knowledge/elephant-cost.md`.
-- `host/` — proof generation, execution/proving drivers, and the acceptance harnesses.
-- `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0).
-- `split/`, `program-leaf/`, `program-root/` — the split-and-aggregate probe: one proof per response plus a root carrying the cross-leaf global Fiat-Shamir gate, which is what makes the lift distributable and streamable.
+- `split/` — the split-and-aggregate frames and the cross-leaf global Fiat-Shamir gate, which is what makes the lift distributable and streamable.
   See `knowledge/split-and-streaming.md`.
-- `program-leaf-elephant/`, `program-root-elephant/` — the same split over the secp256k1 Ethereum-address statement, which has no public parameters and a different journal shape, so it needs its own pair of guests.
-  Driven by `elephant-split`.
 - `pinned-keys/` — the leaf verifying keys, compiled into the roots so that a root's own key says which leaf program it will admit.
-  **Run `vkeys` after editing any crate a guest links — a comment-only change has been measured moving a guest key** (`knowledge/guest-keys-move-on-comments.md`).
+  **Run `vkeys` after editing any crate a guest links, and after moving or renaming one: a comment-only change has been measured moving a guest key, and so has a change of package name or of path** (`knowledge/guest-keys-move-on-comments.md`).
   **It has no dependencies on purpose:** a crate the leaf programs link would move their keys whenever it changed, and the pin would never converge.
   `vkeys` re-derives every key from the built ELFs and fails if a pinned constant has drifted.
-- `host/src/orchestrator.rs` — the streaming orchestrator: a leaf proof is dispatched as each response arrives rather than after the last one, so leaf proving overlaps response generation.
-  Driven by `stream-lift`; see `knowledge/streaming-orchestrator.md`.
-- `knowledge/` — design record, milestone plan, and measured numbers.
+- `host/` — proof generation, the execution and proving drivers, and the acceptance harnesses.
+  `host/src/orchestrator.rs` dispatches a leaf proof as each response arrives rather than after the last one, so leaf proving overlaps response generation; driven by `stream-lift`, see `knowledge/streaming-orchestrator.md`.
+
+### `programs/` — zkVM guests
+
+- `program/` — the production lift: a thin shim around `zkboo::verifier::verify`.
+- `program-elephant/` — the same for the Ethereum-address statement.
+- `program-leaf/`, `program-root/` — one proof per response, plus a root carrying the cross-leaf gate.
+- `program-leaf-elephant/`, `program-root-elephant/` — the same split over the Ethereum-address statement, which has no public parameters and a different journal shape, so it needs its own pair of guests.
+  Driven by `elephant-split`.
+
+### The rest
+
+- `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0), and the relying-party journal gate as a Solidity library.
+- `knowledge/` — design record, plan, and measured numbers.
   `performance-table.md` is the current cost of everything and the place to start; `gpu-proving.md` covers what the Metal backend does to this workload and `gpu-corruption.md` the defect that used to bound it, fixed upstream and retired on 2026-09-08; `zkboo-1.2.0-migration.md` with `zkboo-next-delta.md` record the dependency re-architecture; `instructions-are-not-seconds.md` is why a saving in one may not be quoted as a saving in the other.
+- `fixtures/` — the distilled run logs the notes cite, and the cached leaf proofs the split drivers reuse.

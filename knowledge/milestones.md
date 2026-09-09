@@ -189,7 +189,7 @@ And a bit-oriented replacement is out on measured grounds: **63,192 trace cells 
 ## Standing observations from the S0 adversarial review (2026-08-19)
 
 - The `LiftInput` frame layout depends on cargo feature unification of zkboo's word features, resolved independently in the host workspace and the guest's own workspace.
-  The frame now carries a version tag, and the word features are pinned explicitly in `statement/Cargo.toml`; any feature change must bump `LIFT_FRAME_VERSION`.
+  The frame now carries a version tag, and the word features are pinned explicitly in `crates/statement/Cargo.toml`; any feature change must bump `LIFT_FRAME_VERSION`.
 - `SegmentInfo::cycles` is user cycles without continuation/po2-padding overhead; S2 proving cost per segment is `2^po2`, so S2 pricing must not reuse the S0 totals as-is.
   `env::cycle_count()` is host-provided and unattested — `verify_cycles` must never appear in a journal as trusted data.
 - zkboo encoding malleability (no soundness impact): a response's short `and_msg` vector is zero-filled by `ResponseReplaySource::next_and_msg` without failing `check_consumed`, so distinct proof byte-encodings can verify identically.

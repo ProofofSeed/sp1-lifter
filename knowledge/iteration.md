@@ -181,7 +181,7 @@ Fitting the pair gives **21.66M instructions per response + ~30M fixed** (frame 
 Two suspicions were checked and both are dead ends:
 
 - **Word width.**
-  The `u32`/`u64` zkboo features are enabled in `statement/` and `program/`, so SHA-512 runs on native 64-bit words.
+  The `u32`/`u64` zkboo features are enabled in `crates/statement/` and `programs/program/`, so SHA-512 runs on native 64-bit words.
   There is no 8× byte-serial penalty to reclaim.
 - **Replay-backend overhead.**
   At ~370 instructions per response byte (vs ~2 400/byte for the software-Keccak risc0 baseline) the SP1 Keccak precompile is plainly firing, and `zkboo-bip32/README.md` puts native verification of a hardened-child response at ~2.1 ms — order 10–25M instructions on this CPU, against the guest's 21.66M.
@@ -244,7 +244,7 @@ Three changes landed after the revisions this repo had pinned (`zkboo` `ffe5807`
   This looks like a soundness hazard for a count-based gate: commit to N ≫ 219 iterations, see which survive the challenge (~2/3 of them), and emit only 219 winners.
   **It is not one.**
   The challenge entropy is hashed over the view commitments of exactly the responses *present in the proof*, and the regenerated challenge sequence is compared position by position; dropping responses changes the entropy, hence every challenge, so the retained responses stop matching.
-  The relevant path is the **sequential** `verify`, which is what the guest compiles — `program/src/main.rs` imports it by name, so no feature flag can change that.
+  The relevant path is the **sequential** `verify`, which is what the guest compiles — `programs/program/src/main.rs` imports it by name, so no feature flag can change that.
   Both it and `par_verify` live in `zkboo/src/verifier/functions.rs` (at `verify` and `par_verify` respectively) and carry the same derivation.
   Selection is self-defeating and a partial range does not verify standalone — it must be reassembled.
   `skip_iters` is a prover-side convenience (resumable, retriable, splittable proving), not a verifier-side relaxation, and `num_responses ≥ 219` remains exactly the right gate.
@@ -390,7 +390,7 @@ Against a ~70% share that is roughly **1.9× end to end**, on the hardware alrea
 The statement that actually binds a proof of seed to an Ethereum account is `address = Keccak256(x_be ‖ y_be)[12:]` where `Q = (x,y) = d·G` on secp256k1.
 Everything the lifter had measured until now was on the hash-only side of the proof-of-seed suite; this is the expensive side, probed at one, two and four responses rather than by committing months of machine time to find out.
 
-The probe lives in its own crate and its own guest (`elephant/`, `program-elephant/`), deliberately outside the production statement crate: that crate's shape fixes the guest ELF and hence the verifying key the on-chain suite pins, and a probe must not move it.
+The probe lives in its own crate and its own guest (`crates/elephant/`, `programs/program-elephant/`), deliberately outside the production statement crate: that crate's shape fixes the guest ELF and hence the verifying key the on-chain suite pins, and a probe must not move it.
 Verified after building: the Foundry suite still passes 5/5 at the same key.
 
 ### Measured, at the circuit
@@ -479,7 +479,7 @@ The manifests asked for `1.0.0` and patched it to local paths that had since bec
 **A patch whose local version stops satisfying the requirement is ignored by cargo without a word**, and the published crate is resolved instead.
 The ledger-app line lost a round of measurements to precisely this: proofs that were well-formed and did not verify, with a provenance field that read `git describe` on the working tree and so named a version the binary did not contain.
 
-The patches are gone, the requirements are exact, and `host/build.rs` refuses to build unless every zkboo crate resolves from a registry at the required version with a checksum.
+The patches are gone, the requirements are exact, and `crates/host/build.rs` refuses to build unless every zkboo crate resolves from a registry at the required version with a checksum.
 Both arms of the refusal were demonstrated by making the tree violate them.
 Every driver prints what it linked.
 
