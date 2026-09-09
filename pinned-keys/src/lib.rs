@@ -9,7 +9,7 @@
 //! verifying key says nothing about which leaf program it admitted: two roots with identical
 //! keys can attest leaves from entirely different programs — one of which might skip the
 //! well-formedness check, or replay a different circuit. The journal names the key it used, so
-//! a relying party *can* check it, and that is exactly the problem: it is a check that can be
+//! a relying party *can* check it, which is the problem: it is a check that can be
 //! forgotten, sitting outside everything `check_journal` covers.
 //!
 //! Compiling the digest in moves the check inside the root's own verifying key. Verifying a
@@ -24,7 +24,7 @@
 //! is what makes the two-stage build terminate: build the leaf, read its key, record it here,
 //! build the root.
 //!
-//! # Keeping it honest
+//! # Maintenance
 //!
 //! A constant checked in by hand is a constant that can go stale, and a stale one fails at
 //! SP1's artifact lookup with a message about a missing artifact rather than about a wrong key.

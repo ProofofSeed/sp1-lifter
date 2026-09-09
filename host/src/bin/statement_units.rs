@@ -2,10 +2,8 @@
 
 //! What the two lifted statements cost, in each of the three units they can be counted in.
 //!
-//! This exists because a ratio test between the two statements was got wrong twice in one day, and
-//! both times the mistake was the denominator rather than the arithmetic. The statements are ~50×
-//! apart by one measure and ~260× apart by another, so "the elephant is N times the hardened
-//! child" is not a fact until the unit is named.
+//! The statements are ~50× apart by one measure and ~260× apart by another, so a ratio between
+//! them is undefined until the unit is named.
 //!
 //! The three units, and what each one is the right denominator for:
 //!
@@ -35,7 +33,7 @@ use zkboo_profiling::{GateCounts, profile};
 /// Bytes absorbed since the last reset, across every instance of [`CountingHasher`].
 ///
 /// A static rather than a field because `hash_circuit` constructs its own hasher and returns only
-/// a digest, so there is no instance to interrogate afterwards; counting globally also survives an
+/// a digest, so there is no instance to inspect afterwards; counting globally also survives an
 /// implementation that uses more than one.
 static ABSORBED: AtomicU64 = AtomicU64::new(0);
 
@@ -122,8 +120,7 @@ fn main() {
     println!();
     // The fixed term of each statement's guest instruction law is the in-guest fingerprint
     // traversal, so its ratio is a measured quantity that the fingerprint-byte ratio predicts.
-    // Printed together because the comparison is the point, and because reading either one alone
-    // is what produced two wrong attributions today.
+    // Printed together: reading either alone has produced wrong attributions.
     println!("  measured guest fixed-term ratio (elephant 5.0986e9 / child 3.147e7): 162.0x");
     println!("  ↑ compare with the fingerprint-byte ratio above, which is what that term does.");
 }

@@ -34,42 +34,32 @@
 //! - `forge-count` — the root claims `n` leaves but supplies `n-1` proofs.
 //! - `forge-order` — the proofs are supplied in an order the claims do not match.
 //!
-//! ⚠️ **A failure is not automatically the failure being tested, and the prove-time error
-//! cannot tell you which failure it was.** All three surface as "artifact not found", so each
-//! mode also *executes* the same frame and asks the guest directly. That distinguishes them:
+//! ⚠️ A failure is not necessarily the failure under test, and the prove-time error does not
+//! identify it: all three modes surface as "artifact not found". Each mode therefore also
+//! executes the same frame and reads the guest's own verdict.
 //!
-//! - `forge-vk` is refused **by the root guest itself**, at the pinned-key assertion, before
-//!   any deferred proof is looked up. Its prove-time error still says "artifact not found" —
-//!   downstream wreckage of the failed run, not the refuser.
-//! - `forge-count` and `forge-order` are **invisible to the guest** by construction: they
-//!   change only which proofs are supplied alongside unchanged claims. Something downstream of
-//!   the guest refuses them, and **this harness cannot say what.**
+//! - `forge-vk` is refused by the root guest at the pinned-key assertion, before any deferred
+//!   proof is looked up. Its prove-time error is downstream wreckage, not the refuser.
+//! - `forge-count` and `forge-order` are invisible to the guest by construction: they change
+//!   only which proofs are supplied alongside unchanged claims. The refusal happens downstream
+//!   of the guest, and this harness cannot identify where.
 //!
-//! 🔴 **Corrected 2026-09-08, and the correction is the point.** These two cases were reported
-//! as "refused by SP1's host-side deferred-proof bookkeeping". That was an inference from "the
-//! guest accepted", and it does not follow — "not the guest" does not name a refuser. Two facts
-//! killed it:
+//! 🔴 Corrected 2026-09-08. These two cases were previously recorded as refused by SP1's
+//! host-side deferred-proof bookkeeping, inferred from the guest having accepted them. Two
+//! observations retire that reading:
 //!
-//! - **The observable is identical in a case where the refuser is known.** All three modes end
-//!   with the same recursion-VM fatal, `attempted to perform base field division N/0` in a
-//!   `DivF` instruction inside a Reduction task, followed by the same `artifact not found`.
-//!   `forge-vk` produces it too — and there the guest demonstrably panics first. An error that
-//!   appears when the guest is the refuser cannot be evidence that the guest was not.
-//! - **The host does not do the bookkeeping it was credited with.** In 6.4.0,
+//! - The prove-time observable does not discriminate. All three modes end with the same
+//!   recursion-VM fatal, `attempted to perform base field division N/0` in a `DivF` instruction
+//!   inside a Reduction task, then `artifact not found`. `forge-vk` produces it as well, and
+//!   there the guest is known to refuse first.
+//! - The host performs no such matching. In 6.4.0,
 //!   `sp1_prover::worker::controller::deferred::DeferredInputs::new` walks `stdin.proofs` in
-//!   order and folds them with `hash_deferred_proofs`; it never matches them against the
-//!   guest's claims. The matching is the compress circuit's, against the digest the guest
-//!   committed.
+//!   order and folds them with `hash_deferred_proofs`, never comparing them with the guest's
+//!   claims. That comparison is the compress circuit's, against the digest the guest committed.
 //!
-//! So the honest statement is: **the guest is not the refuser, the refusal happens inside the
-//! recursion layer, and which mechanism inside it — the deferred-digest constraint, or a
-//! degenerate witness crashing the executor before any constraint has a verdict — is not
-//! distinguished by anything this harness can see.** It may well be exercising the in-circuit
-//! binding; it may equally be crashing short of it. Neither reading is licensed.
-//!
-//! A deployment must therefore not read these passes as evidence about the in-circuit binding.
-//! The evidence for that binding is a reading of the 6.4.0 sources, and separating the two
-//! would need SP1 to report a constraint verdict where it currently reports a division.
+//! Established: the guest is not the refuser, and the refusal occurs within the recursion
+//! layer. Not established: which mechanism refuses. These passes are therefore not evidence
+//! about the in-circuit binding, whose only support is a reading of the 6.4.0 sources.
 
 use std::time::{Duration, Instant};
 
@@ -305,7 +295,7 @@ fn main() {
          `pinned-keys`"
     );
     let leaf_vk_digest = leaf_vk.hash_u32();
-    // Keyed by response count, and that is not tidiness. A leaf is response `i` of an
+    // Keyed by response count. A leaf is response `i` of an
     // `n`-response proof, and the responses themselves depend on the global challenge,
     // which depends on how many there are — so a leaf cached at one `n` is not a leaf at
     // another. Sharing one directory between counts would leave the stale proof verifying

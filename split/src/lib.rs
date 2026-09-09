@@ -196,7 +196,7 @@ pub struct RootInput {
     pub binding: Vec<u8>,
     /// The verifying-key digest every leaf proof must have been produced under.
     ///
-    /// ✅ **Both roots compile this key in** (`sp1_lifter_pinned_keys`), since 2026-08-28,
+    /// **Both roots compile this key in** (`sp1_lifter_pinned_keys`), since 2026-08-28,
     /// and refuse a claimed value that disagrees before admitting any proof — so the pin lives
     /// inside the root's own verifying key, and pinning that key gets this for free. The field
     /// is kept so a journal stays self-describing.

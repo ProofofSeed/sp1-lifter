@@ -13,7 +13,7 @@
 //! This probe measures the expensive side and reports what it implies at full scale, rather
 //! than committing months of machine time to find out.
 //!
-//! **It sweeps rather than taking one point, and that is the whole design.** The cost is
+//! It sweeps rather than taking one point. The cost is
 //! `fixed + marginal × n`, the fixed part is the in-guest circuit-fingerprint pass over a
 //! secp256k1 circuit plus the frame decode, and at one response that fixed part was two
 //! thirds of the total — so a single point overstates the marginal cost, and hence full
