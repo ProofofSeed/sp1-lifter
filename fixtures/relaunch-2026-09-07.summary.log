@@ -802,3 +802,69 @@ RUN 2 RESULT — SP1_METAL_REUSE=1 + SP1_METAL_MERKLE=check, 64 leaves.
   Cost of the hand-off, incidentally: 58.66 s/leaf with it against 59.53 s without, both under
   check mode.  Within run-to-run scatter, which agrees with upstream's measurement that it
   pays nothing — the reason it now defaults off.
+
+################################################################################
+ITEM 3 — peak RSS, like for like.  The confound MATTERED: the two effects OPPOSE.
+################################################################################
+Elephant leaves-only, n=2, one process, on the SAFE path — matching the configuration the
+2.0.0 baseline was taken on, so only the release differs.
+  leaf 0  3,876.50 s   leaf 1  3,864.78 s   mean 3,870.64 s
+  7,749.57 real, peak RSS **81.71 GB**
+  fixtures/elephant-leaves-safegpu-2026-09-08.summary.log
+
+  LEAF PHASE, peak RSS:
+    2.0.0, safe   76.05 GB
+    1.2.0, safe   81.71 GB     ← release effect       **+7.43%**
+    1.2.0, full   57.40 GB     ← configuration effect **−29.75%**
+
+  🔑 **The release made peak memory WORSE by 7.4%, and the backend configuration more than
+  paid for it.**  The naive comparison — 2.0.0-safe against 1.2.0-full — reads −24.5% and
+  attributes to the release an improvement that is entirely the backend's, over the top of a
+  regression going the other way.  That is exactly the confound the "not measured" entry
+  refused to guess at yesterday, and guessing either way would have been wrong.
+
+  🪤 Note it would have been wrong in the *flattering* direction.  A confounded comparison
+  that happens to favour your own change is the one you are least likely to interrogate.
+
+  Timing cross-check, same configuration: 3,870.64 s leaves-only today against 3,919.77 s in
+  yesterday's leaves+root process — **1.25% apart**, which is a useful run-to-run noise floor
+  for this workload and confirms the two runs are measuring the same thing.
+
+ROOT PHASE, safe path, n=2 — the second half of the isolation.
+  root 15,248.26 s, gate green, peak RSS **80.17 GB**
+  fixtures/elephant-root-safegpu-2026-09-08.summary.log
+
+  ROOT PHASE, peak RSS:
+    2.0.0, safe   74.37 GB   (a rerun of the same gave 74.70, spread +0.43% — the noise floor)
+    1.2.0, safe   80.17 GB   ← release effect       **+7.79%**
+    1.2.0, full   53.03 GB   ← configuration effect **−33.85%**
+    naive (2.0.0-safe vs 1.2.0-full): −28.69%, confounded
+
+  🔑 **Both phases agree: +7.43% on the leaf, +7.79% on the root.**  Two workloads that share
+  almost nothing — a view replay against a one-off curve fingerprint traversal — moved by the
+  same amount to within four tenths of a percent, against a baseline whose own run-to-run
+  spread is 0.43%.  That is a systematic release effect, not scatter, and it is the one thing
+  in this whole comparison that a single phase could not have established.
+
+  ROOT PHASE, seconds, like for like on the safe path:
+    2.0.0  15,589.86 / 15,493.61 (two runs)   1.2.0  15,248.26
+    −2.19% / −1.58%, against 1.2.0's own run-to-run of −1.47% (15,476.43 yesterday).
+    So the release's effect on root TIME is inside the scatter — the "root unchanged" reading
+    recorded yesterday holds, now with a measured noise floor under it rather than an assertion.
+
+################################################################################
+ITEM 3 — CLOSED.  Peak RSS, both phases, both variables separated.
+################################################################################
+                        leaf phase        root phase
+  2.0.0, safe            76.05 GB          74.37 GB
+  1.2.0, safe            81.71 GB          80.17 GB     release      +7.43% / +7.79%
+  1.2.0, full            57.40 GB          53.03 GB     backend cfg −29.74% / −33.85%
+
+  **zkboo 1.2.0 costs about 7.5% more peak memory on both phases.**  It was invisible until
+  now because the only comparison available crossed the backend change as well, and that
+  change is four times larger and points the other way.  The naive figures (−24.5%, −28.7%)
+  would have credited the release with a memory improvement it did not make.
+
+  🪤 And they would have flattered us.  A confounded comparison that favours your own change
+  is the one least likely to be interrogated — which is the argument for having written "not
+  measured" rather than a number, two days ago, when only the confounded pair existed.
