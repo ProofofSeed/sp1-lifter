@@ -111,9 +111,33 @@ assuming on an analogy rather than a measurement. 🪤 The 2.0.0 round instead b
 *hardened child's* root marginal (2.55 s per leaf) for the elephant; against the measured law that
 was wrong by an order of magnitude.
 
-🪤 **RSS is not comparable and is deliberately absent.** The 2.0.0 figures (73.4 GB leaf, 74.4 GB
-root) are per-phase peaks from separate processes; the 1.2.0 run measured 81.46 GB as one process's
-maximum across both phases. Different quantity — "not measured" is the honest entry, not "+10%".
+### Peak memory, with the release separated from the backend
+
+Measured 2026-09-08/09 by re-running both phases on the *older* backend configuration, so that
+only the release differs. Per-phase peaks, one process each, n=2:
+
+| | leaf phase | root phase | |
+| ------------ | ---------: | ---------: | --- |
+| 2.0.0, safe | 76.05 GB | 74.37 GB | baseline |
+| 1.2.0, safe | **81.71 GB** | **80.17 GB** | release **+7.43% / +7.79%** |
+| 1.2.0, full | 57.40 GB | 53.03 GB | backend **−29.74% / −33.85%** |
+
+🔑 **zkboo 1.2.0 costs about 7.5% more peak memory, on both phases.** It was invisible until the
+two variables were separated, because the only comparison available crossed the backend change as
+well — and that change is four times larger and points the other way. The confounded figures
+(−24.5%, −28.7%) would have credited the release with an improvement it did not make.
+
+The two phases share almost nothing — a view replay against a one-off curve fingerprint traversal
+— and agree to within four tenths of a percent, against a baseline whose own repeat spread is
+0.43%. That is what makes it a systematic effect rather than scatter.
+
+🪤 The confounded reading flattered us, which is the direction least likely to be interrogated.
+Before this run the entry here read "not measured" rather than a number, and that was the right
+call: the only pair available could not tell a 7.5% regression from a 30% improvement.
+
+Root *time* on the safe path moved −1.58% to −2.19% across the release, against 1.2.0's own
+run-to-run scatter of 1.47% — so "the root is unchanged" holds, now with a measured noise floor
+under it.
 
 At full classical-128 soundness:
 
