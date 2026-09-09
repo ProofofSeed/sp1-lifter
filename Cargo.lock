@@ -2822,6 +2822,140 @@ dependencies = [
 ]
 
 [[package]]
+name = "pofseed-sp1-lift-elephant"
+version = "0.1.0"
+dependencies = [
+ "pofseed-sp1-lift-statement",
+ "serde",
+ "zkboo",
+ "zkboo-bip32",
+]
+
+[[package]]
+name = "pofseed-sp1-lift-host"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "pofseed-sp1-lift-elephant",
+ "pofseed-sp1-lift-pinned-keys",
+ "pofseed-sp1-lift-split",
+ "pofseed-sp1-lift-statement",
+ "postcard",
+ "serde",
+ "sha2",
+ "slop-basefold-prover",
+ "slop-dft",
+ "slop-jagged",
+ "slop-multilinear",
+ "sp1-build",
+ "sp1-core-executor",
+ "sp1-hypercube",
+ "sp1-prover",
+ "sp1-sdk",
+ "zeroize",
+ "zkboo",
+ "zkboo-bip32",
+ "zkboo-circuit-hash",
+ "zkboo-profiling",
+]
+
+[[package]]
+name = "pofseed-sp1-lift-pinned-keys"
+version = "0.1.0"
+
+[[package]]
+name = "pofseed-sp1-lift-program"
+version = "0.1.0"
+dependencies = [
+ "pofseed-sp1-lift-statement",
+ "postcard",
+ "sp1-zkvm",
+ "zkboo",
+ "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "pofseed-sp1-lift-program-elephant"
+version = "0.1.0"
+dependencies = [
+ "pofseed-sp1-lift-elephant",
+ "postcard",
+ "sp1-zkvm",
+ "zkboo",
+ "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "pofseed-sp1-lift-program-leaf"
+version = "0.1.0"
+dependencies = [
+ "pofseed-sp1-lift-split",
+ "pofseed-sp1-lift-statement",
+ "postcard",
+ "sp1-zkvm",
+ "zkboo",
+]
+
+[[package]]
+name = "pofseed-sp1-lift-program-leaf-elephant"
+version = "0.1.0"
+dependencies = [
+ "pofseed-sp1-lift-elephant",
+ "pofseed-sp1-lift-split",
+ "postcard",
+ "sp1-zkvm",
+ "zkboo",
+]
+
+[[package]]
+name = "pofseed-sp1-lift-program-root"
+version = "0.1.0"
+dependencies = [
+ "pofseed-sp1-lift-pinned-keys",
+ "pofseed-sp1-lift-split",
+ "pofseed-sp1-lift-statement",
+ "postcard",
+ "sha2",
+ "sp1-zkvm",
+ "zkboo",
+ "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "pofseed-sp1-lift-program-root-elephant"
+version = "0.1.0"
+dependencies = [
+ "pofseed-sp1-lift-elephant",
+ "pofseed-sp1-lift-pinned-keys",
+ "pofseed-sp1-lift-split",
+ "postcard",
+ "sha2",
+ "sp1-zkvm",
+ "zkboo",
+ "zkboo-circuit-hash",
+]
+
+[[package]]
+name = "pofseed-sp1-lift-split"
+version = "0.1.0"
+dependencies = [
+ "pofseed-sp1-lift-statement",
+ "serde",
+ "zkboo",
+]
+
+[[package]]
+name = "pofseed-sp1-lift-statement"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tiny-keccak",
+ "zeroize",
+ "zkboo",
+ "zkboo-bip32",
+]
+
+[[package]]
 name = "portable-atomic"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4372,140 +4506,6 @@ dependencies = [
  "elliptic-curve",
  "serde",
  "sp1-primitives",
-]
-
-[[package]]
-name = "sp1-lifter-elephant"
-version = "0.1.0"
-dependencies = [
- "serde",
- "sp1-lifter-statement",
- "zkboo",
- "zkboo-bip32",
-]
-
-[[package]]
-name = "sp1-lifter-host"
-version = "0.1.0"
-dependencies = [
- "hex",
- "postcard",
- "serde",
- "sha2",
- "slop-basefold-prover",
- "slop-dft",
- "slop-jagged",
- "slop-multilinear",
- "sp1-build",
- "sp1-core-executor",
- "sp1-hypercube",
- "sp1-lifter-elephant",
- "sp1-lifter-pinned-keys",
- "sp1-lifter-split",
- "sp1-lifter-statement",
- "sp1-prover",
- "sp1-sdk",
- "zeroize",
- "zkboo",
- "zkboo-bip32",
- "zkboo-circuit-hash",
- "zkboo-profiling",
-]
-
-[[package]]
-name = "sp1-lifter-pinned-keys"
-version = "0.1.0"
-
-[[package]]
-name = "sp1-lifter-program"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "sp1-lifter-statement",
- "sp1-zkvm",
- "zkboo",
- "zkboo-circuit-hash",
-]
-
-[[package]]
-name = "sp1-lifter-program-elephant"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "sp1-lifter-elephant",
- "sp1-zkvm",
- "zkboo",
- "zkboo-circuit-hash",
-]
-
-[[package]]
-name = "sp1-lifter-program-leaf"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "sp1-lifter-split",
- "sp1-lifter-statement",
- "sp1-zkvm",
- "zkboo",
-]
-
-[[package]]
-name = "sp1-lifter-program-leaf-elephant"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "sp1-lifter-elephant",
- "sp1-lifter-split",
- "sp1-zkvm",
- "zkboo",
-]
-
-[[package]]
-name = "sp1-lifter-program-root"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "sha2",
- "sp1-lifter-pinned-keys",
- "sp1-lifter-split",
- "sp1-lifter-statement",
- "sp1-zkvm",
- "zkboo",
- "zkboo-circuit-hash",
-]
-
-[[package]]
-name = "sp1-lifter-program-root-elephant"
-version = "0.1.0"
-dependencies = [
- "postcard",
- "sha2",
- "sp1-lifter-elephant",
- "sp1-lifter-pinned-keys",
- "sp1-lifter-split",
- "sp1-zkvm",
- "zkboo",
- "zkboo-circuit-hash",
-]
-
-[[package]]
-name = "sp1-lifter-split"
-version = "0.1.0"
-dependencies = [
- "serde",
- "sp1-lifter-statement",
- "zkboo",
-]
-
-[[package]]
-name = "sp1-lifter-statement"
-version = "0.1.0"
-dependencies = [
- "serde",
- "tiny-keccak",
- "zeroize",
- "zkboo",
- "zkboo-bip32",
 ]
 
 [[package]]

@@ -1,5 +1,4 @@
 /target
-methods/guest/target
 /fixtures/*
 # The measurement record is tracked; the raw prover traces are not. With RUST_LOG on,
 # a full-scale run emits ~135k span lines — 261 MB for 33 lines of signal — so each run

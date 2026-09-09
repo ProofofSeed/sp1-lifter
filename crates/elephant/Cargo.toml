@@ -1,0 +1,13 @@
+[package]
+name = "pofseed-sp1-lift-elephant"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "The secp256k1 proof-of-seed statement (Ethereum address) and its wire format, for probing lift cost."
+publish = false
+
+[dependencies]
+serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
+zkboo = { version = "=1.2.0", features = ["u32", "u64"] }
+zkboo-bip32 = { version = "=1.2.0" }
+pofseed-sp1-lift-statement = { path = "../../crates/statement" }
