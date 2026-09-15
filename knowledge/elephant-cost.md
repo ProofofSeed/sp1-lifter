@@ -252,6 +252,7 @@ That inverts where the effort belongs.
 Adding machines drives the leaf half toward zero and leaves 4.47 h standing.
 **The lever is the fingerprint pass, not the fleet.**
 Whether that traversal can be made cheaper — hoisted into a preprocessed constant pinned by the verifying key, computed incrementally, or replaced by a commitment the leaves already establish — is the open question this measurement raises, and it was not visible before the root was run.
+Profiled on 2026-09-15: 73% of the pass's instructions are software sponge absorb around the Keccak precompile, which a different absorb would cut without changing the digest (`guest-profile.md`).
 
 So the honest statement is no longer "not liftable", and it is no longer a projection either: **a single machine needs about eleven days; the architecture that divides it is built, gated on nine refusal cases, and now measured on this statement, and it brings the wall clock to 5.64 hours — of which four and a half are one circuit traversal that no amount of hardware divides.**
 

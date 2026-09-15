@@ -186,6 +186,8 @@ Two suspicions were checked and both are dead ends:
 - **Replay-backend overhead.**
   At ~370 instructions per response byte (vs ~2 400/byte for the software-Keccak risc0 baseline) the SP1 Keccak precompile is plainly firing, and `zkboo-bip32/README.md` puts native verification of a hardened-child response at ~2.1 ms — order 10–25M instructions on this CPU, against the guest's 21.66M.
   **The guest runs at approximately native efficiency**; the refcounted `WordRef`/`MemoryManager`/`WordPairPool` machinery built for a 30 KB secure element is not measurably dead weight inside the zkVM. (Caveat: that README figure is a parallel measurement, so the single-core comparison is uncertain by perhaps 2×; it bounds the lever, it does not price it exactly.)
+  **Retracted 2026-09-15.**
+  An instruction profile puts about a third of a response's guest instructions in hashing glue around the Keccak precompile and another third in memory-manager bookkeeping; natively the permutations dominate, so the native comparison could not see either. See `guest-profile.md`.
 
 What remains is arithmetic: ~4.77e9 instructions of genuine verification work proved at **~209k instructions/s** on 12 CPU threads, i.e. ~24 000× slower than native execution.
 That is the cost of CPU zkVM proving, and it is not a defect to be optimised away.
