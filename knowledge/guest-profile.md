@@ -84,3 +84,11 @@ A Keccak permutation is 24 rows of a chip weighted 2,640 plus a control row weig
 Removing glue leaves the permutation rows standing, 873,372 of them in a 219-response hardened-child lift, and leaves the compress, shrink and wrap tail of about 171 s.
 The elephant root proves at 0.575× the elephant leaf's rate per instruction and is far denser in permutations, so how much of its 5,911 s the permutation rows account for is not known, and neither is what a faster hasher would buy there in seconds.
 Computing the fingerprint at build time removes both.
+
+## Against the Flock lifter
+
+The Flock lifter proves the same 219-response hardened-child lift in 12.33 s against 3,613.03 s here (`flock-lifter/knowledge/performance-table.md`).
+That gap is structural: this lifter proves a RISC-V machine executing the verifier, one proven state transition per instruction, while Flock proves the verification relation directly, one committed bit per AND gate with XORs free.
+Nothing found here closes it.
+The glue and bookkeeping above are a small multiple of the hardened child's guest instructions, not orders of magnitude, and the permutation rows and the recursion tail would remain.
+The two also end in different places: a 356-byte proof checked on L1 for 280,590 gas here, a megabyte-scale proof with a native verifier only there.
