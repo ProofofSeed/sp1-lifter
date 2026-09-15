@@ -1,0 +1,227 @@
+── guest instruction profile, 2026-09-15 ──
+command: TRACE_FILE=<gecko.json> target/release/cycle-probe 2 (binaries built 2026-09-09, zkboo 1.2.0 at the revisions below; execute only)
+sampling: every instruction (TRACE_SAMPLE_RATE unset)
+rollup: self instructions per innermost function, classified after stripping generic parameters; subtrees by enclosing frame
+
+n=  2  exec 22.12s  70053538 instructions
+  zkboo: 10 crates at 1.2.0 from local paths: zkboo=4d443d4ec412 zkboo-sha2=f6a9338d9798 zkboo-hmac=cfd1b99b6ce8 zkboo-modular=5dd32865f05e zkboo-ecc=181341018c11 zkboo-circuit-hash=f5a522d3eafd zkboo-profiling=c6ce1c1c21ba zkboo-bip32=3c6a48a0431d zkboo-keccak=a503af3c5eb4 zkboo-ripemd160=8ce2561c6572
+
+total 70053538
+
+### verify: 38677379 (55.21%)
+   30.73%    11884306  replay backend (gate eval, tape draw, message read)
+   19.42%     7510918  WordRef gate front end
+   15.76%     6094238  word pool / allocset / refcount
+   15.65%     6053076  tiny-keccak software sponge (absorb/pad/squeeze)
+    9.45%     3654606  hasher/PRG memcpy+memset
+    4.14%     1600051  HashPRG glue
+    1.49%      576456  circuit code (sha512/hmac/bip32)
+    1.14%      439708  zeroize
+    1.03%      397259  heap allocator / Vec
+    0.72%      278200  Keccak256Hasher wrapper
+    0.10%       39910  keccak permute syscall stub
+    0.06%       23586  other: <core::iter::adapters::flatten::FlatMap<> as core::iter::traits::iterator::Iterator>::next
+    0.05%       21120  memcpy+memset (other): __rustc::__rust_realloc
+    0.05%       18522  other: <alloc::vec::Vec<>>::resize
+    0.03%       13390  other: <alloc::vec::into_iter::IntoIter<> as core::ops::drop::Drop>::drop
+    0.03%       11356  other: <alloc::vec::Vec<> as alloc::vec::spec_from_iter::SpecFromIter<>>::from_iter
+    0.03%       11136  memcpy+memset (other): zkboo_sha2::sha512::sha512bytes::<zkboo::backend::hook::Hooked<>>
+    0.02%        9024  other: <core::iter::adapters::map::Map<> as core::iter::traits::iterator::Iterator>::fold::<(), c
+    0.02%        6120  other: <alloc::vec::Vec<> as core::ops::drop::Drop>::drop
+    0.01%        5590  memcpy+memset (other): <zkboo::verifier::replay::backend::ViewReplayerBackend<>>::new
+    0.01%        4736  other: <zkboo::circuit::assertions::Assertions<>>::scope::<(), <>::exec<>::{closure#0}>
+    0.01%        3984  other: <zkboo::word::words::Words>::update_hasher::<pofseed_sp1_lift_statement::hasher::Keccak256
+  -- hash/PRG-related self instructions by first non-hash caller --
+   24.32%     9405641  <zkboo::crypto::prg::HashPRG<> as zkboo::crypto::prg::RandomGenerator>::fill_bytes
+    3.45%     1335936  <zkboo::verifier::replay::backend::ViewReplayerBackend<> as zkboo::backend::backend::Backend>::bitand::<u64, 1usize>
+    3.13%     1209056  <zkboo::verifier::replay::backend::ViewReplayerBackend<> as zkboo::backend::backend::Backend>::carry::<u64, 1usize>
+    0.10%       39910  syscall_keccak_permute
+    0.07%       26268  <zkboo::word::words::Words as zeroize::Zeroize>::zeroize
+    0.03%       11168  <zkboo::verifier::replay::backend::ViewReplayerBackend<> as zkboo::backend::backend::Backend>::carry::<u64, 4usize>
+    0.02%        8888  zkboo::verifier::functions::verify::<pofseed_sp1_lift_statement::HardenedChildCircuit, pofseed_sp1_lift_statement::hasher::Keccak256Hasher, 
+    0.02%        7284  <zkboo::verifier::replay::backend::ViewReplayerBackend<>>::new
+    0.02%        6272  <zkboo::verifier::replay::backend::ViewReplayerBackend<> as zkboo::backend::backend::Backend>::input::<u8, 1usize>
+    0.02%        6272  <zkboo::verifier::replay::backend::ViewReplayerBackend<> as zkboo::backend::backend::Backend>::bitand::<u64, 4usize>
+  -- inclusive (shortened names) --
+  100.00%    38677379  __start
+  100.00%    38677379  pofseed_sp1_lift_program::main
+  100.00%    38677379  zkboo::verifier::functions::verify::<pofseed_sp1_lift_statement::HardenedChildCircuit, pofseed_sp1_lift_statement::hasher::Keccak256Hasher, zkboo::cry
+  100.00%    38677379  main
+   99.76%    38586200  <zkboo::circuit::assertions::Assertions<>>::scope::<(), <>::exec<>::{closure#0}>
+   99.57%    38509376  zkboo_bip32::child::hardened_child_key::<zkboo::backend::hook::Hooked<>>
+   96.77%    37429056  zkboo_hmac::hmac::<zkboo::backend::hook::Hooked<>, u8, 64usize, zkboo_sha2::sha512::sha512bytes<>>
+   95.73%    37026322  zkboo_sha2::sha512::sha512bytes::<zkboo::backend::hook::Hooked<>>
+   69.97%    27063200  <zkboo::backend::word_ref::WordRef<>>::_wrapping_add_with_carry
+   45.14%    17457664  <zkboo::backend::word_ref::WordRef<>>::carry
+   39.47%    15265796  <zkboo::verifier::replay::backend::ViewReplayerBackend<> as zkboo::backend::backend::Backend>::carry::<u64, 1usize>
+   25.58%     9894582  <zkboo::backend::word_ref::WordRef<>>::binop::<<>::bitand<>>
+   24.40%     9437896  <zkboo::crypto::prg::HashPRG<> as zkboo::crypto::prg::RandomGenerator>::fill_bytes
+   20.88%     8073936  <zkboo::verifier::replay::backend::ViewReplayerBackend<> as zkboo::backend::backend::Backend>::bitand::<u64, 1usize>
+   16.40%     6344352  <zkboo::backend::word_ref::WordRef<>>::binop::<<>::bitxor<>>
+   14.52%     5614902  <pofseed_sp1_lift_statement::hasher::Keccak256Hasher as zkboo::crypto::hasher::Hasher>::update
+   14.28%     5524170  <tiny_keccak::keccak::Keccak as tiny_keccak::Hasher>::update
+    9.36%     3618720  <pofseed_sp1_lift_statement::hasher::Keccak256Hasher as zkboo::crypto::hasher::Hasher>::finalize_into
+    8.68%     3356008  <zkboo::verifier::replay::word_pool::WordPairPoolWrapper<> as zkboo::verifier::replay::word_pool::WordPairPool>::alloc::<u64, 1usize>
+    7.92%     3061932  memcpy
+    6.21%     2403710  <zkboo::backend::word_ref::WordRef<>>::_wrapping_add_with_carry_const::<u64>
+    5.14%     1989048  <zkboo::memory::allocset::AllocSet>::alloc
+    3.48%     1344096  <tiny_keccak::keccak::Keccak as tiny_keccak::Hasher>::finalize
+    3.37%     1302886  <zkboo::backend::word_ref::WordRef<>>::unop_shift::<<>::rotate_right<>>
+    2.52%      974274  <zkboo::memory::allocset::AllocSet>::free
+    2.27%      879800  <zkboo::backend::word_ref::WordRef<>>::from_be_bytes
+    2.01%      776920  <[usize; 1usize]>::try_map::<core::ops::try_trait::NeverShortCircuit<>, core::ops::try_trait::Wrapped<>>
+    1.92%      744280  <tiny_keccak::keccak::Keccak>::v256
+    1.90%      734644  <zkboo::verifier::replay::backend::ViewReplayerBackend<> as zkboo::backend::backend::Backend>::carry::<u64, 4usize>
+    1.73%      669720  <zkboo::backend::word_ref::WordRef<>>::wrapping_sub_const::<zkboo::word::word::CompositeWord<>>
+
+### hash_circuit: 30239211 (43.17%)
+   73.50%    22226080  tiny-keccak software sponge (absorb/pad/squeeze)
+   13.32%     4029340  WordRef gate front end
+    6.24%     1888278  word pool / allocset / refcount
+    4.52%     1365679  circuit-hash backend
+    1.40%      422148  Keccak256Hasher wrapper
+    0.59%      179214  heap allocator / Vec
+    0.23%       70625  keccak permute syscall stub
+    0.04%       11793  other: <core::iter::adapters::flatten::FlatMap<> as core::iter::traits::iterator::Iterator>::next
+    0.03%        8844  memcpy+memset (other): __rustc::__rust_realloc
+    0.02%        6695  other: <alloc::vec::into_iter::IntoIter<> as core::ops::drop::Drop>::drop
+    0.02%        5678  other: <alloc::vec::Vec<> as alloc::vec::spec_from_iter::SpecFromIter<>>::from_iter
+    0.02%        5568  memcpy+memset (other): zkboo_sha2::sha512::sha512bytes::<zkboo_circuit_hash::backend::Circuit
+    0.01%        4512  other: <core::iter::adapters::map::Map<> as core::iter::traits::iterator::Iterator>::fold::<(), c
+    0.01%        3060  other: <alloc::vec::Vec<> as core::ops::drop::Drop>::drop
+    0.01%        2673  other: <zkboo::backend::frontend::Frontend<>>::output::<u8, 1usize>
+    0.01%        1551  other: <alloc::vec::Vec<>>::resize
+    0.00%        1229  other: <zkboo::circuit::assertions::Assertions<>>::scope::<(), <>::exec<>::{closure#0}>
+    0.00%        1017  other: <[core::mem::maybe_uninit::MaybeUninit<>; 4usize] as core::array::iter::iter_inner::Partia
+    0.00%         868  other: <alloc::vec::Vec<> as alloc::vec::spec_extend::SpecExtend<>>::spec_extend
+    0.00%         772  other: <core::ops::try_trait::Wrapped<> as core::ops::function::FnMut<>>::call_mut
+    0.00%         736  memcpy+memset (other): <[(zkboo::backend::word_ref::WordRef<>, zkboo::backend::word_ref::Word
+    0.00%         646  memcpy+memset (other): zkboo_hmac::hmac::<zkboo_circuit_hash::backend::CircuitHashingBackend<
+  -- hash/PRG-related self instructions by first non-hash caller --
+   24.42%     7383116  <zkboo::backend::word_ref::WordRef<>>::binop::<<>::bitxor<>>
+   18.44%     5577018  <zkboo_circuit_hash::backend::CircuitHashingBackend<> as zkboo::backend::backend::Backend>::alloc::<u64, 1usize>
+    8.09%     2446390  <zkboo::backend::word_ref::WordRef<>>::binop::<<>::bitand<>>
+    7.79%     2356956  <zkboo::backend::word_ref::WordRef<>>::carry
+    7.06%     2135998  <zkboo::backend::word_ref::WordRef<>>::unop_shift::<<>::rotate_right<>>
+    1.56%      470842  <zkboo::backend::word_ref::WordRef<>>::unop_shift::<<>::unbounded_shr<>>
+    1.41%      427544  <zkboo::backend::word_ref::WordRef<>>::_wrapping_add_with_carry_const::<u64>
+    1.40%      423647  <zkboo::backend::word_ref::WordRef<>>::cast::<u64>
+    1.16%      351930  <zkboo::backend::word_ref::WordRef<>>::unop_shift::<<>::unbounded_shl<>>
+    0.65%      196210  zkboo_sha2::sha512::sha512bytes::<zkboo_circuit_hash::backend::CircuitHashingBackend<>>
+  -- inclusive (shortened names) --
+  100.00%    30239211  __start
+  100.00%    30239211  pofseed_sp1_lift_program::main
+  100.00%    30239211  main
+  100.00%    30239211  <zkboo::circuit::assertions::Assertions<>>::scope::<(), <>::exec<>::{closure#0}>
+   99.78%    30173698  zkboo_bip32::child::hardened_child_key::<zkboo_circuit_hash::backend::CircuitHashingBackend<>>
+   97.90%    29602793  zkboo_hmac::hmac::<zkboo_circuit_hash::backend::CircuitHashingBackend<>, u8, 64usize, zkboo_sha2::sha512::sha512bytes<>>
+   95.79%    28967008  zkboo_sha2::sha512::sha512bytes::<zkboo_circuit_hash::backend::CircuitHashingBackend<>>
+   75.13%    22718853  <pofseed_sp1_lift_statement::hasher::Keccak256Hasher as zkboo::crypto::hasher::Hasher>::update
+   73.73%    22296705  <tiny_keccak::keccak::Keccak as tiny_keccak::Hasher>::update
+   47.88%    14479084  <zkboo::backend::word_ref::WordRef<>>::_wrapping_add_with_carry
+   43.42%    13128964  <zkboo::backend::word_ref::WordRef<>>::binop::<<>::bitxor<>>
+   24.95%     7544500  <zkboo_circuit_hash::backend::CircuitHashingBackend<> as zkboo::backend::backend::Backend>::alloc::<u64, 1usize>
+   14.49%     4382636  <zkboo::backend::word_ref::WordRef<>>::binop::<<>::bitand<>>
+   13.42%     4056892  <zkboo::backend::word_ref::WordRef<>>::carry
+   11.81%     3571231  <zkboo::backend::word_ref::WordRef<>>::unop_shift::<<>::rotate_right<>>
+    6.43%     1944317  <zkboo::backend::word_ref::WordRef<>>::from_be_bytes
+    5.31%     1605458  <zkboo::backend::word_ref::WordRef<>>::_wrapping_add_with_carry_const::<u64>
+    3.29%      994485  <zkboo::memory::allocset::AllocSet>::alloc
+    2.61%      790500  <zkboo::backend::word_ref::WordRef<>>::unop_shift::<<>::unbounded_shr<>>
+    2.33%      705498  <zkboo::backend::word_ref::WordRef<>>::cast::<u64>
+    2.05%      621260  <alloc::vec::Vec<> as alloc::vec::spec_from_iter::SpecFromIter<>>::from_iter
+    2.00%      605765  <core::iter::adapters::flatten::FlatMap<> as core::iter::traits::iterator::Iterator>::next
+    1.98%      600192  <zkboo::backend::word_ref::WordRef<>>::unop_shift::<<>::unbounded_shl<>>
+    1.89%      571250  <zkboo::backend::word_ref::WordRef<>>::into_be_bytes
+    1.61%      487137  <zkboo::memory::allocset::AllocSet>::free
+    1.00%      301646  <zkboo::backend::word_ref::WordRef<>>::binop_const::<<>::bitxor_const<>, zkboo::word::word::CompositeWord<>>
+    0.83%      252112  <zkboo::backend::word_ref::WordRef<>>::alloc_constant::<zkboo::word::word::CompositeWord<>>
+    0.73%      219994  <zkboo_circuit_hash::backend::CircuitHashingBackend<> as zkboo::backend::backend::Backend>::alloc_constant::<u8, 1usize>
+    0.69%      210042  <zkboo_circuit_hash::backend::CircuitHashingBackend<> as zkboo::backend::backend::Backend>::alloc::<u8, 1usize>
+    0.66%      199295  <usize as zkboo::memory::memory_manager::RefCount>::increase
+
+### decode: 1111581 (1.59%)
+   99.58%     1106943  postcard decode
+    0.22%        2493  heap allocator / Vec
+    0.09%         968  memcpy+memset (other): <zkboo::prover::proof::response::Response<> as serde_core::de::Deseria
+    0.06%         712  memcpy+memset (other): <<>::deserialize::VecVisitor<> as serde_core::de::Visitor>::visit_seq:
+    0.03%         372  memcpy+memset (other): <zkboo::word::words::Words as serde_core::de::Deserialize>::deserializ
+    0.01%          93  memcpy+memset (other): <pofseed_sp1_lift_statement::LiftInput as serde_core::de::Deserialize>
+  -- hash/PRG-related self instructions by first non-hash caller --
+  -- inclusive (shortened names) --
+  100.00%     1111581  <pofseed_sp1_lift_statement::LiftInput as serde_core::de::Deserialize>::deserialize::<&mut postcard::de::deserializer::Deserializer<>>
+  100.00%     1111581  pofseed_sp1_lift_program::main
+  100.00%     1111581  __start
+  100.00%     1111581  main
+   99.94%     1110944  <<>::deserialize::VecVisitor<> as serde_core::de::Visitor>::visit_seq::<postcard::de::deserializer::SeqAccess<>>
+   99.64%     1107551  <zkboo::prover::proof::response::Response<> as serde_core::de::Deserialize>::deserialize::<&mut postcard::de::deserializer::Deserializer<>>
+   99.53%     1106401  <zkboo::word::words::Words as serde_core::de::Deserialize>::deserialize::<&mut postcard::de::deserializer::Deserializer<>>
+    0.22%        2484  __rustc::__rust_alloc
+    0.22%        2421  <embedded_alloc::tlsf::Heap as core::alloc::global::GlobalAlloc>::alloc
+    0.19%        2145  memcpy
+    0.12%        1290  <[u8; 32usize] as serde_core::de::Deserialize>::deserialize::<&mut postcard::de::deserializer::Deserializer<>>
+    0.02%         181  <postcard::de::deserializer::Deserializer<>>::try_take_varint_u64
+    0.00%          18  _critical_section_1_0_release
+    0.00%           9  __rustc::__rust_no_alloc_shim_is_unstable_v2
+
+### other: 25360 (0.04%)
+   46.80%       11869  other: sha2::sha256::compress256
+   31.86%        8080  heap allocator / Vec
+    8.10%        2055  postcard decode
+    3.00%         762  memcpy+memset (other): pofseed_sp1_lift_program::main
+    2.14%         542  hasher/PRG memcpy+memset
+    1.61%         409  memcpy+memset (other): <&mut postcard::ser::serializer::Serializer<> as serde_core::ser::Seri
+    1.27%         321  other: pofseed_sp1_lift_program::main
+    0.88%         224  other: syscall_halt
+    0.75%         191  memcpy+memset (other): __rustc::__rust_realloc
+    0.58%         146  tiny-keccak software sponge (absorb/pad/squeeze)
+    0.48%         121  memcpy+memset (other): <pofseed_sp1_lift_statement::LiftJournal as serde_core::ser::Serialize
+    0.43%         108  memcpy+memset (other): syscall_halt
+    0.32%          81  word pool / allocset / refcount
+    0.28%          71  other: <alloc::vec::Vec<> as core::ops::drop::Drop>::drop
+    0.21%          52  memcpy+memset (other): __start
+    0.19%          48  other: syscall_write
+    0.17%          44  memcpy+memset (other): syscall_write
+    0.15%          39  other: read_vec_raw
+    0.15%          38  other: <pofseed_sp1_lift_statement::HardenedChildCircuit>::public_only
+    0.15%          38  Keccak256Hasher wrapper
+    0.13%          33  memcpy+memset (other): __rustc::__rust_alloc_zeroed
+    0.12%          30  other: __start
+  -- hash/PRG-related self instructions by first non-hash caller --
+    2.86%         726  pofseed_sp1_lift_program::main
+    0.02%           5  syscall_keccak_permute
+  -- inclusive (shortened names) --
+  100.00%       25360  __start
+   81.95%       20782  main
+   81.92%       20774  pofseed_sp1_lift_program::main
+   46.80%       11869  sha2::sha256::compress256
+   31.27%        7930  sp1_lib::io::commit_slice
+   31.25%        7924  syscall_write
+   23.62%        5991  <pofseed_sp1_lift_statement::LiftJournal as serde_core::ser::Serialize>::serialize::<&mut postcard::ser::serializer::Serializer<>>
+   18.26%        4631  <embedded_alloc::tlsf::Heap as core::alloc::global::GlobalAlloc>::dealloc
+   17.23%        4369  syscall_halt
+   15.41%        3908  __rustc::__rust_dealloc
+   12.69%        3218  <alloc::raw_vec::RawVecInner>::finish_grow
+   11.65%        2954  <&mut postcard::ser::serializer::Serializer<> as serde_core::ser::Serializer>::collect_seq::<&alloc::vec::Vec<>>
+   10.55%        2676  __rustc::__rust_realloc
+    9.55%        2421  <embedded_alloc::tlsf::Heap as core::alloc::global::GlobalAlloc>::alloc
+    9.43%        2391  <alloc::raw_vec::RawVec<>>::grow_one
+    6.96%        1765  memcpy
+    4.83%        1225  core::ptr::drop_in_place::<zkboo::memory::memory_manager::FlexibleMemoryManager<>>
+    4.43%        1123  <alloc::vec::Vec<> as core::ops::drop::Drop>::drop
+    4.00%        1015  <alloc::raw_vec::RawVecInner<>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>
+    3.26%         828  __rustc::__rust_alloc
+    2.21%         560  <pofseed_sp1_lift_statement::hasher::Keccak256Hasher as zkboo::crypto::hasher::Hasher>::finalize_into
+    1.96%         497  memset
+    1.41%         358  <pofseed_sp1_lift_statement::HardenedChildCircuit>::public_only
+    1.26%         319  __rustc::__rust_alloc_zeroed
+    0.91%         230  <tiny_keccak::keccak::Keccak>::v256
+    0.82%         208  <tiny_keccak::keccak::Keccak as tiny_keccak::Hasher>::finalize
+    0.50%         127  sp1_zkvm::allocators::embedded::init
+    0.48%         122  <pofseed_sp1_lift_statement::hasher::Keccak256Hasher as zkboo::crypto::hasher::Hasher>::new
+    0.46%         116  <embedded_alloc::tlsf::Heap>::init
+    0.26%          67  sp1_lib::io::read_vec
+
+### <none>: 7 (0.00%)
+  -- hash/PRG-related self instructions by first non-hash caller --
+  -- inclusive (shortened names) --
