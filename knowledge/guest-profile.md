@@ -87,8 +87,8 @@ Computing the fingerprint at build time removes both.
 
 ## Against the Flock lifter
 
-The Flock lifter proves the same 219-response hardened-child lift in 12.33 s against 3,613.03 s here (`flock-lifter/knowledge/performance-table.md`).
+The Flock lifter proves the same 219-response hardened-child lift in 13.30 s against 3,613.03 s here, about 272× faster (`flock-lifter/knowledge/performance-table.md`, re-measured 2026-09-16; it was 12.33 s, about 293×, when this profile was taken).
 That gap is structural: this lifter proves a RISC-V machine executing the verifier, one proven state transition per instruction, while Flock proves the verification relation directly, one committed bit per AND gate with XORs free.
 Nothing found here closes it.
 The glue and bookkeeping above are a small multiple of the hardened child's guest instructions, not orders of magnitude, and the permutation rows and the recursion tail would remain.
-The two also end in different places: a 356-byte proof checked on L1 for 280,590 gas here, a megabyte-scale proof with a native verifier only there.
+The two also end in different places: a 356-byte proof checked on L1 for 280,590 gas here, a 1.68 MB proof there, verified natively in 0.02 s or by EVM contracts costing about 1.27 billion gas over at least 76 transactions, which Flock's own record calls not deployable as it stands.

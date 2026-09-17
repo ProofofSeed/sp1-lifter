@@ -229,9 +229,9 @@ pub fn stream_lift(
         // unblocks only on space or on the receiver being dropped — and an `Arc` held in the
         // caller's frame kept it alive past the death of every worker. The producer then blocked
         // for ever, its `join` never returned, and the worker's panic was never propagated: the
-        // process sat silent at zero CPU. With GPU proving documented to fail its own
-        // verification about once in twenty, that turns an overnight run's recoverable failure
-        // into an indefinite hang with no message.
+        // process sat silent at zero CPU. With GPU proving at `v0.1.0` measured failing its own
+        // verification about once in twenty-eight, that turned an overnight run's recoverable
+        // failure into an indefinite hang with no message.
         let rx = Arc::new(Mutex::new(rx));
         let producer = scope.spawn(|| {
             produce(

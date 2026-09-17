@@ -235,7 +235,8 @@ Order of magnitude only.
 | journal (public values) |   188 B |   219 B |
 | proof file on disk      | 1,882 B | 1,913 B |
 
-vkey `0x00f1810f…`, circuit fingerprint `0xbd121f6f…`, proof format id `0x4be5d4e6…`.
+vkey `0x00f1810f…` at the time of these runs, circuit fingerprint `0xbd121f6f…`, proof format id `0x4be5d4e6…`.
+The 2026-09-09 restructure moved the key to `0x00883344…`, the one the fixture and `EXPECTED_VKEY` now carry; the fingerprint and format id did not move (`fixtures/relaunch-2026-09-07.summary.log`, `knowledge/guest-keys-move-on-comments.md`).
 Evidence: `fixtures/lift-219-2026-09-07.summary.log`, `fixtures/split-probe-2026-09-07.summary.log`, `fixtures/elephant-probe-2026-09-07b.summary.log`, `fixtures/relaunch-2026-09-07.summary.log`.
 
 ## The 2.0.0 round

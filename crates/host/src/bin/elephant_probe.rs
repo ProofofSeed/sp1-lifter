@@ -70,11 +70,11 @@ const PRIV_KEY: [u8; 32] = [
 /// proves 219 ZKBoo responses natively and writes two artefacts, and charging the guest for those
 /// would inflate the rate's denominator with work the guest does not do.
 ///
-/// PROVENANCE: `lift 219`, this machine, 2026-09-07, zkboo 1.2.0 (local trees), `fixtures/
-/// lift-219-2026-09-07.log`, quiet machine — 9,936.12 s of process wall clock delivering
-/// (user+sys)/real = 11.88 of 12 requested threads. Superseding a 2.0.0-era 10,296.11 s.
-/// Update this and its date together, or neither.
-const HASH_FULL_SECONDS: f64 = 9927.49;
+/// PROVENANCE: `lift 219`, this machine, 2026-09-09, zkboo 1.2.0 (local trees), full GPU path,
+/// `fixtures/lift-219-2026-09-09.summary.log` — 3,617.57 s of process wall clock. Superseding
+/// 9,927.49 s on the safe path of 2026-09-07, which the backend defect forced until 2026-09-08,
+/// and a 2.0.0-era 10,296.11 s before it. Update this and its date together, or neither.
+const HASH_FULL_SECONDS: f64 = 3613.03;
 
 /// Refits the hardened-child instruction law on this run, and fails if it is not linear.
 ///
@@ -261,7 +261,7 @@ fn main() {
     println!("    proof data through the guest: {:.2} GB", predicted_response as f64 * n_full as f64 / 1e9);
     println!("    at this machine's measured rate ({:.0}k instr/s): {:.1} days", rate / 1e3, full / rate / 86400.0);
     println!();
-    println!("  ⚠️  The rate above is the hardened-child statement's, assumed to carry over. It has");
-    println!("      not been measured on an elephant workload, and no elephant response has ever been");
-    println!("      proved — only executed. Treat the days figure as an order of magnitude.");
+    println!("  ⚠️  The rate above is the hardened-child statement's, carried across statements, and a");
+    println!("      rate borrowed that way has been measured ~21% pessimistic for an elephant leaf");
+    println!("      (knowledge/elephant-cost.md). Treat the days figure as an order of magnitude.");
 }

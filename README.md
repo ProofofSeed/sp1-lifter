@@ -20,10 +20,9 @@ Proving runs on the GPU.
 Build with `--features metal` and everything below goes through the Metal backend for SP1 Hypercube (`knowledge/gpu-proving.md`).
 To measure against the CPU, force the GPU path off with the switches in `fixtures/cpu-arm-switches.txt` rather than by rebuilding, so that both arms are one binary.
 
-**Set `SP1_METAL_MERKLE=0` for any run you are not watching.**
-With every phase accelerated the backend is 4.7× faster than this machine's CPU prover on a one-response lift — and it also produces a proof that fails its own verification about once in twenty-eight and then parks the run for ever.
-Leaving the Merkle tree on the CPU has run 115 consecutive proofs clean, at 1.9× on a single leaf and 2.3× on a full-scale lift.
-See `knowledge/gpu-corruption.md`.
+Use the full GPU path, with no `SP1_METAL_*` switches set.
+The backend at `v0.1.0` produced a proof that failed its own verification about once in twenty-eight, and `SP1_METAL_MERKLE=0` was the workaround; the defect was fixed upstream, the workspace now builds a revision past the fix, and the workaround was retired on 2026-09-08.
+See `knowledge/gpu-corruption.md` for the defect and `knowledge/performance-table.md` for what the full path costs.
 
 ```sh
 cargo build --release -p pofseed-sp1-lift-host --features metal   # once; the binaries below are in target/release
@@ -40,7 +39,7 @@ cargo build --release -p pofseed-sp1-lift-host --features metal   # once; the bi
 (cd verifier && forge test)                 # on-chain verify + gas + rejects
 ```
 
-The Foundry suite reads a fixture that `lift` generates; without one it **skips**, and a fully skipped suite still prints `Suite result: ok`, so check for `5 passed` rather than `ok`.
+The Foundry suite reads a fixture that `lift` generates; without one it **skips**, and a fully skipped suite still prints `Suite result: ok`, so check for `18 tests passed` in the closing summary rather than `ok`.
 The fixture in `verifier/fixtures/` was regenerated from a full-soundness run on 2026-09-07, and the three pins that describe it — verifying key, circuit fingerprint and proof-format identifier — were re-anchored in the same change.
 That matters more than it sounds: a fixture is internally consistent whatever produced it, so a stale one passes the suite silently, and a pin taken from an artefact only fails on the run *after* the artefact is replaced.
 
