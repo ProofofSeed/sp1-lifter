@@ -325,10 +325,11 @@ pub fn prover_client() -> (EnvProver, String) {
 /// 🪤 `SP1_PROVER` alone is **not** enough, and reporting it alone was a defect. Metal
 /// proving is a compile-time feature inside the `cpu` arm, so a GPU run and a CPU run
 /// both print `cpu`, and the two differ by more than a factor of two — the largest
-/// single lever on every timing this repository records. Worse, `SP1_METAL_MERKLE=0` is
-/// mandatory for an unattended run (see `knowledge/gpu-corruption.md`), and a timing
-/// taken without it is not comparable to one taken with it. Both now appear here, so a
-/// summary line pins the configuration a number was actually measured under.
+/// single lever on every timing this repository records. The `SP1_METAL_*` phase switches
+/// move timings as well (`SP1_METAL_MERKLE=0` was a workaround until 2026-09-08, see
+/// `knowledge/gpu-corruption.md`), so a timing taken under one is not comparable to one
+/// taken without it. Both now appear here, so a summary line pins the configuration a number
+/// was actually measured under.
 pub fn prover_backend() -> String {
     return std::env::var("SP1_PROVER").unwrap_or_else(|_| "cpu".to_string());
 }
@@ -513,7 +514,7 @@ pub fn decode_root_journal(
     // The outer version was committed by every root and checked by nobody. Postcard is not
     // self-describing, so on the first layout change an unchecked version is a silent misparse
     // rather than an error: the fields would decode into the wrong shape and the gate would run
-    // on nonsense. Only version 1 exists, so the check costs nothing to add now.
+    // on nonsense. The check was added while only version 1 existed; the layout is now at version 2.
     if journal.version != pofseed_sp1_lift_split::ROOT_JOURNAL_VERSION {
         return Err(format!(
             "root journal version is {}, not {}",
