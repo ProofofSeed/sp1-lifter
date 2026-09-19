@@ -12,7 +12,8 @@
 //! - R2 wrong binding (proved for tx A, verified under tx B) → program refuses
 //! - R3 wrong fingerprint expectation → `check_journal` FingerprintMismatch
 //! - R4 too few responses (8 < 219) → `check_journal` TooFewResponses
-//! - R5 empty proof (accepted by the ZKBoo verifier by design) → `check_journal` TooFewResponses
+//! - R5 empty proof → program refuses ("proof carries no responses"); until zkboo 1.3.0 the
+//!   ZKBoo verifier accepted one by design and the count gate was the only refuser
 //! - R8 wrong proof format version → `check_journal` ProofFormatMismatch
 //! - R6 wrong statement expectation → `check_journal` StatementMismatch
 //! - R7 structurally malformed response (oversized AND-message) → replay shape check
@@ -126,18 +127,18 @@ fn main() {
             JournalCheckError::TooFewResponses,
         );
 
-        // R5: empty proof — the ZKBoo verifier accepts it BY DESIGN; the count gate
-        // must be what refuses it.
+        // R5: empty proof. zkboo 1.3.0 requires the verifier to name a repetition count and
+        // refuses a proof of any other length, so the program now refuses one outright; before
+        // it, the ZKBoo verifier accepted an empty proof against any output by design and the
+        // count gate was the only thing standing between that and an accepted lift. The gate
+        // still refuses it — R4 exercises the same clause on a proof that does verify — so this
+        // case now measures that the refusal happens earlier, not that it happens at all.
         let input_empty = lift_input(chain_code.clone(), output.clone(), BINDING, Vec::new());
-        let empty_journal = run_program(&client, &input_empty)
-            .expect("empty proof is accepted by the ZKBoo verifier (documented)");
-        assert_eq!(empty_journal.num_responses, 0);
-        let exp = expectation_for(&input_empty, 1);
-        expect_consumer_refusal(
+        expect_program_refusal(
+            &client,
             "R5 empty proof",
-            &empty_journal,
-            &exp,
-            JournalCheckError::TooFewResponses,
+            &input_empty,
+            "proof carries no responses",
         );
 
         // R6: wrong statement expectation (different expected output).

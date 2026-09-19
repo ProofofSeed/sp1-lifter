@@ -34,20 +34,21 @@ license = "LGPL-3.0-or-later"
 # They used to be required from crates.io at an exact version, so that what a proof was made
 # with was recorded in Cargo.lock with a checksum rather than in whatever state a working tree
 # happened to be in. That is still the arrangement this project wants. It is not available:
-# zkboo 1.2.0 is unpublished, and every version that ever was published is yanked, so there is
-# no registry copy of the code these binaries must be built against.
+# the current releases (1.3.0 for every crate but zkboo-keccak and zkboo-ripemd160, which are at
+# 1.2.0) are unpublished, and every version that ever was published is yanked, so there is no
+# registry copy of the code these binaries must be built against.
 #
 # The failure the old arrangement guarded against — a patch silently disengaging when the local
 # version stops satisfying the requirement, cargo resolving the published crate instead with no
 # warning, and a round of proofs coming out well-formed and failing to verify — is guarded here
-# by the requirement itself. Every manifest asks for `=1.2.0`, and no 1.2.0 exists on crates.io;
-# a disengaged patch therefore fails to resolve loudly instead of resolving to something else
-# quietly. `host/build.rs` additionally refuses to build unless every zkboo crate in the lockfile
-# is at that version and comes from a path override, and records the git revision and dirty state
-# of each checkout into the binary.
+# by the requirement itself. Every manifest asks for an exact version, and no version this
+# workspace names exists on crates.io; a disengaged patch therefore fails to resolve loudly instead of resolving
+# to something else quietly. `host/build.rs` additionally refuses to build unless every zkboo
+# crate in the lockfile is at the version it names for that crate and comes from a path
+# override, and records the git revision and dirty state of each checkout into the binary.
 #
-# Restore the registry arrangement, and the guard that goes with it, as soon as 1.2.0 is
-# published.
+# Restore the registry arrangement, and the guard that goes with it, as soon as these releases
+# are published.
 [patch.crates-io]
 tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", tag = "patch-2.0.2-sp1-6.0.0" }
 

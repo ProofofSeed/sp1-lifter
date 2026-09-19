@@ -107,14 +107,16 @@ impl Circuit for HardenedChildCircuit {
         // The scope emits the assertion flag as its last output word when the body returns, so
         // everything this circuit outputs belongs inside it.
         //
-        // Nothing is asserted here, so the flag is the constant 1 and this statement's copy of
-        // it carries no information: BIP-32 hardened derivation is hashing, with no advice to
-        // pin down. The scope is opened anyway so that one journal shape, one gate and one
-        // on-chain decoder serve every statement in the suite — including the Ethereum-address
-        // one, where the flag is the whole of what makes the proof mean anything. zkboo
-        // deliberately does not impose a universal trailing word; a circuit that opens no scope
-        // emits none, and the gates below would then refuse every proof of it.
-        Assertions::scope(frontend, |_| {
+        // The flag carries the validity conditions BIP-32 states, which zkboo-bip32 1.3.0
+        // asserts inside the derivation: `IL` below the group order and a non-zero child key.
+        // A seed reaching an invalid key has probability below 2^-127, so no honest witness
+        // exercises them; what they buy is that a witness which does cannot be lifted into an
+        // accepting proof. One journal shape, one gate and one on-chain decoder therefore serve
+        // every statement in the suite, including the Ethereum-address one, where the flag is
+        // the whole of what makes the proof mean anything. zkboo deliberately does not impose a
+        // universal trailing word; a circuit that opens no scope emits none, and the gates below
+        // would then refuse every proof of it.
+        Assertions::scope(frontend, |assertions| {
             let chain_code = self
                 .chain_code
                 .iter()
@@ -125,8 +127,13 @@ impl Circuit for HardenedChildCircuit {
                 .iter()
                 .map(|&b| frontend.input(b))
                 .collect::<Vec<_>>();
-            let (child_priv, child_chain_code) =
-                hardened_child_key(frontend.allocator(), chain_code, parent_priv, self.index);
+            let (child_priv, child_chain_code) = hardened_child_key(
+                frontend.allocator(),
+                chain_code,
+                parent_priv,
+                self.index,
+                assertions,
+            );
             frontend.output(child_priv); // 4x u64 (little-endian word order)
             child_chain_code
                 .into_iter()

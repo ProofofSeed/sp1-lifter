@@ -6,14 +6,15 @@ See `knowledge/milestones.md` for what is established so far, including the reco
 The repository is named for its proof system because other back ends are expected alongside it, not because SP1 is the only way to lift these proofs.
 
 The zkboo ecosystem was re-architected as 1.2.0 on 2026-09-04, changing every proof, every circuit fingerprint and every guest verifying key, with a second breaking change on 2026-09-06.
-The port is complete and the stack has been rebuilt, re-proved and re-measured: the current figures are in `knowledge/performance-table.md` under "Current figures", and `knowledge/zkboo-1.2.0-migration.md` with `knowledge/zkboo-next-delta.md` record what changed and what it cost.
+It has moved twice since: 1.2.1 on 2026-09-09, and 1.3.0 on 2026-09-19, which makes the BIP-32 derivations assert the validity conditions BIP-32 states and makes a verifier name the repetition count it demands.
+Each port is complete and the stack has been rebuilt, re-keyed, re-proved and re-measured: the current figures are in `knowledge/performance-table.md` under "Current figures", and `knowledge/zkboo-1.2.0-migration.md`, `knowledge/zkboo-1.3.0-migration.md` and `knowledge/zkboo-next-delta.md` record what changed and what it cost.
 Figures elsewhere in `knowledge/` belong to the previous round and say so; none of them may be rescaled into a current one, for a reason this project measured rather than assumed (`knowledge/instructions-are-not-seconds.md`).
 
 ## Usage
 
 Requires the SP1 toolchain (`sp1up`; sdk 6.4.0 with the `succinct` rust toolchain) and Go, for the native gnark wrap.
-The ZKBoo crates come from local checkouts under `<zkboo>`, patched in at the workspace root, because 1.2.0 is unpublished and every published version is yanked.
-The build script refuses anything that does not resolve at exactly that version from a path, and records each checkout's git revision and dirty state into the binary.
+The ZKBoo crates come from local checkouts under `<zkboo>`, patched in at the workspace root, because every release since 1.2.0 is unpublished and every published version is yanked.
+The build script names the required version of each crate — they are released independently, and two of the ten are still at 1.2.0 — and refuses anything that does not resolve at exactly that version from a path, recording each checkout's git revision and dirty state into the binary.
 This inverts the arrangement that held while the crates were published, and should be inverted back when they are published again.
 
 Proving runs on the GPU.
@@ -82,5 +83,5 @@ None is published: crates.io has no namespace mechanism, so the prefix is what d
 
 - `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0), and the relying-party journal gate as a Solidity library.
 - `knowledge/` — design record, plan, and measured numbers.
-  `performance-table.md` is the current cost of everything and the place to start; `gpu-proving.md` covers what the Metal backend does to this workload and `gpu-corruption.md` the defect that used to bound it, fixed upstream and retired on 2026-09-08; `zkboo-1.2.0-migration.md` with `zkboo-next-delta.md` record the dependency re-architecture; `instructions-are-not-seconds.md` is why a saving in one may not be quoted as a saving in the other.
+  `performance-table.md` is the current cost of everything and the place to start; `gpu-proving.md` covers what the Metal backend does to this workload and `gpu-corruption.md` the defect that used to bound it, fixed upstream and retired on 2026-09-08; `zkboo-1.2.0-migration.md` with `zkboo-next-delta.md` record the dependency re-architecture and `zkboo-1.3.0-migration.md` the releases since; `instructions-are-not-seconds.md` is why a saving in one may not be quoted as a saving in the other.
 - `fixtures/` — the distilled run logs the notes cite, and the cached leaf proofs the split drivers reuse.

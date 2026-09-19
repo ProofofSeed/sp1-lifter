@@ -8,6 +8,9 @@ Each instruction is attributed to the innermost function executing it; figures a
 
 Rollups: `fixtures/guest-profile-lift-n2-2026-09-15.summary.log` and `fixtures/guest-profile-elephant-root-n2-2026-09-15.summary.log`.
 
+The stack has since moved to zkboo 1.3.0 (`zkboo-1.3.0-migration.md`), which adds the BIP-32 validity assertions to the hardened child: +0.67% of guest instructions at 219 responses, and nothing that moves the shares below by more than that.
+The elephant statement is untouched by it.
+
 ## Hardened child, per response
 
 The `verify` subtree is 38,677,379 instructions over two responses, 19.34 M per response.

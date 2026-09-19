@@ -1,7 +1,10 @@
 # What everything costs, on this machine
 
 Two rounds sit in this file.
-The **1.2.0 round** below is current.
+The **1.2.0 round** below is current for every timing.
+The stack has since moved to zkboo 1.3.0 (`zkboo-1.3.0-migration.md`), which adds the BIP-32 validity assertions to the hardened child and so moves that statement's fingerprint, every guest key and the on-chain fixture.
+It costs +0.67% of guest instructions at 219 against the law below, and the on-chain figures are unchanged because the journal layout is.
+**No timing here has been re-taken on 1.3.0**: the run that regenerated the fixture on 2026-09-19 left `RAYON_NUM_THREADS` unset and delivered `(user+sys)/real = 9.05`, which is this file's own signature of a contended run, so its 3,862.60 s is recorded as evidence that the artefact was produced and as nothing else.
 Everything under "The 2.0.0 round" was measured against the withdrawn ZKBoo 2.0.0 and is kept for the rows the 1.2.0 round has not re-taken — read those for the method and the shape of the results, never for the numbers, and never rescale one by a factor observed elsewhere.
 `instructions-are-not-seconds.md` is this project's shortest illustration of why that last rule exists.
 
@@ -236,7 +239,8 @@ Order of magnitude only.
 | proof file on disk      | 1,882 B | 1,913 B |
 
 vkey `0x00f1810f…` at the time of these runs, circuit fingerprint `0xbd121f6f…`, proof format id `0x4be5d4e6…`.
-The 2026-09-09 restructure moved the key to `0x00883344…`, the one the fixture and `EXPECTED_VKEY` now carry; the fingerprint and format id did not move (`fixtures/relaunch-2026-09-07.summary.log`, `knowledge/guest-keys-move-on-comments.md`).
+The 2026-09-09 restructure moved the key to `0x00883344…`; the fingerprint and format id did not move (`fixtures/relaunch-2026-09-07.summary.log`, `knowledge/guest-keys-move-on-comments.md`).
+The move to 1.3.0 then moved both the key, to `0x005b7af5…`, and the fingerprint, to `0x72936f44…`, which are what the fixture and the Solidity pins carry now; the format id is still `0x4be5d4e6…` and the artefact sizes are unchanged but for the proof file's 1,914 B on disk.
 Evidence: `fixtures/lift-219-2026-09-07.summary.log`, `fixtures/split-probe-2026-09-07.summary.log`, `fixtures/elephant-probe-2026-09-07b.summary.log`, `fixtures/relaunch-2026-09-07.summary.log`.
 
 ## The 2.0.0 round

@@ -20,6 +20,7 @@ use pofseed_sp1_lift_host::{
     HARDENED_OFFSET, WPP, bip32_vector_1, execute_lift, lift_input_for, n_eps, vector_1_proof,
 };
 use pofseed_sp1_lift_statement::{H, PV, S};
+use zkboo::Repetitions;
 use zkboo::verifier::{VerifyOptions, verify};
 
 const SEED_ENTROPY: &[u8] = b"snark-lifter cycle probe entropy";
@@ -48,9 +49,15 @@ fn main() {
         let t = Instant::now();
         let (circuit, output, proof) = vector_1_proof(n, SEED_ENTROPY, BINDING);
         let prove_time = t.elapsed();
-        let ok =
-            verify::<_, H, PV, S, WPP, _>(&circuit, &output, &proof, BINDING, VerifyOptions::new())
-                .expect("native verify");
+        let ok = verify::<_, H, PV, S, WPP, _>(
+            &circuit,
+            &output,
+            &proof,
+            BINDING,
+            Repetitions::exactly(n),
+            VerifyOptions::new(),
+        )
+        .expect("native verify");
         assert!(ok, "native verification failed at {n} iters");
         let (_, chain_code) = bip32_vector_1();
         let input = lift_input_for(chain_code, HARDENED_OFFSET, output, BINDING, proof);

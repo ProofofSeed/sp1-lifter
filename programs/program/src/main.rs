@@ -20,6 +20,7 @@ use pofseed_sp1_lift_statement::{
     H, HardenedChildCircuit, LIFT_FRAME_VERSION, LIFT_JOURNAL_VERSION, LiftInput, LiftJournal, PV,
     S,
 };
+use zkboo::Repetitions;
 use zkboo::verifier::{VerifyOptions, replay::OwnedFlexibleWordPairPool, verify};
 use zkboo_circuit_hash::hash_circuit;
 
@@ -35,11 +36,24 @@ pub fn main() {
     // status; the relying-party gate demands success), so refusals both commit a
     // diagnostic tag as the public values and panic: the tag names the refuser for
     // harness assertions, the panic makes the failure a non-success execution.
+    // zkboo 1.3.0 requires the verifier to name the number of repetitions it demands, because
+    // verification itself checks each response and never how many there are: a proof truncated
+    // to one response, or to none, verified against any output. Naming the count the proof
+    // carries makes that check vacuous here, and deliberately so — this program cannot know what
+    // soundness level a relying party wants. What it can do is commit the count below, where
+    // `check_journal` and the on-chain gate refuse anything but the count they demand. The
+    // number is therefore required exactly once, by the party whose security rests on it.
+    if input.proof.is_empty() {
+        sp1_zkvm::io::commit_slice(b"REFUSED: proof carries no responses");
+        panic!("proof carries no responses");
+    }
+    let repetitions = Repetitions::exactly(input.proof.len());
     let valid = match verify::<_, H, PV, S, WPP, _>(
         &circuit,
         &input.expected_output,
         &input.proof,
         &input.binding,
+        repetitions,
         VerifyOptions::new(),
     ) {
         Ok(valid) => valid,
@@ -60,7 +74,7 @@ pub fn main() {
         index: input.index,
         expected_output: input.expected_output,
         binding: input.binding,
-        num_responses: input.proof.len().try_into().expect("response count exceeds u32"),
+        num_responses: repetitions.count().try_into().expect("response count exceeds u32"),
         proof_format_id: zkboo::PROOF_FORMAT_ID,
     };
     sp1_zkvm::io::commit_slice(&postcard::to_allocvec(&journal).expect("encode journal"));
