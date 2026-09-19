@@ -53,12 +53,26 @@ What did **not** move:
 
 Measured on this machine, full GPU path, on the clean 1.3.0 checkouts (the `vkeys` and `lift` provenance lines name the revisions).
 
-| | 1.2.0 | 1.3.0 |
-| --------------------------------- | ----------------: | ----------------: |
-| lift at 219, guest instructions   |     4.386e9 (law) |     4,415,364,477 |
-| hardened-child fingerprint        |     `0xbd121f6f…` |     `0x72936f44…` |
-| Ethereum-address fingerprint      |     `0xa64f0f8a…` |     `0xa64f0f8a…` |
-| proof format id                   |     `0x4be5d4e6…` |     `0x4be5d4e6…` |
+|                                 |         1.2.0 |         1.3.0 |
+| ------------------------------- | ------------: | ------------: |
+| lift at 219, guest instructions | 4.386e9 (law) | 4,415,364,477 |
+| hardened-child fingerprint      | `0xbd121f6f…` | `0x72936f44…` |
+| Ethereum-address fingerprint    | `0xa64f0f8a…` | `0xa64f0f8a…` |
+| proof format id                 | `0x4be5d4e6…` | `0x4be5d4e6…` |
 
 The instruction count is `+0.67%` against what the 1.2.0 law gives at 219 (`3.0274e7 + 1.9889e7 × n`), which is the assertions.
 That is a comparison of a measurement with a fitted law, not of two measurements.
+
+**The split path costs what it did**, measured at n = 4 on a quiet machine with the documented `RAYON_NUM_THREADS=12`:
+
+|                       |          1.2.0 |   1.3.0 |
+| --------------------- | -------------: | ------: |
+| leaf                  |       23.13 s  | 23.20 s |
+| root over four leaves | 46.43 s (law)  | 46.70 s |
+
+The root figure is against `root seconds = 42.40 + 1.0073 × n` rather than against a stored measurement at this count, and lands 0.58% above it.
+Two points at one repetition count do not refit that law, and nothing here claims they do.
+
+🔴 **The full-soundness lift was NOT re-timed.**
+The run that regenerated the fixture left `RAYON_NUM_THREADS` unset and read `(user+sys)/real = 9.05`, so its 3,862.60 s is evidence that the artefact exists and nothing about what the port costs.
+Re-take it on a quiet machine, with the threads set, before any figure for 1.3.0 at 219 is quoted.

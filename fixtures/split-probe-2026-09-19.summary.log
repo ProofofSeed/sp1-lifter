@@ -1,0 +1,64 @@
+── split-and-aggregate probe (n=4, mode=both) ──
+  prover config: backend=cpu/metal-built-all-phases-default shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  zkboo: 10 crates at their required versions from local paths: zkboo=b37bfeef9875 zkboo-sha2=f52d78d6c375 zkboo-hmac=e61413f9e82a zkboo-modular=d86e6810cf52 zkboo-ecc=ba89fbcceb34 zkboo-circuit-hash=be2b390d9924 zkboo-profiling=e30c032f1caf zkboo-bip32=ad5b92d5ea20 zkboo-keccak=6eed9348320d zkboo-ripemd160=c9595b17ddaa
+  proved 4 ZKBoo responses natively in 4.96ms
+  wire: lift frame 246010 B for 4 responses ⇒ 60.1 KiB/response; leaf frame ≤ 61660 B (statement overhead ~196 B)
+  (the gate matrix runs at 24 leaves, not 4: below 24 a tampered set passes by chance with probability 3^-k)
+── cross-leaf gate matrix (n=24, no proving) ──
+  control (all 24 leaves, in order): accepted ✓
+  G1 dropped response: refused (leaf 1: challenge 0 != 2) ✓
+  G2 substituted response: refused (leaf 0: challenge 0 != 1) ✓
+  G3b mislabelled position: refused (leaf 1: position 99) ✓
+  G3 duplicated response: refused (leaf 1: position 0) ✓
+  G4 reordered responses: refused (leaf 0: challenge 0 != 1) ✓
+  G5 foreign statement: refused (leaf 1: statement mismatch) ✓
+  G6 tampered commitment: refused (leaf 0: challenge 0 != 1) ✓
+  G7 empty leaf set: refused (no leaves) ✓
+  G8 wrong root statement: refused (leaf 0: statement mismatch) ✓
+cross-leaf gate matrix: PASS
+
+── monolithic baseline (one program, all 4 responses) ──
+  monolithic compressed proving: 106.75s (gate green)
+
+── 4 leaf proofs ──
+  leaf 0: 23.20s, 354 bytes of public values → fixtures/leaves/n4/leaf-0.compressed.bin
+  leaf 1: 22.78s, 354 bytes of public values → fixtures/leaves/n4/leaf-1.compressed.bin
+  leaf 2: 23.17s, 350 bytes of public values → fixtures/leaves/n4/leaf-2.compressed.bin
+  leaf 3: 22.81s, 352 bytes of public values → fixtures/leaves/n4/leaf-3.compressed.bin
+
+── root over 4 leaves ──
+  root: 46.70s (gate green, 4 responses, 257 bytes of public values)
+
+── result (n=4) ──
+  monolithic, one machine           106.75s
+  root                               46.70s
+  leaves, summed (4 × ~23.20s)        91.96s
+  split, one machine                138.66s
+  split, critical path               69.90s  (slowest leaf + root)
+  split overhead on one machine        1.30×
+  speedup with 4 machines              1.53×
+  root share of critical path          66.8%
+split-and-aggregate probe: PASS
+      251.22 real      1308.17 user       286.69 sys
+         45903085568  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            49214941  page reclaims
+                  70  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   2  signals received
+                  15  voluntary context switches
+             4021196  involuntary context switches
+      26400524681221  instructions retired
+       6131833595834  cycles elapsed
+         49370869216  peak memory footprint
+
+── the three forged-leaf negatives, same binaries, same day (split-probe 4 forge-*) ──
+forge-vk: PASS — refused BY THE ROOT GUEST's pinned-key assertion (guest exited 1). The prove-time error names the host layer, but the guest refuses first.
+forge-count: PASS — the guest accepts this frame (the tamper is invisible to it, as expected) and something inside SP1's recursion layer refuses it. 🔴 WHICH mechanism is NOT established: the prove-time observable is the same base-field division by zero that `forge-vk` produces, and there the guest is the refuser. So this neither demonstrates the in-circuit deferred-proof digest nor rules it out. See the module comment.
+forge-order: PASS — the guest accepts this frame (the tamper is invisible to it, as expected) and something inside SP1's recursion layer refuses it. 🔴 WHICH mechanism is NOT established: the prove-time observable is the same base-field division by zero that `forge-vk` produces, and there the guest is the refuser. So this neither demonstrates the in-circuit deferred-proof digest nor rules it out. See the module comment.
