@@ -12,6 +12,7 @@
 sp1_zkvm::entrypoint!(main);
 
 use pofseed_sp1_lift_elephant::{ELEPHANT_FRAME_VERSION, ElephantInput, EthereumAddressCircuit, H, PV, S};
+use zkboo::Repetitions;
 use zkboo::verifier::{VerifyOptions, replay::OwnedFlexibleWordPairPool, verify};
 use zkboo_circuit_hash::hash_circuit;
 
@@ -23,11 +24,13 @@ pub fn main() {
     assert_eq!(input.version, ELEPHANT_FRAME_VERSION, "input frame version mismatch");
     let circuit = EthereumAddressCircuit::public_only();
     let fingerprint = hash_circuit::<_, H>(&circuit);
+    assert!(!input.proof.is_empty(), "proof carries no responses");
     let valid = verify::<_, H, PV, S, WPP, _>(
         &circuit,
         &input.expected_output,
         &input.proof,
         &input.binding,
+        Repetitions::exactly(input.proof.len()),
         VerifyOptions::new(),
     )
     .expect("view replay");

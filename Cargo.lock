@@ -6170,7 +6170,7 @@ dependencies = [
 
 [[package]]
 name = "zkboo"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "postcard",
  "rayon",
@@ -6180,7 +6180,7 @@ dependencies = [
 
 [[package]]
 name = "zkboo-bip32"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "zkboo",
  "zkboo-ecc",
@@ -6193,14 +6193,14 @@ dependencies = [
 
 [[package]]
 name = "zkboo-circuit-hash"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "zkboo",
 ]
 
 [[package]]
 name = "zkboo-ecc"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "zeroize",
  "zkboo",
@@ -6209,7 +6209,7 @@ dependencies = [
 
 [[package]]
 name = "zkboo-hmac"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "zkboo",
 ]
@@ -6223,7 +6223,7 @@ dependencies = [
 
 [[package]]
 name = "zkboo-modular"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "zeroize",
  "zkboo",
@@ -6231,7 +6231,7 @@ dependencies = [
 
 [[package]]
 name = "zkboo-profiling"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "zkboo",
 ]
@@ -6245,7 +6245,7 @@ dependencies = [
 
 [[package]]
 name = "zkboo-sha2"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "zkboo",
 ]

@@ -69,16 +69,12 @@ pub fn zkboo_provenance() -> &'static str {
 /// Grover on the grinding is priced in: `n_eps(128) == 438` for PQ-128, and `n_eps(64) == 219`,
 /// which is the classical-128 figure this repository lifts at.
 ///
-/// Vendored from `zkboo-harness`, where zkboo 1.2.0 moved it out of the core crate. That crate is
-/// `publish = false`, so depending on it would make this workspace unpublishable too. The
-/// arithmetic is unchanged.
+/// This was a vendored copy of the formula, taken from `zkboo-harness` because that crate is
+/// `publish = false` and depending on it would make this workspace unpublishable too. zkboo 1.3.0
+/// publishes the formula in the core crate, for exactly that reason, so the copy is gone and this
+/// is the spelling the call sites here use.
 pub const fn n_eps(pq_security_bits: usize) -> usize {
-    // 1 / log2(3/2) ~ NUM / DEN.
-    const NUM: u128 = 1_709_511_291_351_455;
-    const DEN: u128 = 1_000_000_000_000_000;
-    let two_b = (2 * pq_security_bits) as u128;
-    // ceil(two_b * NUM / DEN)
-    return ((two_b * NUM + (DEN - 1)) / DEN) as usize;
+    return zkboo::Repetitions::for_pq_security_bits(pq_security_bits).count();
 }
 
 /// Decodes a hex string (must have even length and valid digits).

@@ -32,6 +32,7 @@ use pofseed_sp1_lift_host::{
     vector_1_proof,
 };
 use pofseed_sp1_lift_statement::{H, PS, PV, S};
+use zkboo::Repetitions;
 use zkboo::{
     executor::{ExecOptions, exec},
     prover::par_prove,
@@ -144,7 +145,12 @@ fn probe(n: usize) -> Point {
     let verify_circuit = EthereumAddressCircuit::public_only();
     let t = Instant::now();
     let ok = verify::<_, H, PV, S, WPP, _>(
-        &verify_circuit, &output, &proof, BINDING, VerifyOptions::new(),
+        &verify_circuit,
+        &output,
+        &proof,
+        BINDING,
+        Repetitions::exactly(n),
+        VerifyOptions::new(),
     )
     .expect("verify");
     let verify_time = t.elapsed();

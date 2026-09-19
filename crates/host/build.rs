@@ -4,13 +4,25 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// The zkboo release this workspace is built against.
+/// The zkboo release each crate this workspace links is built against.
 ///
 /// Declared here rather than read from whatever the lockfile happens to say, deliberately:
 /// a check that takes its expectation from the thing it is checking cannot fail. Moving to a
-/// new zkboo release is a decision someone makes by editing this line, and until they do, a
-/// tree that resolves anything else does not build.
-const REQUIRED_ZKBOO_VERSION: &str = "1.2.0";
+/// new zkboo release is a decision someone makes by editing this table, and until they do, a
+/// tree that resolves anything else does not build. The crates are released independently, so
+/// the version is per crate; a zkboo crate missing from the table is refused.
+const REQUIRED_ZKBOO_VERSIONS: &[(&str, &str)] = &[
+    ("zkboo", "1.3.0"),
+    ("zkboo-bip32", "1.3.0"),
+    ("zkboo-circuit-hash", "1.3.0"),
+    ("zkboo-ecc", "1.3.0"),
+    ("zkboo-hmac", "1.3.0"),
+    ("zkboo-keccak", "1.2.0"),
+    ("zkboo-modular", "1.3.0"),
+    ("zkboo-profiling", "1.3.0"),
+    ("zkboo-ripemd160", "1.2.0"),
+    ("zkboo-sha2", "1.3.0"),
+];
 
 /// The workspace root, two levels up from this crate under `crates/`.
 fn workspace_root() -> PathBuf {
@@ -68,7 +80,7 @@ fn checkout_provenance(name: &str, path: &Path) -> String {
     return format!("{name}={rev}{dirty}");
 }
 
-/// Refuses to build unless every zkboo crate resolves at the required version, from a path.
+/// Refuses to build unless every zkboo crate resolves at its required version, from a path.
 ///
 /// This exists because of a failure that has already happened on this project. Every manifest
 /// here once required `zkboo = "1.0.0"` and redirected it through `[patch.crates-io]` to a local
@@ -82,10 +94,11 @@ fn checkout_provenance(name: &str, path: &Path) -> String {
 /// the working tree. What it requires has been inverted since that failure, because zkboo 1.2.0
 /// is unpublished and every published version is yanked: a registry source is now the symptom of
 /// a disengaged patch rather than the desired state, and a path source is what a correct build
-/// looks like. The version requirement does the rest — `=1.2.0` matches nothing on crates.io, so
-/// a disengaged patch fails to resolve rather than resolving elsewhere.
+/// looks like. The version requirement does the rest — an exact requirement on an unpublished
+/// release matches nothing on crates.io, so a disengaged patch fails to resolve rather than
+/// resolving elsewhere.
 ///
-/// Restore the registry form of this check when 1.2.0 is published.
+/// Restore the registry form of this check when these releases are published.
 fn check_zkboo_provenance() -> String {
     let lock_path = workspace_root().join("Cargo.lock");
     println!("cargo::rerun-if-changed={}", lock_path.display());
@@ -105,10 +118,16 @@ fn check_zkboo_provenance() -> String {
         }
         let version = field("version").unwrap_or("<none>");
         let source = field("source").unwrap_or("");
+        let Some(&(_, required)) = REQUIRED_ZKBOO_VERSIONS.iter().find(|(n, _)| *n == name) else {
+            panic!(
+                "provenance guard: {name} is in the lockfile but has no required version. Add it \
+                 to REQUIRED_ZKBOO_VERSIONS once the release it should be built against is decided.",
+            );
+        };
         assert!(
-            version == REQUIRED_ZKBOO_VERSION,
-            "provenance guard: {name} resolves to {version}, not the required \
-             {REQUIRED_ZKBOO_VERSION}. Fix the requirement rather than this check.",
+            version == required,
+            "provenance guard: {name} resolves to {version}, not the required {required}. Fix the \
+             requirement rather than this check.",
         );
         assert!(
             source.is_empty(),
@@ -136,7 +155,7 @@ fn check_zkboo_provenance() -> String {
         let _ = write!(summary, "{} ", checkout_provenance(name, path));
     }
     return format!(
-        "{found} crates at {REQUIRED_ZKBOO_VERSION} from local paths: {}",
+        "{found} crates at their required versions from local paths: {}",
         summary.trim_end(),
     );
 }

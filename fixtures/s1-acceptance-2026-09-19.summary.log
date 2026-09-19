@@ -1,0 +1,33 @@
+── reject matrix (n=8) ──
+  zkboo: 10 crates at their required versions from local paths: zkboo=b37bfeef9875 zkboo-sha2=f52d78d6c375 zkboo-hmac=e61413f9e82a zkboo-modular=d86e6810cf52 zkboo-ecc=ba89fbcceb34 zkboo-circuit-hash=be2b390d9924 zkboo-profiling=e30c032f1caf zkboo-bip32=ad5b92d5ea20 zkboo-keccak=6eed9348320d zkboo-ripemd160=c9595b17ddaa
+stderr: 
+stderr: thread '<unnamed>' (1) panicked at programs/program/src/main.rs:67:9:
+stderr: ZKBoo proof rejected
+stderr: ZKBoo proof rejected
+  R1 tampered proof: refused by program (ZKBoo proof rejected) ✓
+stderr: 
+stderr: thread '<unnamed>' (1) panicked at programs/program/src/main.rs:67:9:
+stderr: ZKBoo proof rejected
+stderr: ZKBoo proof rejected
+  R2 wrong binding: refused by program (ZKBoo proof rejected) ✓
+  control (n=8, matching expectation): accepted ✓
+  R3 wrong fingerprint: refused by check_journal (FingerprintMismatch) ✓
+  R4 too few responses: refused by check_journal (TooFewResponses) ✓
+stderr: 
+stderr: thread '<unnamed>' (1) panicked at programs/program/src/main.rs:48:9:
+stderr: proof carries no responses
+stderr: proof carries no responses
+  R5 empty proof: refused by program (proof carries no responses) ✓
+  R6 wrong statement: refused by check_journal (StatementMismatch) ✓
+  R8 wrong proof format: refused by check_journal (ProofFormatMismatch) ✓
+stderr: 
+stderr: thread '<unnamed>' (1) panicked at programs/program/src/main.rs:62:13:
+stderr: view replay error
+stderr: view replay error
+  R7 malformed response: refused by program (view replay error) ✓
+reject matrix: PASS
+
+── full-scale positive run (n=219, classical-128) ──
+  proved 219 responses in 71.70ms
+  program accepted, journal passes the consumer gate: fingerprint 72936f44…, 219 responses, 4415364477 instructions, executor wall 28.51s
+full-scale positive run: PASS

@@ -38,9 +38,9 @@ hex = { version = "0.4" }
 zeroize = { version = "1.8.2" }
 postcard = { version = "1.1", features = ["alloc"] }
 serde = { version = "1.0.228" }
-zkboo = { version = "=1.2.0", features = ["u32", "u64", "parallel"] }
-zkboo-bip32 = { version = "=1.2.0" }
-zkboo-circuit-hash = { version = "=1.2.0" }
+zkboo = { version = "=1.3.0", features = ["u32", "u64", "parallel"] }
+zkboo-bip32 = { version = "=1.3.0" }
+zkboo-circuit-hash = { version = "=1.3.0" }
 pofseed-sp1-lift-statement = { path = "../../crates/statement" }
 pofseed-sp1-lift-elephant = { path = "../../crates/elephant" }
 pofseed-sp1-lift-split = { path = "../../crates/split" }
@@ -54,7 +54,7 @@ slop-dft = { version = "=6.4.0" }
 slop-multilinear = { version = "=6.4.0" }
 slop-jagged = { version = "=6.4.0" }
 slop-basefold-prover = { version = "=6.4.0" }
-zkboo-profiling = { version = "=1.2.0" }
+zkboo-profiling = { version = "=1.3.0" }
 
 [build-dependencies]
 sp1-build = { version = "=6.4.0" }
