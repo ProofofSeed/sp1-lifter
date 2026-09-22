@@ -7,7 +7,7 @@ The repository is named for its proof system because other back ends are expecte
 
 The zkboo ecosystem was re-architected as 1.2.0 on 2026-09-04, changing every proof, every circuit fingerprint and every guest verifying key, with a second breaking change on 2026-09-06.
 It has moved twice since: 1.2.1 on 2026-09-09, and 1.3.0 on 2026-09-19, which makes the BIP-32 derivations assert the validity conditions BIP-32 states and makes a verifier name the repetition count it demands.
-Each port is complete and the stack has been rebuilt, re-keyed, re-proved and re-measured: the current figures are in `knowledge/performance-table.md` under "Current figures", and `knowledge/zkboo-1.2.0-migration.md`, `knowledge/zkboo-1.3.0-migration.md` and `knowledge/zkboo-next-delta.md` record what changed and what it cost.
+Each port is complete and the stack has been rebuilt, re-keyed and re-proved; the 1.3.0 round re-measured the full-soundness lift, the split path at 4, 64 and 219 leaves, the elephant path and the on-chain cost, and the 1.2.0 round stands for every figure it did not re-take. The current figures are in `knowledge/performance-table.md` under "Current figures", and `knowledge/zkboo-1.2.0-migration.md`, `knowledge/zkboo-1.3.0-migration.md` and `knowledge/zkboo-next-delta.md` record what changed and what it cost.
 Figures elsewhere in `knowledge/` belong to the previous round and say so; none of them may be rescaled into a current one, for a reason this project measured rather than assumed (`knowledge/instructions-are-not-seconds.md`).
 
 ## Usage
@@ -41,7 +41,7 @@ cargo build --release -p pofseed-sp1-lift-host --features metal   # once; the bi
 ```
 
 The Foundry suite reads a fixture that `lift` generates; without one it **skips**, and a fully skipped suite still prints `Suite result: ok`, so check for `18 tests passed` in the closing summary rather than `ok`.
-The fixture in `verifier/fixtures/` was regenerated from a full-soundness run on 2026-09-07, and the three pins that describe it — verifying key, circuit fingerprint and proof-format identifier — were re-anchored in the same change.
+The fixture in `verifier/fixtures/` was regenerated from a full-soundness run on zkboo 1.3.0 on 2026-09-21; the three pins that describe it — verifying key, circuit fingerprint and proof-format identifier — were re-anchored when the port moved them, on 2026-09-19, and the 2026-09-21 fixture passes against them unchanged.
 That matters more than it sounds: a fixture is internally consistent whatever produced it, so a stale one passes the suite silently, and a pin taken from an artefact only fails on the run *after* the artefact is replaced.
 
 `lift` performs one proving pass: in the default `groth16` mode the single SP1 call runs core → compress → shrink → wrap, so the on-chain fixture costs one pass rather than two.

@@ -71,11 +71,13 @@ const PRIV_KEY: [u8; 32] = [
 /// proves 219 ZKBoo responses natively and writes two artefacts, and charging the guest for those
 /// would inflate the rate's denominator with work the guest does not do.
 ///
-/// PROVENANCE: `lift 219`, this machine, 2026-09-09, zkboo 1.2.0 (local trees), full GPU path,
-/// `fixtures/lift-219-2026-09-09.summary.log` — 3,617.57 s of process wall clock. Superseding
-/// 9,927.49 s on the safe path of 2026-09-07, which the backend defect forced until 2026-09-08,
-/// and a 2.0.0-era 10,296.11 s before it. Update this and its date together, or neither.
-const HASH_FULL_SECONDS: f64 = 3613.03;
+/// PROVENANCE: `lift 219`, this machine, 2026-09-21, zkboo 1.3.0 (local trees), full GPU path,
+/// `fixtures/lift-219-2026-09-21.summary.log` — 3,665.72 s of process wall clock. It must be
+/// taken on the release the instruction law below is refitted on, or the rate divides one
+/// circuit's work by another's time. Superseding 3,613.03 s on zkboo 1.2.0 (2026-09-09),
+/// 9,927.49 s on the safe path of 2026-09-07, and a 2.0.0-era 10,296.11 s before it. Update
+/// this and its date together, or neither.
+const HASH_FULL_SECONDS: f64 = 3662.54;
 
 /// Refits the hardened-child instruction law on this run, and fails if it is not linear.
 ///
