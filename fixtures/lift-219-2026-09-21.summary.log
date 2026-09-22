@@ -1,0 +1,30 @@
+── lift run (n=219, mode=groth16) ──
+  prover config: backend=cpu/metal-built-all-phases-default shard_size=16777216 element_threshold=402653184 height_threshold=4194304 trace_chunk_slots=5 memory_limit=25769803776 rayon_threads=12
+  zkboo: 10 crates at their required versions from local paths: zkboo=b37bfeef9875 zkboo-sha2=f52d78d6c375 zkboo-hmac=e61413f9e82a zkboo-modular=d86e6810cf52 zkboo-ecc=ba89fbcceb34 zkboo-circuit-hash=be2b390d9924 zkboo-profiling=e30c032f1caf zkboo-bip32=ad5b92d5ea20 zkboo-keccak=6eed9348320d zkboo-ripemd160=c9595b17ddaa
+  proved 219 ZKBoo responses natively in 85.55ms
+[90m23:56:23[0m [33mWRN[0m [1mignoring uninitialized slice[0m [36mslice name=[0mVars [36mslice type=[0m[]frontend.Variable
+[90m23:56:23[0m [33mWRN[0m [1mignoring uninitialized slice[0m [36mslice name=[0mVars [36mslice type=[0m[]frontend.Variable
+[90m23:56:23[0m [33mWRN[0m [1mignoring uninitialized slice[0m [36mslice name=[0mVars [36mslice type=[0m[]frontend.Variable
+  zkVM groth16 proving: 3662.54s
+  proof verified + journal gate passed in 151.76ms (219 responses)
+  proof → fixtures/lift-219.groth16-proof.bin (1914 bytes on disk)
+  Foundry fixture → verifier/fixtures/lift-219.onchain.json (proof 356 bytes, public values 219 bytes)
+lift run: PASS
+     3665.72 real     25591.60 user      4792.07 sys
+         50946752512  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+           848846525  page reclaims
+                6542  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                6118  signals received
+                4276  voluntary context switches
+            54625520  involuntary context switches
+     477212548692490  instructions retired
+     115208061507719  cycles elapsed
+         59212666248  peak memory footprint

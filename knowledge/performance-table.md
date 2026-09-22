@@ -1,10 +1,9 @@
 # What everything costs, on this machine
 
 Two rounds sit in this file.
-The **1.2.0 round** below is current for every timing.
 The stack has since moved to zkboo 1.3.0 (`zkboo-1.3.0-migration.md`), which adds the BIP-32 validity assertions to the hardened child and so moves that statement's fingerprint, every guest key and the on-chain fixture.
-It costs +0.67% of guest instructions at 219 against the law below, and the on-chain figures are unchanged because the journal layout is.
-**No timing here has been re-taken on 1.3.0**: the run that regenerated the fixture on 2026-09-19 left `RAYON_NUM_THREADS` unset and delivered `(user+sys)/real = 9.05`, which is this file's own signature of a contended run, so its 3,862.60 s is recorded as evidence that the artefact was produced and as nothing else.
+**The 1.3.0 re-measurement is below, under "Current figures", and supersedes the 1.2.0 rows it names**: the lift at 219 is 3,662.54 s (+1.37%), the elephant leaf 1,377.20 s and its root 6,012.93 s, and the on-chain cost is re-measured at 280,590 gas, unchanged.
+The **1.2.0 round** remains current for every figure the 1.3.0 round does not re-take.
 Everything under "The 2.0.0 round" was measured against the withdrawn ZKBoo 2.0.0 and is kept for the rows the 1.2.0 round has not re-taken — read those for the method and the shape of the results, never for the numbers, and never rescale one by a factor observed elsewhere.
 `instructions-are-not-seconds.md` is this project's shortest illustration of why that last rule exists.
 
@@ -16,7 +15,26 @@ Same machine (M4 Max, 16 cores / 137 GB), same discipline: `RAYON_NUM_THREADS=12
 Runs up to 2026-09-07 used `SP1_METAL_MERKLE=0`, the workaround for a defect in the Metal backend.
 That defect is fixed upstream and the workaround was retired on 2026-09-08, so later rows are on the **full** path and are roughly 2.5–2.9× faster.
 A figure from one configuration must never be compared with one from the other without saying so.
-The full-soundness lift delivered `(user+sys)/real = 11.88` of 12 requested threads, which is what "quiet" means here — a contended run reads about 9 and its timings are retracted on sight.
+On the safe path the full-soundness lift delivered `(user+sys)/real = 11.88` of 12 requested threads, which is what "quiet" meant there.
+**That signature does not carry to the full path**, where the GPU does most of the work: a quiet `lift 219` reads 8.36 (2026-09-09) and 8.29 (2026-09-21).
+Compare a run's ratio with a quiet run of the same workload on the same path, never with a figure from the other one.
+
+### zkboo 1.3.0 (2026-09-21 and 2026-09-22, full path; the root over 4 is of 2026-09-19)
+
+| workload                           |      1.2.0 |      1.3.0 | change |
+| ---------------------------------- | ---------: | ---------: | -----: |
+| `lift 219`, proving                | 3,613.03 s | 3,662.54 s | +1.37% |
+| `lift 219`, peak RSS               |   48.39 GB |   50.95 GB | +5.29% |
+| hardened-child root over 4         |    47.54 s |    46.70 s | −1.77% |
+| hardened-child root over 64        |   105.32 s |   107.52 s | +2.09% |
+| hardened-child root over 219       |   263.43 s |   247.80 s | −5.93% |
+| hardened-child leaf, mean over 219 |          — |    23.20 s |      — |
+| elephant leaf, mean of two         | 1,340.08 s | 1,377.20 s | +2.77% |
+| elephant root over two leaves      | 5,911.38 s | 6,012.93 s | +1.72% |
+| on-chain, pairing check + gate     |    280,590 |    280,590 |      0 |
+
+The reading of each row, and the logs, are in `zkboo-1.3.0-migration.md`.
+The elephant statement's circuit did not change, so its rows are not the release's assertions, and one pair of runs does not attribute them; the root at 219 is the largest disagreement with the root law below, which stands.
 
 ### On-chain
 
