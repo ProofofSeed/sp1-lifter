@@ -117,10 +117,11 @@ From `vkeys` on the clean checkouts named in its provenance line (`zkboo=b37bfee
 | lift (monolithic)           | `0x005b7af58b3e62ccdf711b5c43732f9498eeea399c139fe897ed96c028b1f957` |
 | elephant (monolithic probe) | `0x00c2a78670bcfa1c1d2ec3abd23302e08221e86baa6853a8c5157ef0fedad0c8` |
 | leaf                        | `0x0062f3580f157036c99db66a9c476f937ab3e57e58702c73adf00abe701d7e1f` |
-| root                        | `0x00f737b4db2b1c66feb2b3f9aa654b09cf9edb71c5aa48c7f5a46d73f1c49d95` |
+| root                        | `0x0002c1e4aa12630db4dbf314944b0b8661f24e848c20b31dd222a57d058393ab` |
 | leaf-elephant               | `0x0005ef71e534e5462063bc1ba0379c9ebcf5f1cbea1accb178f71e39d79396af` |
-| root-elephant               | `0x009ae014b6c18a2c1113756164e8c56cc718b5e64c0e8e588729d1a2df75ed58` |
+| root-elephant               | `0x002c3e677b158f77278f380ae7623b2624ecbacd0cc5d2ccc11234805dd0ace9` |
 
 The lift key is `EXPECTED_VKEY` in `verifier/test/LiftGroth16.t.sol`, and the two leaf keys are pinned in `crates/pinned-keys`; the other three are recorded here and nowhere else.
+The two root keys are those of 2026-10-09, when both roots began refusing trailing bytes after a leaf journal (`knowledge/untrusted-input.md`); until then they were `0x00f737b4…c49d95` and `0x009ae014…75ed58`, and the other four keys did not move.
 
 The leaf caches under `fixtures/leaves/n64`, `n219` and `fixtures/elephant-leaves/n2` were re-proved by the runs above and verify under these keys.

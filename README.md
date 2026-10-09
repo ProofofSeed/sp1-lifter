@@ -37,6 +37,7 @@ cargo build --release -p pofseed-sp1-lift-host --features metal   # once; the bi
 ./target/release/elephant-split 2 both      # the split, on the secp256k1 statement
 ./target/release/stream-lift 8              # leaves proved as responses arrive
 ./target/release/vkeys                      # print every key, check the pinned ones
+cargo test --release -p pofseed-sp1-lift-host --test frame_fuzz   # mutated frames never verify as another statement
 (cd verifier && forge test)                 # on-chain verify + gas + rejects
 ```
 
@@ -69,6 +70,7 @@ None is published: crates.io has no namespace mechanism, so the prefix is what d
   **It has no dependencies on purpose:** a crate the leaf programs link would move their keys whenever it changed, and the pin would never converge.
   `vkeys` re-derives every key from the built ELFs and fails if a pinned constant has drifted.
 - `host/` — proof generation, the execution and proving drivers, and the acceptance harnesses.
+  `host/tests/frame_fuzz.rs` mirrors the lift guest natively over mutated input frames; what the guests read from untrusted bytes, and why none of it is an entry point, is in `knowledge/untrusted-input.md`.
   `host/src/orchestrator.rs` dispatches a leaf proof as each response arrives rather than after the last one, so leaf proving overlaps response generation; driven by `stream-lift`, see `knowledge/streaming-orchestrator.md`.
 
 ### `programs/` — zkVM guests

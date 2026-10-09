@@ -47,7 +47,16 @@ pub fn main() {
     for public_values in &input.leaf_public_values {
         let pv_digest: [u8; 32] = Sha256::digest(public_values).into();
         sp1_zkvm::lib::verify::verify_sp1_proof(&LEAF_VK, &pv_digest);
-        leaves.push(postcard::from_bytes(public_values).expect("malformed leaf journal"));
+        // Exact consumption, as the host and on-chain decoders enforce: a leaf commits one
+        // journal and nothing after it, and `from_bytes` would let bytes past the journal ride
+        // along unread.
+        let (leaf, rest): (LeafJournal, &[u8]) =
+            postcard::take_from_bytes(public_values).expect("malformed leaf journal");
+        if !rest.is_empty() {
+            sp1_zkvm::io::commit_slice(b"REFUSED: leaf journal carries trailing bytes");
+            panic!("leaf journal carries trailing bytes");
+        }
+        leaves.push(leaf);
     }
     // 2. The cross-leaf global Fiat-Shamir gate.
     let expected_statement = statement_digest(
