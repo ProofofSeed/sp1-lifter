@@ -19,7 +19,11 @@ This inverts the arrangement that held while the crates were published, and shou
 
 Proving runs on the GPU.
 Build with `--features metal` and everything below goes through the Metal backend for SP1 Hypercube (`knowledge/gpu-proving.md`).
-To measure against the CPU, force the GPU path off with the switches in `fixtures/cpu-arm-switches.txt` rather than by rebuilding, so that both arms are one binary.
+To measure against the CPU, force the GPU path off with the switches below rather than by rebuilding, so that both arms are one binary.
+
+```
+SP1_METAL_MIN_ENTRIES=999999999 SP1_METAL_MERKLE=0 SP1_METAL_TRANSITION=0 SP1_METAL_ZEROCHECK=0 SP1_METAL_ENCODE=0 SP1_METAL_JAGGED=0 SP1_METAL_FIRST_LAYER=0 SP1_METAL_JAGGED_VALUES=0 SP1_METAL_JAGGED_ASSIST=0 SP1_METAL_BATCH=0 SP1_METAL_UPLOAD_CACHE=0 SP1_METAL_GKR_ROUND=0
+```
 
 Use the full GPU path, with no `SP1_METAL_*` switches set.
 The backend at `v0.1.0` produced a proof that failed its own verification about once in twenty-eight, and `SP1_METAL_MERKLE=0` was the workaround; the defect was fixed upstream, the workspace now builds a revision past the fix, and the workaround was retired on 2026-09-08.
@@ -53,7 +57,7 @@ Proving cost is tunable from the environment without a rebuild — `SHARD_SIZE`,
 
 ## Structure
 
-Every root-level folder is a grouping: `crates/` for host-side Rust, `programs/` for the zkVM guests, `verifier/` for the Solidity, `knowledge/` for the design record and the measurements, `fixtures/` for the evidence they cite.
+Every root-level folder is a grouping: `crates/` for host-side Rust, `programs/` for the zkVM guests, `verifier/` for the Solidity, `knowledge/` for the design record and the measurements.
 
 All crates are named `pofseed-sp1-lift-*`, after the project and the proof system, since other SNARK back ends are expected alongside this one.
 None is published: crates.io has no namespace mechanism, so the prefix is what distinguishes them in local tooling, and every manifest carries `publish = false`.
@@ -86,4 +90,5 @@ None is published: crates.io has no namespace mechanism, so the prefix is what d
 - `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0), and the relying-party journal gate as a Solidity library.
 - `knowledge/` — design record, plan, and measured numbers.
   `performance-table.md` is the current cost of everything and the place to start; `gpu-proving.md` covers what the Metal backend does to this workload and `gpu-corruption.md` the defect that used to bound it, fixed upstream and retired on 2026-09-08; `zkboo-1.2.0-migration.md` with `zkboo-next-delta.md` record the dependency re-architecture and `zkboo-1.3.0-migration.md` the releases since; `instructions-are-not-seconds.md` is why a saving in one may not be quoted as a saving in the other.
-- `fixtures/` — the distilled run logs the notes cite, and the cached leaf proofs the split drivers reuse.
+- `fixtures/` — not tracked; created by the drivers for run logs and cached leaf proofs.
+  The distilled logs the notes cite remain in history at `35ed318`.

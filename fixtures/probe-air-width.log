@@ -1,6 +1,0 @@
-keccak-f[1600]         :  2633 columns x 24 rows =   63192 cells/permutation
-poseidon2 (SP1 wide)   :   179 columns x  1 row  =     179 cells/permutation
-ratio                  : 353.0x
-
-bytes absorbed per permutation: keccak 136, poseidon2-KB16 32 (8 field elements)
-per absorbed byte      : keccak 464.6, poseidon2 5.6, ratio 83.1x
