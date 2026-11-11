@@ -236,7 +236,7 @@ fn main() {
         // 0.973 ratio to the new marginal is scaling something whose parts moved separately.
         const MARGINAL_OLD: f64 = 2.4627e9; // zkboo 2.0.0
         const MARGINAL_NEW: f64 = 2.1148e9; // zkboo 1.2.0, refitted 2026-09-07
-        const LEAF_MEASURED_OLD: f64 = 2_395_132_641.0; // fixtures/elephant-execute-gate.summary.log
+        const LEAF_MEASURED_OLD: f64 = 2_395_132_641.0; // fixtures/elephant-execute-gate.summary.log at commit 35ed318
         let predicted = LEAF_MEASURED_OLD - (MARGINAL_OLD - MARGINAL_NEW);
         println!(
             "  vs marginal terms: {:.3}x of the old {MARGINAL_OLD:.4e}, {:.3}x of the new {MARGINAL_NEW:.4e}",

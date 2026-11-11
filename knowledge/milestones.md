@@ -1,8 +1,8 @@
 # Milestone plan
 
-Ratified by Stefano on 2026-08-19, together with the technology choice: **RISC Zero zkVM**, guest = the genuine `zkboo` verifier, universal Groth16 wrap, on-chain verification via RISC Zero's audited BN254 verifier contract.
+Ratified on 2026-08-19, together with the technology choice: **RISC Zero zkVM**, guest = the genuine `zkboo` verifier, universal Groth16 wrap, on-chain verification via RISC Zero's audited BN254 verifier contract.
 
-## AMENDMENT (ratified by Stefano, 2026-08-19, same day): the stack is now SP1
+## AMENDMENT (ratified, 2026-08-19, same day): the stack is now SP1
 
 **The zkVM is SP1 (sdk 6.0.1), not RISC Zero.**
 The operative constraint is that everything must run on this machine (M4 Max, 137 GB; the x86 server is not available), and under it the original choice fails on measured facts:
@@ -58,7 +58,7 @@ Real STARK proving of the S1 guest run on this machine (Apple Silicon, Metal), w
 
 ## S3 — Groth16 wrap and on-chain gas
 
-The Docker question for the local STARK→Groth16 wrap is resolved (accept Docker for that one step, use the Bonsai/prover network, or another route — Stefano decides when the options are priced); a Foundry test verifies the wrapped proof against RISC Zero's audited verifier contract.
+The Docker question for the local STARK→Groth16 wrap is resolved (accept Docker for that one step, use the Bonsai/prover network, or another route — to be decided when the options are priced); a Foundry test verifies the wrapped proof against RISC Zero's audited verifier contract.
 
 **Acceptance:** a real proof-of-seed lift verifies on-chain (forge) at measured gas in the expected ~250–300k range, plus a reject matrix (wrong journal, wrong image id, corrupted seal).
 
@@ -74,7 +74,7 @@ Three knobs look like levers and are not: `full_size_shards`, `drop_ldes` and `r
 
 **Acceptance:** a single-process `lift 219` produces a Groth16 proof that passes the full relying-party gate and verifies under `forge` at recorded gas; its log records the prover configuration it ran under; and `knowledge/` carries the sweep record — wall time and peak RSS for every configuration tried — with the configuration used for the full run justified by that measurement rather than by assumption.
 
-The full-scale run must not be made against an uncommitted `<zkboo>` working tree: the guest ELF depends on it, so the run's verifying key and fixture would not be attributable to any recorded revision.
+The full-scale run must not be made against an uncommitted zkboo working tree: the guest ELF depends on it, so the run's verifying key and fixture would not be attributable to any recorded revision.
 
 **DONE (2026-08-21).**
 A single-process `lift 219 groth16` on the released zkboo 1.0.0 tree proved the full lift in **23 320.2 s (6 h 28 m 40 s)**, peak RSS 112.2 GB, and its 356-byte proof verified under `forge` at **270 441 gas, 5/5**, having passed the full relying-party gate and every fixture guard.
@@ -145,18 +145,18 @@ Every clause of the acceptance met, on the safe-GPU configuration:
 | one elephant root over a small N proved and verified           | **15,589.86 s (4 h 19 m 50 s), 74.37 GB**, gate green over 2 |
 | root journal passes the relying-party gate                     | **PASS** — `check_elephant_journal`, fingerprint `4d6c3501…` |
 
-Logs: `fixtures/elephant-gate.summary.log`, `elephant-leaf-retime.summary.log`, `elephant-root-n2.summary.log`, `elephant-execute-gate.summary.log`.
+Logs: `fixtures/elephant-gate.summary.log` at commit `35ed318`, `elephant-leaf-retime.summary.log`, `elephant-root-n2.summary.log`, `elephant-execute-gate.summary.log`. All in `fixtures/` at commit `35ed318`.
 
 **The projections it replaced were wrong in both directions** — the leaf 1.26× under, the root 1.40× over — which is the argument for having run it rather than scaling the hardened child.
 The fixed term was indeed the thing to watch, and it is worse than expected: **the root is 79% of the wall clock**, so the next lever on this statement is the fingerprint pass, not more machines.
 See `knowledge/elephant-cost.md`.
 
-**Two leaf timings taken during the campaign are retracted** — a sibling session was proving on the same machine — and one of them agreed with the projection to 3% while doing so.
+**Two leaf timings taken during the campaign are retracted** — another job was proving on the same machine — and one of them agreed with the projection to 3% while doing so.
 The gate matrix was also extended from five refusal cases to the full nine while accepting this milestone; five met the acceptance as worded, but "the gate matrix passes" reads stronger than five cases earn.
 
 ## TODO — reinvestigate removing Poseidon
 
-**Ruled 2026-08-28 (Stefano): keep Poseidon for now.**
+**Ruled 2026-08-28 (project decision): keep Poseidon for now.**
 Recorded here so the question is not lost.
 
 The investigation is `knowledge/poseidon-exposure.md`.
@@ -165,7 +165,7 @@ A break would not leak a seed; it would let someone forge a lift.
 
 Swapping it is not a configuration change.
 The `IopCtx` abstraction is the right shape and the instantiation is a one-line alias, but the recursion layer verifies the hash *in circuit*, with Poseidon2 in the recursion VM's instruction set as chips of its own.
-And a bit-oriented replacement is out on measured grounds: **63,192 trace cells per Keccak-f permutation against 179 for Poseidon2 — 353× per permutation, 83× per absorbed byte** (`fixtures/probe-air-width.log`).
+And a bit-oriented replacement is out on measured grounds: **63,192 trace cells per Keccak-f permutation against 179 for Poseidon2 — 353× per permutation, 83× per absorbed byte** (`fixtures/probe-air-width.log` at commit `35ed318`).
 
 **What to do when this is picked up again, in order:**
 

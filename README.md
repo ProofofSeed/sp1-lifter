@@ -10,10 +10,32 @@ It has moved twice since: 1.2.1 on 2026-09-09, and 1.3.0 on 2026-09-19, which ma
 Each port is complete and the stack has been rebuilt, re-keyed and re-proved; the 1.3.0 round re-measured the full-soundness lift, the split path at 4, 64 and 219 leaves, the elephant path and the on-chain cost, and the 1.2.0 round stands for every figure it did not re-take. The current figures are in `knowledge/performance-table.md` under "Current figures", and `knowledge/zkboo-1.2.0-migration.md`, `knowledge/zkboo-1.3.0-migration.md` and `knowledge/zkboo-next-delta.md` record what changed and what it cost.
 Figures elsewhere in `knowledge/` belong to the previous round and say so; none of them may be rescaled into a current one, for a reason this project measured rather than assumed (`knowledge/instructions-are-not-seconds.md`).
 
+## Status
+
+This is a research prototype and has not been audited.
+It is a proof of concept of a lift usable on Ethereum L1 today, and nothing in it is production-ready.
+The repository cannot be built by others yet: it patches the unpublished zkboo crates from local working trees, and the GPU backend it patches in for proving is not yet public.
+What a reader can do today is read the code and the design record in `knowledge/`, run `forge test` in `verifier/`, and check the fixture against the vendored SP1 verifier.
+
+Security caveats:
+
+- The soundness of the wrapped proof is capped at roughly 100 bits by the security of the BN254 pairing, which is the weakest link of the classical track and is not removed by raising the repetition count.
+- The default repetition count of 219 gives 128-bit classical security only in the forgery-work-ratio sense (an attacker making T Fiat-Shamir queries forges with probability at most T·(2/3)^219, so work over success probability is at least 2^128); stricter definitions would credit less.
+  The repetition count is a runtime parameter, and 438 is the post-quantum 128-bit figure, which this track does not claim.
+- Nothing here is post-quantum: the Groth16 wrap rests on pairing assumptions.
+- Neither the host code nor `verifier/src/LiftJournalGate.sol` has been audited.
+  The vendored SP1 verifier contracts are upstream code, audited upstream, and are not modified here.
+- A valid proof can prove nothing.
+  ZKBoo prover advice is constrained only by in-circuit assertions, accumulated into the last `u8` word of the circuit output (the assertion word), and an honest prover run on a bad witness yields a valid proof whose assertion word is 0, obtainable by anyone for any address.
+  A relying party must therefore reject any journal whose assertion word is not 1, require a minimum response count, and pin the verifying key; `verifyProof` alone authorises nothing.
+  `verifier/src/LiftJournalGate.sol` implements these checks, and `verifier/README.md` states how to use it.
+- The Solidity gate is a library.
+  No contract is deployed and there is no ERC-4337 account contract.
+
 ## Usage
 
 Requires the SP1 toolchain (`sp1up`; sdk 6.4.0 with the `succinct` rust toolchain) and Go, for the native gnark wrap.
-The ZKBoo crates come from local checkouts under `<zkboo>`, patched in at the workspace root, because every release since 1.2.0 is unpublished and every published version is yanked.
+The ZKBoo crates come from local checkouts from sibling working trees (`../../zkboo/*` relative to the workspace root), patched in at the workspace root, because every release since 1.2.0 is unpublished and every published version is yanked.
 The build script names the required version of each crate — they are released independently, and two of the ten are still at 1.2.0 — and refuses anything that does not resolve at exactly that version from a path, recording each checkout's git revision and dirty state into the binary.
 This inverts the arrangement that held while the crates were published, and should be inverted back when they are published again.
 
@@ -65,7 +87,7 @@ None is published: crates.io has no namespace mechanism, so the prefix is what d
 ### `crates/` — host-side
 
 - `statement/` — shared host and guest definitions: the proof-of-seed circuits, the fixed Keccak-256 crypto suite, the postcard wire format, and the reference journal gate.
-- `elephant/` — the secp256k1 Ethereum-address statement, kept separate so that probing it cannot move the production verifying key.
+- `elephant/` — the secp256k1 Ethereum-address statement, kept separate so that probing it cannot move the main verifying key.
   See `knowledge/elephant-cost.md`.
 - `split/` — the split-and-aggregate frames and the cross-leaf global Fiat-Shamir gate, which is what makes the lift distributable and streamable.
   See `knowledge/split-and-streaming.md`.
@@ -79,7 +101,7 @@ None is published: crates.io has no namespace mechanism, so the prefix is what d
 
 ### `programs/` — zkVM guests
 
-- `program/` — the production lift: a thin shim around `zkboo::verifier::verify`.
+- `program/` — the main lift: a thin shim around `zkboo::verifier::verify`.
 - `program-elephant/` — the same for the Ethereum-address statement.
 - `program-leaf/`, `program-root/` — one proof per response, plus a root carrying the cross-leaf gate.
 - `program-leaf-elephant/`, `program-root-elephant/` — the same split over the Ethereum-address statement, which has no public parameters and a different journal shape, so it needs its own pair of guests.
@@ -87,8 +109,8 @@ None is published: crates.io has no namespace mechanism, so the prefix is what d
 
 ### The rest
 
-- `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0), and the relying-party journal gate as a Solidity library.
+- `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0), and the relying-party journal gate as a Solidity library (see `verifier/README.md`).
 - `knowledge/` — design record, plan, and measured numbers.
   `performance-table.md` is the current cost of everything and the place to start; `gpu-proving.md` covers what the Metal backend does to this workload and `gpu-corruption.md` the defect that used to bound it, fixed upstream and retired on 2026-09-08; `zkboo-1.2.0-migration.md` with `zkboo-next-delta.md` record the dependency re-architecture and `zkboo-1.3.0-migration.md` the releases since; `instructions-are-not-seconds.md` is why a saving in one may not be quoted as a saving in the other.
-- `fixtures/` — not tracked; created by the drivers for run logs and cached leaf proofs.
-  The distilled logs the notes cite remain in history at `35ed318`.
+- `fixtures/` — not tracked; created by the drivers for run logs and cached leaf proofs (`fixtures/leaves/n<N>/` and `fixtures/elephant-leaves/n<N>/`).
+  The distilled logs the notes cite were removed from the repository; each citation names the file as it stood at commit `35ed318`.

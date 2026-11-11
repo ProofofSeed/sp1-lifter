@@ -1,16 +1,7 @@
 /target
-/fixtures/*
-# The measurement record is tracked; the raw prover traces are not. With RUST_LOG on,
-# a full-scale run emits ~135k span lines — 261 MB for 33 lines of signal — so each run
-# is distilled to a *.summary.log and the trace stays local.
-!/fixtures/probe-*.log
-!/fixtures/smoke-*.log
-!/fixtures/s2-*.log
-!/fixtures/s3-*.log
-!/fixtures/*.summary.log
-# The switch list the CPU arm of every GPU comparison was taken under: it is cited by
-# knowledge/gpu-proving.md and is the difference between a reproducible pair and a claim.
-!/fixtures/cpu-arm-switches.txt
+# Run logs and cached leaf proofs are written here by the drivers and are not tracked.
+# The distilled logs once tracked in this folder remain in history at 35ed318.
+/fixtures/
 # The full-soundness on-chain fixture is the acceptance evidence for the wrapped proof — the
 # artefact the gas figures are measured on — and at ~1.2 KB there is no reason for it to live
 # only on one machine. Only the 219-response fixture is tracked: it is the one the Foundry

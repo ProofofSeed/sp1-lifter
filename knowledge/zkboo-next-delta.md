@@ -1,8 +1,8 @@
 # The delta on top of zkboo 1.2.0
 
 A second breaking change landed upstream on 2026-09-06, two days after the 1.2.0 port and before anything here had been built.
-It is in the local trees only — nothing pushed, nothing tagged, the versions still say `1.2.0` — so it arrives the moment this workspace rebuilds against `<zkboo>`.
-Upstream record: `<zkboo>/MIGRATION-NEXT.md`, with the reasoning in `DESIGN-ASSERTIONS-HINTS.md`.
+It is in the local trees only — nothing pushed, nothing tagged, the versions still say `1.2.0` — so it arrives the moment this workspace rebuilds against the local zkboo trees.
+Upstream record: the zkboo repository's `MIGRATION-NEXT.md` and `DESIGN-ASSERTIONS-HINTS.md`, which are not yet public.
 
 Read this after `zkboo-1.2.0-migration.md`; it amends that file's central trap.
 
@@ -74,7 +74,7 @@ Cost, per upstream's measurement: the mirror runs once per circuit execution rat
 ## Effect on this repository
 
 **The ZKBoo proof bytes are reported unchanged.**
-The peer session that ported the device-side stack measured eight statement fingerprints byte-identical across the change, and four raw proof-byte rows — both `public_key` rows among them — identical in length *and* digest.
+The port of the device-side stack measured eight statement fingerprints byte-identical across the change, and four raw proof-byte rows — both `public_key` rows among them — identical in length *and* digest.
 Upstream states the same: gate for gate, in the same order, with the same values.
 So instruction counts and cost laws should carry.
 
@@ -88,7 +88,7 @@ The fixture is now stale for a second reason as well as the first: its journal d
 
 ## Addendum, 2026-09-07: four upstream changes, none reaching this tree
 
-Checked against the trees rather than inferred, after a peer session reported them.
+Checked against the trees rather than inferred, after they were reported elsewhere.
 
 1. **The affine conversion is asserted rather than computed.**
    The in-circuit modular inverse lost its hint when the hint gate went, adding ~90,000 AND messages to every statement that converts a point out of projective coordinates.
@@ -116,4 +116,4 @@ That changes nothing about the outstanding work, but it is not a conclusion the 
 
 **Taproot, Solana and `pubkey_hash160` are not statements of this repository.**
 They appear here only as a line in a superseded plan.
-Cost rows for them live in `<zkboo>/succinct-lifter`, a separate research repo this session has never written to.
+Cost rows for them live in a separate research repository that is not yet public.

@@ -61,7 +61,7 @@ For continuity with what was published before, the same calls measured the old w
 | ------------------------------- | -----------------------: | -----------------------: | -----: |
 | memory-resident                 |                  225,838 |                  225,917 |    +79 |
 | warm storage                    |                  228,388 |                  228,576 |   +188 |
-| **cold storage (as published)** |              **270,441** |              **272,635** | +2,194 |
+| **cold storage (as published; retracted, harness-inflated)** |              **270,441** |              **272,635** | +2,194 |
 
 Both published figures reproduce exactly in the cold-storage arrangement, which identifies it.
 The memory-resident row reads 225,917 here and 225,975 in the fixed suite: the two harnesses reach the call with different memory already allocated, and 58 gas is that difference, not a discrepancy.
@@ -257,9 +257,9 @@ Order of magnitude only.
 | proof file on disk      | 1,882 B | 1,913 B |
 
 vkey `0x00f1810f…` at the time of these runs, circuit fingerprint `0xbd121f6f…`, proof format id `0x4be5d4e6…`.
-The 2026-09-09 restructure moved the key to `0x00883344…`; the fingerprint and format id did not move (`fixtures/relaunch-2026-09-07.summary.log`, `knowledge/guest-keys-move-on-comments.md`).
+The 2026-09-09 restructure moved the key to `0x00883344…`; the fingerprint and format id did not move (`fixtures/relaunch-2026-09-07.summary.log` at commit `35ed318`, `knowledge/guest-keys-move-on-comments.md`).
 The move to 1.3.0 then moved both the key, to `0x005b7af5…`, and the fingerprint, to `0x72936f44…`, which are what the fixture and the Solidity pins carry now; the format id is still `0x4be5d4e6…` and the artefact sizes are unchanged but for the proof file's 1,914 B on disk.
-Evidence: `fixtures/lift-219-2026-09-07.summary.log`, `fixtures/split-probe-2026-09-07.summary.log`, `fixtures/elephant-probe-2026-09-07b.summary.log`, `fixtures/relaunch-2026-09-07.summary.log`.
+Evidence: `fixtures/lift-219-2026-09-07.summary.log` at commit `35ed318`, `fixtures/split-probe-2026-09-07.summary.log` at commit `35ed318`, `fixtures/elephant-probe-2026-09-07b.summary.log` at commit `35ed318`, `fixtures/relaunch-2026-09-07.summary.log` at commit `35ed318`.
 
 ## The 2.0.0 round
 
@@ -272,7 +272,7 @@ RSS is `/usr/bin/time -l` maximum resident set size for the whole process.
 
 Three arms appear throughout:
 
-- **CPU** — the same binary with every `SP1_METAL_*` switch forced off (`fixtures/cpu-arm-switches.txt`).
+- **CPU** — the same binary with every `SP1_METAL_*` switch forced off (`fixtures/cpu-arm-switches.txt` at commit `35ed318`).
   It measures within 0.8% of the published SP1 6.4.0 prover, which was checked separately.
 - **GPU safe** — the Metal backend with `SP1_METAL_MERKLE=0`.
   It *was* the only setting fit for an unattended run; the defect that made it so is  fixed upstream and the setting was retired on 2026-09-08.
@@ -282,11 +282,14 @@ Three arms appear throughout:
 
 ### On-chain
 
-| step                                                           |          gas |
-| -------------------------------------------------------------- | -----------: |
-| `SP1VerifierGroth16.verifyProof` (the pairing check)           |      270,441 |
-| `LiftJournalGate.check` (decode + the full relying-party gate) |   **85,287** |
-| **together**                                                   | **~356,000** |
+| step                                                           | gas (retracted) |
+| -------------------------------------------------------------- | --------------: |
+| `SP1VerifierGroth16.verifyProof` (the pairing check)           |         270,441 |
+| `LiftJournalGate.check` (decode + the full relying-party gate) |          85,287 |
+| **together**                                                   |        ~356,000 |
+
+Both gas figures above are retracted: they include the test harness reading its fixture from cold storage.
+The measured costs are 225,975 for the pairing check and 54,615 for the journal gate, 280,590 together.
 
 The gate is 32% on top of the proof verification, and it is not optional: `verifyProof` alone establishes only that some program committed some public values.
 Measured 2026-08-29, `verifier/test/LiftJournalGate.t.sol`.
@@ -303,7 +306,7 @@ Measured 2026-08-29, `verifier/test/LiftJournalGate.t.sol`.
 | split: root over 4 leaves        | 205.6 s / 86.2 GB             | 112.2 s / 68.8 GB        | 47.9 s / 41.4 GB      |
 | split: root over 64 leaves       | 527.2 s / 96.6 GB             | **265.0 s / 80.1 GB**    | —                     |
 
-⁽ᶜ⁾ This cell is the **published SP1 6.4.0** prover, not the switches-off binary the CPU column otherwise means (`fixtures/lift-1-cpu.summary.log`, which carries no configuration banner — it begins at gnark's output).
+⁽ᶜ⁾ This cell is the **published SP1 6.4.0** prover, not the switches-off binary the CPU column otherwise means (`fixtures/lift-1-cpu.summary.log` at commit `35ed318`, which carries no configuration banner — it begins at gnark's output).
 The two arms agree within 0.8% where both were measured, which is why it was placed here, but the column header claims an arm this figure was not taken on.
 
 ⁽ᵃ⁾ Measured 2026-08-21 on **zkboo 1.0.0**, not re-run since.

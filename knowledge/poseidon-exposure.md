@@ -9,7 +9,7 @@ Everything below is read out of the 6.4.0 sources or measured; where it is an in
 
 **Stage 1 is clean.**
 The ZKBoo crates use **Keccak-256** throughout — commitments, PRGs, challenge entropy.
-`grep -ril poseidon` over `<zkboo>/*/src` matches only `zkboo-plonky3-draft`, an abandoned prototype that nothing depends on.
+`grep -ril poseidon` over the zkboo crates' sources matches only `zkboo-plonky3-draft`, an abandoned prototype that nothing depends on.
 **Nothing on the device touches Poseidon.**
 
 **Our lifter code is clean.**
@@ -80,7 +80,7 @@ Measured from the crates SP1 links, in trace cells per permutation:
 
 **353× per permutation, 83× per absorbed byte.**
 
-Output: `fixtures/probe-air-width.log`.
+Output: `fixtures/probe-air-width.log` at commit `35ed318`.
 The probe reads the constants out of the crates rather than quoting them, so it cannot go stale silently against a version bump — against `p3-keccak-air` `=0.4.3-succinct` and `sp1-hypercube` `=6.4.0`:
 
 ```rust

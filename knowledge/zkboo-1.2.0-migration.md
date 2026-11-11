@@ -2,7 +2,7 @@
 
 The zkboo ecosystem was re-architected and re-released as **1.2.0** on 2026-09-04, replacing the 2.0.0 line this repository had been built against.
 2.0.0 is withdrawn: its history is gone from every remote, all thirty-two previously published crates.io versions are yanked, and 1.2.0 is not published at all.
-The upstream record is `<zkboo>/HANDOVER.md` and `<zkboo>/MIGRATION.md`; this file records what it cost here and which of this repository's numbers it invalidates.
+The upstream record is the zkboo repository's `HANDOVER.md` and `MIGRATION.md`, which are not yet public; this file records what it cost here and which of this repository's numbers it invalidates.
 
 ## Superseded measurements
 

@@ -120,8 +120,8 @@ A leaf is an independent `prove` call, so the leaves distribute over machines an
 ### Elephant leaf and root
 
 **Measured 2026-08-28**, safe-GPU configuration (`SP1_METAL_MERKLE=0`), 12 Rayon threads.
-Leaf: `fixtures/elephant-leaf-retime.summary.log`.
-Root: `fixtures/elephant-root-n2.summary.log`, and the re-run `fixtures/elephant-root-n2-rerun.summary.log`.
+Leaf: `fixtures/elephant-leaf-retime.summary.log` at commit `35ed318`.
+Root: `fixtures/elephant-root-n2.summary.log` at commit `35ed318`, and the re-run `fixtures/elephant-root-n2-rerun.summary.log` at commit `35ed318`.
 
 ### The root was run twice, and the second run settles both its repeatability and its provenance
 
@@ -160,7 +160,7 @@ The nine-case cross-leaf refusal matrix runs on the elephant statement too, at 2
 
 ### Contaminated leaf timings
 
-Two leaf timings taken alongside the root — 6,193.81 s and 5,469.39 s — were taken while another session was proving on the same machine.
+Two leaf timings taken alongside the root — 6,193.81 s and 5,469.39 s — were taken while another job was proving on the same machine.
 **Both are retracted.**
 The clean re-run on an idle machine is 4,207.74 s, so contamination cost **1.47×** and **1.30×**.
 

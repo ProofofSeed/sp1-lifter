@@ -15,7 +15,7 @@ It supersedes the quiet-machine relaunch recipe recorded in `split-and-streaming
 
 ### zkboo 2.0.0: breaking changes
 
-Eleven crates are published on crates.io at 2.0.0 and all twelve repositories are tagged `v2.0.0`; the local trees at `<zkboo>` sit exactly on those tags, clean, with nothing unpushed.
+Eleven crates are published on crates.io at 2.0.0 and all twelve repositories are tagged `v2.0.0`; the local zkboo trees sit exactly on those tags, clean, with nothing unpushed.
 
 - Every circuit's outputs now end with an **assertion word** that the backend emits, so an expected output gains a trailing word and **no proof produced by 1.x verifies**.
   `PROOF_FORMAT_VERSION` is **3**.
@@ -32,7 +32,7 @@ This exact failure already happened once during the device round: one app build 
 
 ### The figure to plan against
 
-`<sp1-metal>`, tag `v0.1.0`, clean and pushed; the consumer path is six `[patch.crates-io]` entries and a four-entry `metal` feature, against `sp1-sdk = "=6.4.0"`, which is what we already resolve.
+the Metal backend (not yet public), tag `v0.1.0`, clean and pushed; the consumer path is six `[patch.crates-io]` entries and a four-entry `metal` feature, against `sp1-sdk = "=6.4.0"`, which is what we already resolve.
 
 - Core shard proving reaches 6.0× on a large synthetic workload, and the microbenchmark envelope is 1.94×–6.01×.
 - **Compressed proving — which is what the lift is — measures 2.92×–3.08×**, three guests, measured twice on an idle machine, agreeing to within 0.02×.
