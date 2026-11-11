@@ -2,7 +2,7 @@
 
 A second breaking change landed upstream on 2026-09-06, two days after the 1.2.0 port and before anything here had been built.
 It is in the local trees only — nothing pushed, nothing tagged, the versions still say `1.2.0` — so it arrives the moment this workspace rebuilds against the local zkboo trees.
-Upstream record: the zkboo repository's `MIGRATION-NEXT.md` and `DESIGN-ASSERTIONS-HINTS.md`, which are not yet public.
+Upstream record: the zkboo repository's `knowledge/archive/migration-1.2.1.md` and `knowledge/archive/assertions-hints-design.md`, which are not yet public.
 
 Read this after `zkboo-1.2.0-migration.md`; it amends that file's central trap.
 
