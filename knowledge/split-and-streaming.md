@@ -277,8 +277,8 @@ All three were re-run on 2026-08-28 against the pinned roots and all three refus
 |               | refused by                                            | prove wall |
 | ------------- | ----------------------------------------------------- | ---------: |
 | `forge-vk`    | **the root guest's pinned-key assertion**             |     19.0 s |
-| `forge-count` | 🔴 **undetermined — somewhere in the recursion layer** |    105.3 s |
-| `forge-order` | 🔴 **undetermined — somewhere in the recursion layer** |    105.4 s |
+| `forge-count` | **undetermined — somewhere in the recursion layer** |    105.3 s |
+| `forge-order` | **undetermined — somewhere in the recursion layer** |    105.4 s |
 
 `forge-vk`'s guest runs, reaches `input.leaf_vk != LEAF_VK`, and panics — visible in the run's stderr as `claimed leaf key is not the pinned one` at `programs/program-root/src/main.rs:44`.
 The prove-time error still reads `artifact not found`, but that is downstream wreckage of the failed run, not the refuser.
