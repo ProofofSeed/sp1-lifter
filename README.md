@@ -114,3 +114,8 @@ None is published: crates.io has no namespace mechanism, so the prefix is what d
   `performance-table.md` is the current cost of everything and the place to start; `gpu-proving.md` covers what the Metal backend does to this workload and `gpu-corruption.md` the defect that used to bound it, fixed upstream and retired on 2026-09-08; `zkboo-1.2.0-migration.md` with `zkboo-next-delta.md` record the dependency re-architecture and `zkboo-1.3.0-migration.md` the releases since; `instructions-are-not-seconds.md` is why a saving in one may not be quoted as a saving in the other.
 - `fixtures/` — not tracked; created by the drivers for run logs and cached leaf proofs (`fixtures/leaves/n<N>/` and `fixtures/elephant-leaves/n<N>/`).
   The distilled logs the notes cite were removed from the repository; each citation names the file as it stood at commit `35ed318`.
+
+## Licence
+
+Copyright © 2026 Stefano Gogioso.
+The code is LGPL-3.0-or-later (see `LICENSE`); vendored third-party code keeps its own licence.
