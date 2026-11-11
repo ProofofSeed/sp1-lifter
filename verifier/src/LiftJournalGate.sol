@@ -3,6 +3,8 @@ pragma solidity ^0.8.20;
 
 /// The relying-party gate over a lifted proof of seed, on chain.
 ///
+/// Research prototype: this library has not been audited.
+///
 /// `SP1VerifierGroth16.verifyProof` establishes only *"the program identified by this
 /// verifying key ran successfully and committed these public values"*. It is not an
 /// authorisation. This library is the second half: it decodes the public values — the
