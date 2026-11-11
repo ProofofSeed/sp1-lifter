@@ -101,7 +101,7 @@ The 1.2.0 column is the 2026-09-08/09 full-path set in `performance-table.md`; t
 - The root at 219 lands 5.8% **below** `root seconds = 42.40 + 1.0073 × n`, where the counts 4 and 64 land 0.58% and 0.61% above it. A refit over the three 1.3.0 points would read `45.10 + 0.929 × n` with a worst residual of 4.3%, which is not a law this record adopts from one run per count; the 1.2.0 law stands, with this point marked as its largest disagreement.
 - Carried as before, the elephant root at 219 is about 6,013 + 217 × 1.007 ≈ 6,232 s (1 h 44 m) on 1.3.0.
 
-🔴 **The fixture run of 2026-09-19 is still not a measurement**, but for a narrower reason than first recorded: it left `RAYON_NUM_THREADS` unset.
+**The fixture run of 2026-09-19 is still not a measurement**, but for a narrower reason than first recorded: it left `RAYON_NUM_THREADS` unset.
 Its `(user+sys)/real = 9.05` was first read as contention, which was a misapplication: 11.88 is the signature of a quiet run on the CPU-bound safe path, while on the full GPU path a quiet lift reads about 8.3, and the extra threads account for the higher figure.
 Whether that machine was also contended is unknown.
 
