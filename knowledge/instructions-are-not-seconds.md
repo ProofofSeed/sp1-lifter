@@ -53,7 +53,7 @@ The historical half is unanswerable in any case: it requires the withdrawn 2.0.0
 
 ## Provenance
 
-`HASH_FULL_SECONDS = 10,296.11` is confirmed against `fixtures/lift-219-gpusafe.summary.log:18`.
+`HASH_FULL_SECONDS = 10,296.11` is confirmed against `fixtures/lift-219-gpusafe.summary.log:18` at commit `35ed318`.
 
 `HASH_FULL_INSTRUCTIONS = 4.775013465e9` was an embedded constant whose ELF no longer exists and cannot be re-derived.
 It is supported by co-provenance with the seconds figure in the same commit, and by implying an old law (fixed 31.47e6, marginal 21.66e6) consistent with the current one (30.27e6, 19.89e6).

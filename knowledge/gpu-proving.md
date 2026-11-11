@@ -3,22 +3,22 @@
 > The absolute timings here were taken against the withdrawn ZKBoo 2.0.0 (see `zkboo-1.2.0-migration.md`).
 > The CPU-to-GPU *ratios* are properties of the SP1 backend and should carry; the seconds are of a workload that no longer exists.
 
-`sp1-metal` (hashberg-io, tag `v0.1.0`) is a Metal backend for SP1 Hypercube 6.4.0 on Apple Silicon.
+`sp1-metal` (tag `v0.1.0`; not yet public) is a Metal backend for SP1 Hypercube 6.4.0 on Apple Silicon.
 SP1's own GPU support is CUDA-only, so without it this machine's prover is the CPU.
 This note records what it does to *this* workload, which is not the workload it was measured on.
 
-All runs: M4 Max, 16 cores / 137 GB, `RAYON_NUM_THREADS=12 GOMAXPROCS=12`, stock shard thresholds, `RUST_LOG=error`, `/usr/bin/time -l`, one run at a time, nothing else of this session running.
-The machine was otherwise idle apart from a hardware monitor holding about 9% of one core (0.6% of the machine) and the editor session driving the runs; a previous campaign here was discarded for having been taken under real load, so what was and was not running is recorded rather than asserted.
+All runs: M4 Max, 16 cores / 137 GB, `RAYON_NUM_THREADS=12 GOMAXPROCS=12`, stock shard thresholds, `RUST_LOG=error`, `/usr/bin/time -l`, one run at a time, nothing else of this project running.
+The machine was otherwise idle apart from a hardware monitor holding about 9% of one core (0.6% of the machine) and the editor driving the runs; a previous campaign here was discarded for having been taken under real load, so what was and was not running is recorded rather than asserted.
 Statement: BIP-32 hardened child, zkboo 2.0.0, proof format 3, program fingerprint `d4825905…`, verifying key `0x004290a1…`.
 
 ## The setup
 
 Six `[patch.crates-io]` entries pinned to the tag, and a `metal` feature naming four of them; the workspace root carries the patches because that is the only place cargo honours them.
-Pinned to the tag rather than to the local checkout at `<sp1-metal>`, so that an edit there cannot move what was measured after it was measured.
+Pinned to the tag rather than to a local checkout, so that an edit there cannot move what was measured after it was measured.
 
 **Once the patches are in place, both arms run through the fork.**
 The CPU arm is reached by the `SP1_METAL_*` runtime switches, not by dropping the patch — which is the comparison `sp1-metal` recommends, because then nothing but the path under test differs.
-The switch list is in `fixtures/cpu-arm-switches.txt`.
+The switch list is in `fixtures/cpu-arm-switches.txt` at commit `35ed318`.
 That is *not* the same as comparing against the published prover, so the published prover was measured too, as a third arm.
 
 ## Compressed proving, one response, three arms
@@ -67,11 +67,11 @@ Not taken on trust, in this order:
 
 - **Seven phases run both ways and compared element for element on every call** — `ZEROCHECK`, `GKR_ROUND`, `ENCODE`, `FIRST_LAYER`, `BATCH`, `JAGGED_VALUES`, `JAGGED_ASSIST` all set to `check` for a full `lift 1 compressed`.
   No disagreement, and the proof verified.
-  That mode makes a disagreement fatal — `panic!` at `sum_as_poly.rs:486` — so it is a check that can fail, and it costs 16% — 198.15 s (`fixtures/metal-parity-check.summary.log`) against 170.62 s (`fixtures/metal-warmup.summary.log`).
+  That mode makes a disagreement fatal — `panic!` at `sum_as_poly.rs:486` — so it is a check that can fail, and it costs 16% — 198.15 s (`fixtures/metal-parity-check.summary.log` at commit `35ed318`) against 170.62 s (`fixtures/metal-warmup.summary.log` at commit `35ed318`).
 - **The verifying key and the public values are byte-identical across arms.**
   The patches touch host proving only; the guest ELF, and therefore the key, is untouched.
   Confirmed by producing the same fixture on each arm and comparing.
-- **`forge` 5/5 at 270,441 gas** on the GPU-produced fixture, at the same gas as the CPU-produced one, as a constant-size proof should be.
+- **`forge` 5/5 at 270,441 gas (retracted: harness-inflated; see `performance-table.md`)** on the GPU-produced fixture, at the same gas as the CPU-produced one, as a constant-size proof should be.
 
 The Groth16 proof bytes themselves differ between arms, which is expected: gnark's proving is randomised.
 

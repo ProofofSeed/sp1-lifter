@@ -44,7 +44,7 @@ This machine produces a hardened-child response in milliseconds where a Ledger F
 | produced-then-lifted (no overlap) |     356.57 s |     980.45 s |
 | **overlap saved**                 |    **1.00×** |    **1.27×** |
 
-**The "no interval" column has been re-run with its log kept** — `fixtures/stream-lift-n4-control.summary.log`, 2026-08-29, banner-confirmed safe GPU:
+**The "no interval" column has been re-run with its log kept** — `fixtures/stream-lift-n4-control.summary.log` at commit `35ed318`, 2026-08-29, banner-confirmed safe GPU:
 
 |                      |             re-run (logged) | the unlogged original |
 | -------------------- | --------------------------: | --------------------: |

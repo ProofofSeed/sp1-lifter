@@ -6,7 +6,7 @@ Each instruction is attributed to the innermost function executing it; figures a
 - `cycle-probe 2`: the monolithic hardened-child lift guest over two responses, every instruction recorded. 70,053,538 instructions, on the law `3.0274e7 + 1.9889e7 × n`.
 - `elephant-split 2 root-law` with `TRACE_SAMPLE_RATE=100`: the elephant root guest over two natively replayed leaves, one instruction in a hundred. 5,100,200,480 instructions, on the 2026-09-08 root law.
 
-Rollups: `fixtures/guest-profile-lift-n2-2026-09-15.summary.log` and `fixtures/guest-profile-elephant-root-n2-2026-09-15.summary.log`.
+Rollups: `fixtures/guest-profile-lift-n2-2026-09-15.summary.log` at commit `35ed318` and `fixtures/guest-profile-elephant-root-n2-2026-09-15.summary.log` at commit `35ed318`.
 
 The stack has since moved to zkboo 1.3.0 (`zkboo-1.3.0-migration.md`), which adds the BIP-32 validity assertions to the hardened child: +0.67% of guest instructions at 219 responses, and nothing that moves the shares below by more than that.
 The elephant statement is untouched by it.

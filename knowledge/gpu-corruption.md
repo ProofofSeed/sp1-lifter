@@ -1,7 +1,7 @@
 # An intermittent wrong proof on the GPU path
 
 > **FIXED UPSTREAM, and this repository was pinned behind the fix until 2026-09-08.**
-> `hashberg-io/sp1-metal` reproduced it, root-caused it, repaired it and held 400 proofs clean — all on `main`, 32 commits past the `v0.1.0` tag this repository patched to.
+> The Metal backend's maintainers reproduced it, root-caused it, repaired it and held 400 proofs clean — all on `main`, 32 commits past the `v0.1.0` tag this repository patched to.
 > So the `SP1_METAL_MERKLE=0` workaround below, and the 2.5x it costs, was being paid for a defect that no longer existed in code we could have been building.
 > The patch now points at `rev = cab9ba36db31`.
 >
@@ -17,7 +17,7 @@
 >
 > Everything below is kept as it was written on 2026-08-28, so the reasoning can be read against the answer.
 > Its figures are v0.1.0 figures.
-> Upstream's account is `<sp1-metal>/knowledge/2026-08-28-defect-wrong-proof.md`.
+> The upstream account of the defect is not yet public.
 
 
 Found 2026-08-28 while proving leaf after leaf on the Metal backend (`sp1-metal` v0.1.0, SP1 6.4.0).
@@ -119,4 +119,4 @@ For whoever picks this up in `sp1-metal`:
   A run left overnight produces nothing and says nothing.
   Even without a fix, failing loudly would turn a silent all-night loss into a five-minute one.
 
-Logs: `fixtures/gpu-failure-1.summary.log` and `gpu-failure-2.summary.log` (the two default-configuration failures), `repro-gpu-fresh.summary.log` (the private-buffer run that failed at leaf 40), `repro-gpu-nomerkle.summary.log` and `split-n64-leaves-gpu.summary.log` (the 51 and 64 clean proofs with the Merkle tree on the CPU).
+Logs: `fixtures/gpu-failure-1.summary.log` at commit `35ed318` and `gpu-failure-2.summary.log` (the two default-configuration failures), `repro-gpu-fresh.summary.log` (the private-buffer run that failed at leaf 40), `repro-gpu-nomerkle.summary.log` and `split-n64-leaves-gpu.summary.log` (the 51 and 64 clean proofs with the Merkle tree on the CPU). All in `fixtures/` at commit `35ed318`.

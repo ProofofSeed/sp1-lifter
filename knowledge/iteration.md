@@ -71,7 +71,7 @@ Acceptance re-run green on the final milestone tree after a host-side helper ref
 - **Keccak acceleration adopted** (guest-only `tiny-keccak` patch to `risc0/tiny-keccak` tag `tiny-keccak/v2.0.2-risczero.0`): guest cycles drop 3.45× (see `cycle-law.md`).
   The S1 acceptance (7-way reject matrix + full-scale positive) re-ran green on the accelerated guest — same circuit fingerprint (`33e1f70b…`, the fingerprint is of the ZKBoo circuit, not the guest), new image id.
 - **Metal proving requires the full-Xcode Metal shader compiler**, which is not installed (Command Line Tools only; `risc0-sys` metal build fails at `xcrun metal`).
-  Not adopted unilaterally — a ~12 GB Xcode install is Stefano's call; the S2 acceptance (receipt verifies) does not require Metal.
+  Not adopted unilaterally — a ~12 GB Xcode install was left to the project lead; the S2 acceptance (receipt verifies) does not require Metal.
   Flagged as the obvious speed lever if proving times matter later.
 - (RISC Zero era, superseded) Segment size was tunable via `ExecutorEnv::segment_limit_po2`; larger segments cut the per-segment lift/join recursion count.
   Neither the API nor that driver exists under SP1 — the equivalent knobs are `ELEMENT_THRESHOLD`/`HEIGHT_THRESHOLD`, swept below, and `lift`'s second argument is the proof mode.
@@ -85,7 +85,7 @@ Acceptance re-run green on the final milestone tree after a host-side helper ref
 - risc0's Groth16 wrap: x86-only rapidsnark, unavailable on this machine even via Docker.
 - **SP1 6.0.1, practically verified on this M4 Max:** template fibonacci core→compress→shrink→**native Groth16 wrap** (no Docker, `native-gnark`) succeeded — real EVM proof + fixture, 21.7 min wall including first-time SDK/gnark builds and artifact downloads, peak RSS 28 GB.
   One dependency nit: sp1-prover 6.0.1 needs `tempfile ≥ 3.20` (`TempDir::keep`), fixed by `cargo update -p tempfile`.
-- **Stefano ratified the switch to SP1** (see the amendment in `milestones.md`) with the constraint that the whole chain runs on this machine.
+- **The switch to SP1 was ratified** (see the amendment in `milestones.md`) with the constraint that the whole chain runs on this machine.
   Port record continues below.
 
 ## SP1 port
@@ -111,7 +111,7 @@ Marginal rate consistent across both points (~210 kHz effective).
 **Memory is scale-independent** (phase-oscillating 37–110 GB band at both n) and the compressed proof is constant-size — the succinct property, delivered.
 The S3 Groth16 pipeline re-runs core+compress internally (~same cost) plus shrink+wrap (template-measured ~minutes at ≤28 GB); the two full-scale runs must be strictly sequential (each peaks ~110 GB of the 137 GB).
 
-**Standing constraint (Stefano, 2026-08-19): use at most ~75% of the machine's CPU** — all proving/build invocations run with `RAYON_NUM_THREADS=12` and `GOMAXPROCS=12` (16-core machine; observed holding at ~1120% of the ~1200% ceiling).
+**Standing constraint (2026-08-19): use at most ~75% of the machine's CPU** — all proving/build invocations run with `RAYON_NUM_THREADS=12` and `GOMAXPROCS=12` (16-core machine; observed holding at ~1120% of the ~1200% ceiling).
 Scales the full-scale estimates by ~4/3: **~9.8 h per full 219 run, ~20 h for the sequential S2+S3 chain.**
 
 ### Adversarial review of the SP1 port (2026-08-19): NO soundness defects
@@ -128,10 +128,10 @@ NOT-CHECKED by the review: the ~500-line Groth16 pairing assembly body (VK const
 
 ### S2 full-scale run and the overnight dependency drift (2026-08-19 → 20)
 
-The detached full-scale chain's first leg **passed**: `s2-prove 219` proved the full classical-128 lift compressed in **30 358.8 s wall (8 h 26 m) at the 12-thread cap**, peak RSS 114.2 GB, compressed proof 1 272 755 bytes, relying-party gate green ("compressed proving run: PASS", preserved in `fixtures/s2-full-2026-08-19.log`).
+The detached full-scale chain's first leg **passed**: `s2-prove 219` proved the full classical-128 lift compressed in **30 358.8 s wall (8 h 26 m) at the 12-thread cap**, peak RSS 114.2 GB, compressed proof 1 272 755 bytes, relying-party gate green ("compressed proving run: PASS", preserved in `fixtures/s2-full-2026-08-19.log` at commit `35ed318`).
 That beats the 4/3-scaled ~9.8 h estimate — the cap only binds during the fully parallel phases.
 
-The S3 leg then **died at build time**: the shared `<zkboo>` checkout had been advanced by the parallel multi-chain session while the chain ran.
+The S3 leg then **died at build time**: the shared zkboo checkout had been advanced by a parallel job while the chain ran.
 `zkboo-bip32` now depends on `zkboo-ripemd160` (unpublished), which the patch table did not cover; deeper, the stack itself changed — the core crate adopted the **ZKB++ view commitment** (dropping linear-wire hashing) and halved wide-multiplication AND cost, and `zkboo-sha2` gained midstate-resumable compression and single-AND ch/maj.
 Response to the drift:
 
@@ -151,7 +151,7 @@ The relaunched chain (prebuilt binaries, 12-thread cap, pinned zkboo revs above)
   24% faster than the first-pass run on the pre-drift circuit (30 358.8 s), tracking the −17.7% instruction count.
   New capped law point: ≈ 105 s/response.
 - **S3 (Groth16 wrap, n=219): PASS** — full core→compress→shrink→native-gnark pipeline **23 125.0 s (6 h 25 m)**, leg wall 23 134.2 s, peak RSS 115.3 GB; wrapped proof 356 bytes, public values 186 bytes (the n=1 smoke's 185 plus one varint byte for the count); relying-party gate green on 219 responses; fixture `verifier/fixtures/lift-219.onchain.json`.
-- **On-chain acceptance (forge, audited SP1VerifierGroth16 v6.1.0): 5/5 PASS, `verifyProof` = 270 441 gas** — identical to the smoke figure, as expected for a constant-size proof.
+- **On-chain acceptance (forge, audited SP1VerifierGroth16 v6.1.0): 5/5 PASS, `verifyProof` = 270 441 gas (retracted: harness-inflated; see `performance-table.md`)** — identical to the smoke figure, as expected for a constant-size proof.
   Rejects: corrupted proof / wrong vkey / wrong public values → `ProofInvalid`; wrong selector → `WrongVerifierSelector`. (The corrupted-proof case's reported gas remains the known cheatcode accounting artifact of the reverted pairing frame.)
 
 Total sequential chain wall: 12 h 48 m at the ~75% CPU cap.

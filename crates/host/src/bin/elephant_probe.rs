@@ -72,7 +72,7 @@ const PRIV_KEY: [u8; 32] = [
 /// would inflate the rate's denominator with work the guest does not do.
 ///
 /// PROVENANCE: `lift 219`, this machine, 2026-09-21, zkboo 1.3.0 (local trees), full GPU path,
-/// `fixtures/lift-219-2026-09-21.summary.log` — 3,665.72 s of process wall clock. It must be
+/// `fixtures/lift-219-2026-09-21.summary.log` at commit `35ed318` — 3,665.72 s of process wall clock. It must be
 /// taken on the release the instruction law below is refitted on, or the rate divides one
 /// circuit's work by another's time. Superseding 3,613.03 s on zkboo 1.2.0 (2026-09-09),
 /// 9,927.49 s on the safe path of 2026-09-07, and a 2.0.0-era 10,296.11 s before it. Update
