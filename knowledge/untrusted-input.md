@@ -14,8 +14,9 @@ They do not; what follows is the evidence and the one change it produced.
 
 ## The replay's length and shape assumptions
 
-- A short AND-message vector is zero-filled past its end without advancing the cursor, and `check_consumed` requires the cursor to equal the vector's length, so a short vector passes only when the cursor lands exactly on its length and a long one never passes.
-  This is encoding malleability without soundness content: the prover chooses the AND-message words freely, so every word sequence a short encoding induces is also the induced sequence of some explicit full-length encoding, and no consumer hashes or deduplicates proof bytes.
+- Under zkboo 1.3.0, a short AND-message vector was zero-filled past its end without advancing the cursor, and `check_consumed` requires the cursor to equal the vector's length, so a short vector passed only when the cursor landed exactly on its length and a long one never passed.
+  This was encoding malleability without soundness content: the prover chooses the AND-message words freely, so every word sequence a short encoding induces is also the induced sequence of some explicit full-length encoding, and no consumer hashes or deduplicates proof bytes.
+  zkboo 1.3.1 (2026-11-11) makes the cursor count the words demanded, so a short vector now fails replay as a long one did; the lifter moved to it on 2026-11-12 (`zkboo-1.3.1-migration.md`).
 - The party-2 input share is present exactly when the challenge opens party 2, checked by `is_well_formed` before any replay in `verify`, `par_verify` and both leaf guests.
 - `verify` returns `Ok(false)` unless the proof carries exactly the named repetition count, the sequential verifier re-checks the ingested count at finalisation, the lift guest names the count the proof carries and commits it, and the gates demand their minimum of the committed count.
 - Finalisation refuses a replayed output whose shape differs from the expected output, and `Words::update_hasher` frames each word type with a feature byte and a length, so neither the challenge transcript nor the statement digest has a concatenation ambiguity.
