@@ -4,6 +4,7 @@ Two rounds sit in this file.
 The stack has since moved to zkboo 1.3.0 (`zkboo-1.3.0-migration.md`), which adds the BIP-32 validity assertions to the hardened child and so moves that statement's fingerprint, every guest key and the on-chain fixture.
 **The 1.3.0 re-measurement is below, under "Current figures", and supersedes the 1.2.0 rows it names**: the lift at 219 is 3,662.54 s (+1.37%), the elephant leaf 1,377.20 s and its root 6,012.93 s, and the on-chain cost is re-measured at 280,590 gas, unchanged.
 The **1.2.0 round** remains current for every figure the 1.3.0 round does not re-take.
+**On 2026-11-12 `zkboo` alone moved to 1.3.1** (`zkboo-1.3.1-migration.md`), which changes the verifier's handling of a short response vector and no circuit: the lift at 219 was re-taken at 3,820.30 s and 50.15 GB, the split at four leaves and the on-chain cost were re-taken, 280,590 gas unchanged, and the 1.3.0 round stands for every other figure.
 Everything under "The 2.0.0 round" was measured against the withdrawn ZKBoo 2.0.0 and is kept for the rows the 1.2.0 round has not re-taken — read those for the method and the shape of the results, never for the numbers, and never rescale one by a factor observed elsewhere.
 `instructions-are-not-seconds.md` is this project's shortest illustration of why that last rule exists.
 
@@ -18,6 +19,19 @@ A figure from one configuration must never be compared with one from the other w
 On the safe path the full-soundness lift delivered `(user+sys)/real = 11.88` of 12 requested threads, which is what "quiet" meant there.
 **That signature does not carry to the full path**, where the GPU does most of the work: a quiet `lift 219` reads 8.36 (2026-09-09) and 8.29 (2026-09-21).
 Compare a run's ratio with a quiet run of the same workload on the same path, never with a figure from the other one.
+
+### zkboo 1.3.1 (2026-11-12, full path)
+
+| workload                           |      1.3.0 |      1.3.1 | change |
+| ---------------------------------- | ---------: | ---------: | -----: |
+| `lift 219`, proving                | 3,662.54 s | 3,820.30 s | +4.31% |
+| `lift 219`, peak RSS               |   50.95 GB |   50.15 GB | −1.57% |
+| hardened-child leaf, mean over 4   |    22.99 s |    24.26 s | +5.52% |
+| hardened-child root over 4         |    46.70 s |    49.73 s | +6.49% |
+| on-chain, pairing check + gate     |    280,590 |    280,590 |      0 |
+
+The guest's instruction count at 219 moved by 3,177 (4,415,364,477 to 4,415,367,654), so none of the seconds is the release; neither launch was on a machine checked quiet, one run on each side, and `zkboo-1.3.1-migration.md` attributes the differences to nothing.
+The 1.3.0 rows below stand for everything this round did not re-take, the split at 64 and 219 leaves and the elephant path among them.
 
 ### zkboo 1.3.0 (2026-09-21 and 2026-09-22, full path; the root over 4 is of 2026-09-19)
 
