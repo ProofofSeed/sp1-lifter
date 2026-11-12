@@ -12,7 +12,7 @@ use std::process::Command;
 /// tree that resolves anything else does not build. The crates are released independently, so
 /// the version is per crate; a zkboo crate missing from the table is refused.
 const REQUIRED_ZKBOO_VERSIONS: &[(&str, &str)] = &[
-    ("zkboo", "1.3.0"),
+    ("zkboo", "1.3.1"),
     ("zkboo-bip32", "1.3.0"),
     ("zkboo-circuit-hash", "1.3.0"),
     ("zkboo-ecc", "1.3.0"),

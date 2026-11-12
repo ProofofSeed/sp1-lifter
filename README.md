@@ -6,8 +6,8 @@ See `knowledge/milestones.md` for what is established so far, including the reco
 The repository is named for its proof system because other back ends are expected alongside it, not because SP1 is the only way to lift these proofs.
 
 The zkboo ecosystem was re-architected as 1.2.0 on 2026-09-04, changing every proof, every circuit fingerprint and every guest verifying key, with a second breaking change on 2026-09-06.
-It has moved twice since: 1.2.1 on 2026-09-09, and 1.3.0 on 2026-09-19, which makes the BIP-32 derivations assert the validity conditions BIP-32 states and makes a verifier name the repetition count it demands.
-Each port is complete and the stack has been rebuilt, re-keyed and re-proved; the 1.3.0 round re-measured the full-soundness lift, the split path at 4, 64 and 219 leaves, the elephant path and the on-chain cost, and the 1.2.0 round stands for every figure it did not re-take. The current figures are in `knowledge/performance-table.md` under "Current figures", and `knowledge/zkboo-1.2.0-migration.md`, `knowledge/zkboo-1.3.0-migration.md` and `knowledge/zkboo-next-delta.md` record what changed and what it cost.
+It has moved three times since: 1.2.1 on 2026-09-09, which this workspace skipped; 1.3.0 on 2026-09-19, which makes the BIP-32 derivations assert the validity conditions BIP-32 states and makes a verifier name the repetition count it demands; and `zkboo` alone to 1.3.1 on 2026-11-11, which makes a short AND-message or input-share vector fail replay instead of zero-filling.
+Each port is complete and the stack has been rebuilt, re-keyed and re-proved; the 1.3.0 round re-measured the full-soundness lift, the split path at 4, 64 and 219 leaves, the elephant path and the on-chain cost, the 1.3.1 round re-measured the full-soundness lift, the split at four leaves and the on-chain cost, and each earlier round stands for every figure a later one did not re-take. The current figures are in `knowledge/performance-table.md` under "Current figures", and `knowledge/zkboo-1.2.0-migration.md`, `knowledge/zkboo-1.3.0-migration.md`, `knowledge/zkboo-1.3.1-migration.md` and `knowledge/zkboo-next-delta.md` record what changed and what it cost.
 Figures elsewhere in `knowledge/` belong to the previous round and say so; none of them may be rescaled into a current one, for a reason this project measured rather than assumed (`knowledge/instructions-are-not-seconds.md`).
 
 ## Status
@@ -36,7 +36,7 @@ Security caveats:
 
 Requires the SP1 toolchain (`sp1up`; sdk 6.4.0 with the `succinct` rust toolchain) and Go, for the native gnark wrap.
 The ZKBoo crates come from local checkouts from sibling working trees (`../../zkboo/*` relative to the workspace root), patched in at the workspace root, because every release since 1.2.0 is unpublished and every published version is yanked.
-The build script names the required version of each crate — they are released independently, and two of the ten are still at 1.2.0 — and refuses anything that does not resolve at exactly that version from a path, recording each checkout's git revision and dirty state into the binary.
+The build script names the required version of each crate — they are released independently, with `zkboo` at 1.3.1, two of the ten still at 1.2.0 and the rest at 1.3.0 — and refuses anything that does not resolve at exactly that version from a path, recording each checkout's git revision and dirty state into the binary.
 This inverts the arrangement that held while the crates were published, and should be inverted back when they are published again.
 
 Proving runs on the GPU.
@@ -68,7 +68,7 @@ cargo test --release -p pofseed-sp1-lift-host --test frame_fuzz   # mutated fram
 ```
 
 The Foundry suite reads a fixture that `lift` generates; without one it **skips**, and a fully skipped suite still prints `Suite result: ok`, so check for `18 tests passed` in the closing summary rather than `ok`.
-The fixture in `verifier/fixtures/` was regenerated from a full-soundness run on zkboo 1.3.0 on 2026-09-21; the three pins that describe it — verifying key, circuit fingerprint and proof-format identifier — were re-anchored when the port moved them, on 2026-09-19, and the 2026-09-21 fixture passes against them unchanged.
+The fixture in `verifier/fixtures/` was regenerated from a full-soundness run on zkboo 1.3.1 on 2026-11-12; of the three pins that describe it — verifying key, circuit fingerprint and proof-format identifier — the verifying key was re-anchored in the same change, and the other two did not move, because the release changes no circuit and no wire format.
 That matters more than it sounds: a fixture is internally consistent whatever produced it, so a stale one passes the suite silently, and a pin taken from an artefact only fails on the run *after* the artefact is replaced.
 
 `lift` performs one proving pass: in the default `groth16` mode the single SP1 call runs core → compress → shrink → wrap, so the on-chain fixture costs one pass rather than two.
@@ -111,7 +111,7 @@ None is published: crates.io has no namespace mechanism, so the prefix is what d
 
 - `verifier/` — Foundry suite over the vendored audited SP1 Groth16 verifier (sp1-contracts v6.1.0), and the relying-party journal gate as a Solidity library (see `verifier/README.md`).
 - `knowledge/` — design record, plan, and measured numbers.
-  `performance-table.md` is the current cost of everything and the place to start; `gpu-proving.md` covers what the Metal backend does to this workload and `gpu-corruption.md` the defect that used to bound it, fixed upstream and retired on 2026-09-08; `zkboo-1.2.0-migration.md` with `zkboo-next-delta.md` record the dependency re-architecture and `zkboo-1.3.0-migration.md` the releases since; `instructions-are-not-seconds.md` is why a saving in one may not be quoted as a saving in the other.
+  `performance-table.md` is the current cost of everything and the place to start; `gpu-proving.md` covers what the Metal backend does to this workload and `gpu-corruption.md` the defect that used to bound it, fixed upstream and retired on 2026-09-08; `zkboo-1.2.0-migration.md` with `zkboo-next-delta.md` record the dependency re-architecture and `zkboo-1.3.0-migration.md` and `zkboo-1.3.1-migration.md` the releases since; `instructions-are-not-seconds.md` is why a saving in one may not be quoted as a saving in the other.
 - `fixtures/` — not tracked; created by the drivers for run logs and cached leaf proofs (`fixtures/leaves/n<N>/` and `fixtures/elephant-leaves/n<N>/`).
   The distilled logs the notes cite were removed from the repository; each citation names the file as it stood at commit `35ed318`.
 
