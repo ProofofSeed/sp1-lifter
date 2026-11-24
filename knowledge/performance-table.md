@@ -5,6 +5,7 @@ The stack has since moved to zkboo 1.3.0 (`zkboo-1.3.0-migration.md`), which add
 **The 1.3.0 re-measurement is below, under "Current figures", and supersedes the 1.2.0 rows it names**: the lift at 219 is 3,662.54 s (+1.37%), the elephant leaf 1,377.20 s and its root 6,012.93 s, and the on-chain cost is re-measured at 280,590 gas, unchanged.
 The **1.2.0 round** remains current for every figure the 1.3.0 round does not re-take.
 **On 2026-11-12 `zkboo` alone moved to 1.3.1** (`zkboo-1.3.1-migration.md`), which changes the verifier's handling of a short response vector and no circuit: the lift at 219 was re-taken at 3,820.30 s and 50.15 GB, the split at four leaves and the on-chain cost were re-taken, 280,590 gas unchanged, and the 1.3.0 round stands for every other figure.
+**On 2026-11-24 the zkboo crates moved from local trees to the identical releases on crates.io** (`zkboo-crates-io-migration.md`), which moved every guest key and no circuit: a quiet lift at 219 read 3,809.72 s and 50.28 GB, reproducing the 2026-11-12 figure to 0.28%, and the on-chain cost is 280,590 gas, unchanged.
 Everything under "The 2.0.0 round" was measured against the withdrawn ZKBoo 2.0.0 and is kept for the rows the 1.2.0 round has not re-taken — read those for the method and the shape of the results, never for the numbers, and never rescale one by a factor observed elsewhere.
 `instructions-are-not-seconds.md` is this project's shortest illustration of why that last rule exists.
 
@@ -19,6 +20,17 @@ A figure from one configuration must never be compared with one from the other w
 On the safe path the full-soundness lift delivered `(user+sys)/real = 11.88` of 12 requested threads, which is what "quiet" meant there.
 **That signature does not carry to the full path**, where the GPU does most of the work: a quiet `lift 219` reads 8.36 (2026-09-09) and 8.29 (2026-09-21).
 Compare a run's ratio with a quiet run of the same workload on the same path, never with a figure from the other one.
+
+### zkboo from crates.io (2026-11-24, full path)
+
+| workload                       | 1.3.1, local trees | crates.io  | change |
+| ------------------------------ | -----------------: | ---------: | -----: |
+| `lift 219`, proving            |         3,820.30 s | 3,809.72 s | −0.28% |
+| `lift 219`, peak RSS           |           50.15 GB |   50.28 GB | +0.26% |
+| `lift 219`, `(user+sys)/real`  |               8.20 |       8.24 |      — |
+| on-chain, pairing check + gate |            280,590 |    280,590 |      0 |
+
+The 2026-11-24 run was launched on a quiet machine (load 0.97); it is 4.02% above the September figure, which the 2026-11-12 record had left open as possibly noise.
 
 ### zkboo 1.3.1 (2026-11-12, full path)
 

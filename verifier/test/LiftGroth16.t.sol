@@ -82,7 +82,7 @@ contract LiftGroth16Test is Test {
     /// It is deliberately a pin: when the program legitimately changes, this fails, and
     /// updating it is the act of accepting the new program.
     bytes32 internal constant EXPECTED_VKEY =
-        0x000105a97118f004455341061a0bcb97815fbe560ac25bc9198148e3c47caa85;
+        0x00bf1adc7ba480180f27a025f5f2692c029f6ec1eeecfdc7fc0d5c726ba5be5e;
 
     /// `REQUIRED_PROOF_FORMAT_ID` from the statement crate: the digest of a canonical
     /// reference proof. It is the journal's last field and postcard writes a fixed-size
