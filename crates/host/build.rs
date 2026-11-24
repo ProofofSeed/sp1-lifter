@@ -2,7 +2,6 @@
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 /// The zkboo release each crate this workspace links is built against.
 ///
@@ -29,58 +28,10 @@ fn workspace_root() -> PathBuf {
     return Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
 }
 
-/// The paths `[patch.crates-io]` redirects the zkboo crates to, read from the root manifest.
-///
-/// Read rather than assumed: the guard below reports which working tree each crate was compiled
-/// from, and a hardcoded path would report a location the build need not have used.
-fn patched_paths() -> Vec<(String, PathBuf)> {
-    let manifest_path = workspace_root().join("Cargo.toml");
-    println!("cargo::rerun-if-changed={}", manifest_path.display());
-    let manifest = std::fs::read_to_string(&manifest_path)
-        .unwrap_or_else(|e| panic!("cannot read {}: {e}", manifest_path.display()));
-    let mut paths = Vec::new();
-    for line in manifest.lines().map(str::trim) {
-        let Some((name, rest)) = line.split_once('=') else { continue };
-        let name = name.trim();
-        if !name.starts_with("zkboo") {
-            continue;
-        }
-        let Some(start) = rest.find("path = \"") else { continue };
-        let rest = &rest[start + "path = \"".len()..];
-        let Some(end) = rest.find('"') else { continue };
-        paths.push((name.to_string(), workspace_root().join(&rest[..end])));
-    }
-    return paths;
-}
+/// The lockfile's source for crates.io.
+const CRATES_IO: &str = "registry+https://github.com/rust-lang/crates.io-index";
 
-/// A one-line description of a checkout: its short revision, and whether it has local edits.
-///
-/// ⚠️ A dirty tree is reported, not refused. Refusing would make the crates unusable for the
-/// development they exist for. A measurement taken against uncommitted work says so on its face.
-fn checkout_provenance(name: &str, path: &Path) -> String {
-    let head = path.join(".git/HEAD");
-    if head.exists() {
-        println!("cargo::rerun-if-changed={}", head.display());
-    }
-    let git = |args: &[&str]| -> Option<String> {
-        let out = Command::new("git").arg("-C").arg(path).args(args).output().ok()?;
-        if !out.status.success() {
-            return None;
-        }
-        return Some(String::from_utf8_lossy(&out.stdout).trim().to_string());
-    };
-    let Some(rev) = git(&["rev-parse", "--short=12", "HEAD"]) else {
-        return format!("{name}=path:{}(no git)", path.display());
-    };
-    let dirty = match git(&["status", "--porcelain"]) {
-        Some(s) if !s.is_empty() => "-dirty",
-        Some(_) => "",
-        None => "-unknown",
-    };
-    return format!("{name}={rev}{dirty}");
-}
-
-/// Refuses to build unless every zkboo crate resolves at its required version, from a path.
+/// Refuses to build unless every zkboo crate resolves at its required version, from crates.io.
 ///
 /// This exists because of a failure that has already happened on this project. Every manifest
 /// here once required `zkboo = "1.0.0"` and redirected it through `[patch.crates-io]` to a local
@@ -91,20 +42,17 @@ fn checkout_provenance(name: &str, path: &Path) -> String {
 /// tree, so it named a version the binary did not contain.
 ///
 /// The guard therefore reads the lockfile, which records what was actually resolved, and never
-/// the working tree. What it requires has been inverted since that failure, because zkboo 1.2.0
-/// is unpublished and every published version is yanked: a registry source is now the symptom of
-/// a disengaged patch rather than the desired state, and a path source is what a correct build
-/// looks like. The version requirement does the rest — an exact requirement on an unpublished
-/// release matches nothing on crates.io, so a disengaged patch fails to resolve rather than
-/// resolving elsewhere.
-///
-/// Restore the registry form of this check when these releases are published.
+/// the working tree. A registry source pins the bytes by checksum, which this records into the
+/// binary; a path source, from a `[patch]` in a manifest or a cargo configuration, pins nothing
+/// and is refused. Between 2026-09 and 2026-11-24, while these releases were unpublished, the
+/// requirement ran the other way and a path source was the only correct one.
 fn check_zkboo_provenance() -> String {
     let lock_path = workspace_root().join("Cargo.lock");
     println!("cargo::rerun-if-changed={}", lock_path.display());
     let lock = std::fs::read_to_string(&lock_path)
         .unwrap_or_else(|e| panic!("cannot read {}: {e}", lock_path.display()));
     let mut found = 0usize;
+    let mut summary = String::new();
     for block in lock.split("[[package]]") {
         let field = |key: &str| -> Option<&str> {
             block
@@ -117,7 +65,7 @@ fn check_zkboo_provenance() -> String {
             continue;
         }
         let version = field("version").unwrap_or("<none>");
-        let source = field("source").unwrap_or("");
+        let source = field("source").unwrap_or("a path");
         let Some(&(_, required)) = REQUIRED_ZKBOO_VERSIONS.iter().find(|(n, _)| *n == name) else {
             panic!(
                 "provenance guard: {name} is in the lockfile but has no required version. Add it \
@@ -130,10 +78,15 @@ fn check_zkboo_provenance() -> String {
              requirement rather than this check.",
         );
         assert!(
-            source.is_empty(),
-            "provenance guard: {name} {version} resolves from {source} rather than from a path \
-             override. While zkboo is unpublished that means the patch table has disengaged and \
-             the bytes being compiled are not the ones intended.",
+            source == CRATES_IO,
+            "provenance guard: {name} {version} resolves from {source} rather than from crates.io, \
+             so a [patch] is in force and the bytes being compiled are not the published ones.",
+        );
+        let checksum = field("checksum").unwrap_or("<none>");
+        let _ = write!(
+            summary,
+            "{name}={version}@{} ",
+            &checksum[..checksum.len().min(12)]
         );
         found += 1;
     }
@@ -143,19 +96,8 @@ fn check_zkboo_provenance() -> String {
          at least eight, so either the lockfile is not the one this build resolves against or the \
          parser above has stopped matching it.",
     );
-    let patched = patched_paths();
-    assert!(
-        patched.len() >= found,
-        "provenance guard: the lockfile carries {found} zkboo crates but the root manifest \
-         patches only {}. An unpatched crate would be resolved from the registry.",
-        patched.len(),
-    );
-    let mut summary = String::new();
-    for (name, path) in &patched {
-        let _ = write!(summary, "{} ", checkout_provenance(name, path));
-    }
     return format!(
-        "{found} crates at their required versions from local paths: {}",
+        "{found} crates at their required versions from crates.io: {}",
         summary.trim_end(),
     );
 }

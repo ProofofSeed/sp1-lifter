@@ -32,17 +32,17 @@
 //! drifted, printing the correct value. Run it after anything that touches a leaf program or
 //! what it links.
 
-// Re-derived 2026-11-12 against zkboo 1.3.1, whose replay source fails a short AND-message or
-// input-share vector instead of zero-filling it. Both keys moved, as they did on 2026-09-19 for
-// 1.3.0 and as does anything a guest links — a crate's version alone is enough. `vkeys` is what
-// produced them and what refuses if they drift again.
+// Re-derived 2026-11-24, when the zkboo crates moved from local path overrides to the identical
+// releases on crates.io. Both keys moved, as they did on 2026-11-12 for 1.3.1 and on 2026-09-19
+// for 1.3.0: a crate's source alone is enough, as is its version or anything a guest links.
+// `vkeys` is what produced them and what refuses if they drift again.
 
 /// The verifying key of `program-leaf`, the hardened-child leaf.
 pub const LEAF_VK: [u32; 8] = [
-    0x46673f6c, 0x3024d679, 0x57b64cc9, 0x0f556b57, 0x5d4b76ad, 0x0b0a2df6, 0x5110489f, 0x7357c3d5,
+    0x005851e0, 0x7bd972ed, 0x764e0f1a, 0x69de7d94, 0x6d7d47fd, 0x366ed7d9, 0x55d14941, 0x361c2fb5,
 ];
 
 /// The verifying key of `program-leaf-elephant`, the Ethereum-address leaf.
 pub const LEAF_ELEPHANT_VK: [u32; 8] = [
-    0x25bf7b58, 0x31acee10, 0x6dae30bf, 0x75940d64, 0x3e264f02, 0x6cec50a1, 0x0dc1d916, 0x7989cd08,
+    0x6d5f6c89, 0x481525ef, 0x643a9282, 0x67679057, 0x60ca7cb4, 0x2ec367c0, 0x72e3e6c0, 0x3edc1e1f,
 ];
